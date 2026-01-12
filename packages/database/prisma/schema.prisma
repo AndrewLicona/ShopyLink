@@ -1,0 +1,114 @@
+// packages/database/prisma/schema.prisma
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+// Representa a un Owner de tienda (vinculado a Supabase Auth)
+model User {
+    id        String   @id @default(uuid())
+    email     String   @unique
+    name      String?
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    stores Store[]
+}
+
+model Store {
+    id          String   @id @default(uuid())
+    name        String
+    slug        String   @unique // Para la URL pública: shopylink.com/mi-tienda
+    description String?
+    logoUrl     String?
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    userId String
+    user   User   @relation(fields: [userId], references: [id])
+
+    categories Category[]
+    products   Product[]
+    orders     Order[]
+}
+
+model Category {
+    id       String    @id @default(uuid())
+    name     String
+    slug     String
+    storeId  String
+    store    Store     @relation(fields: [storeId], references: [id])
+    products Product[]
+
+    @@unique([storeId, slug]) // El slug es único por tienda
+}
+
+model Product {
+    id            String   @id @default(uuid())
+    name          String
+    description   String?
+    price         Decimal  @db.Decimal(10, 2)
+    discountPrice Decimal? @db.Decimal(10, 2)
+    images        String[] // Array de URLs
+    isActive      Boolean  @default(true)
+
+    storeId String
+    store   Store  @relation(fields: [storeId], references: [id])
+
+    categoryId String?
+    category   Category? @relation(fields: [categoryId], references: [id])
+
+    inventory  Inventory?
+    orderItems OrderItem[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model Inventory {
+    id        String  @id @default(uuid())
+    stock     Int     @default(0)
+    productId String  @unique
+    product   Product @relation(fields: [productId], references: [id])
+}
+
+enum OrderStatus {
+    PENDING
+    CONFIRMED
+    CANCELLED
+    COMPLETED
+}
+
+model Order {
+    id            String      @id @default(uuid())
+    total         Decimal     @db.Decimal(10, 2)
+    status        OrderStatus @default(PENDING)
+    customerName  String
+    customerPhone String // WhatsApp number
+
+    storeId String
+    store   Store  @relation(fields: [storeId], references: [id])
+
+    items OrderItem[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model OrderItem {
+    id          String  @id @default(uuid())
+    quantity    Int
+    price       Decimal @db.Decimal(10, 2) // Precio al momento de la compra
+    productName String // Guardamos nombre por si cambia el original
+
+    orderId String
+    order   Order  @relation(fields: [orderId], references: [id])
+
+    productId String?
+    product   Product? @relation(fields: [productId], references: [id])
+}
