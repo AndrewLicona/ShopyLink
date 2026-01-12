@@ -182,35 +182,35 @@ export default function SettingsPage() {
             </div>
 
             {/* Tabs Selector */}
-            <div className="flex border-b border-gray-200 mb-8 overflow-x-auto no-scrollbar scroll-smooth">
+            <div className="flex flex-col sm:flex-row sm:border-b sm:border-gray-200 mb-8 gap-2 sm:gap-0">
                 <button
                     onClick={() => setActiveTab('info')}
-                    className={`px-8 py-4 text-sm font-black transition-all duration-300 whitespace-nowrap border-b-4 flex items-center gap-2 ${activeTab === 'info'
-                        ? "border-[var(--primary)] text-[var(--primary)] bg-[var(--primary)]/5 rounded-t-2xl"
-                        : "border-transparent text-[var(--text)]/40 hover:text-[var(--text)]/60 hover:bg-[var(--secondary)]/50 rounded-t-2xl"
+                    className={`px-6 py-4 text-sm font-black transition-all duration-300 flex items-center justify-center sm:justify-start gap-3 rounded-2xl sm:rounded-none sm:rounded-t-2xl sm:border-b-4 ${activeTab === 'info'
+                        ? "bg-[var(--primary)] text-[var(--primary-foreground)] shadow-lg shadow-[var(--primary)]/20 sm:shadow-none sm:bg-[var(--primary)]/5 sm:text-[var(--primary)] sm:border-[var(--primary)]"
+                        : "bg-[var(--surface)] text-[var(--text)]/60 border border-[var(--border)] sm:border-0 sm:border-transparent sm:bg-transparent hover:bg-[var(--secondary)] sm:hover:bg-[var(--primary)]/5 hover:text-[var(--text)]"
                         }`}
                 >
-                    <Store className="w-4 h-4" />
+                    <Store className="w-5 h-5 sm:w-4 sm:h-4" />
                     TIENDA & BRANDING
                 </button>
                 <button
                     onClick={() => setActiveTab('social')}
-                    className={`px-8 py-4 text-sm font-black transition-all duration-300 whitespace-nowrap border-b-4 flex items-center gap-2 ${activeTab === 'social'
-                        ? "border-pink-600 text-pink-600 bg-pink-50/50 rounded-t-2xl"
-                        : "border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50/50 rounded-t-2xl"
+                    className={`px-6 py-4 text-sm font-black transition-all duration-300 flex items-center justify-center sm:justify-start gap-3 rounded-2xl sm:rounded-none sm:rounded-t-2xl sm:border-b-4 ${activeTab === 'social'
+                        ? "bg-pink-600 text-white shadow-lg shadow-pink-600/20 sm:shadow-none sm:bg-pink-50/50 sm:text-pink-600 sm:border-pink-600"
+                        : "bg-[var(--surface)] text-[var(--text)]/60 border border-[var(--border)] sm:border-0 sm:border-transparent sm:bg-transparent hover:bg-[var(--secondary)] sm:hover:bg-pink-50/50 hover:text-[var(--text)]"
                         }`}
                 >
-                    <Globe className="w-4 h-4" />
+                    <Globe className="w-5 h-5 sm:w-4 sm:h-4" />
                     REDES SOCIALES
                 </button>
                 <button
                     onClick={() => setActiveTab('appearance')}
-                    className={`px-8 py-4 text-sm font-black transition-all duration-300 whitespace-nowrap border-b-4 flex items-center gap-2 ${activeTab === 'appearance'
-                        ? "border-yellow-500 text-yellow-500 bg-yellow-50/50 rounded-t-2xl"
-                        : "border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50/50 rounded-t-2xl"
+                    className={`px-6 py-4 text-sm font-black transition-all duration-300 flex items-center justify-center sm:justify-start gap-3 rounded-2xl sm:rounded-none sm:rounded-t-2xl sm:border-b-4 ${activeTab === 'appearance'
+                        ? "bg-yellow-500 text-white shadow-lg shadow-yellow-500/20 sm:shadow-none sm:bg-yellow-50/50 sm:text-yellow-500 sm:border-yellow-500"
+                        : "bg-[var(--surface)] text-[var(--text)]/60 border border-[var(--border)] sm:border-0 sm:border-transparent sm:bg-transparent hover:bg-[var(--secondary)] sm:hover:bg-yellow-50/50 hover:text-[var(--text)]"
                         }`}
                 >
-                    <Palette className="w-4 h-4" />
+                    <Palette className="w-5 h-5 sm:w-4 sm:h-4" />
                     APARIENCIA
                 </button>
             </div>
@@ -308,13 +308,45 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                         </div>
+                    ) : activeTab === 'social' ? (
+                        <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+                            <h3 className="text-sm font-black uppercase tracking-widest text-pink-600">Redes Sociales</h3>
+                            <p className="text-[var(--text)]/60 text-sm">Conecta tus redes sociales para que aparezcan en el footer de tu tienda.</p>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">Instagram</label>
+                                    <input type="url" className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-pink-500 focus:ring-4 focus:ring-pink-500/10 outline-none transition-all font-medium text-[var(--text)] bg-[var(--bg)]" placeholder="https://instagram.com/tu_usuario" value={instagramUrl} onChange={(e) => setInstagramUrl(e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">Facebook</label>
+                                    <input type="url" className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 outline-none transition-all font-medium text-[var(--text)] bg-[var(--bg)]" placeholder="https://facebook.com/tu_pagina" value={facebookUrl} onChange={(e) => setFacebookUrl(e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">TikTok</label>
+                                    <input type="url" className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-gray-900 focus:ring-4 focus:ring-gray-900/10 outline-none transition-all font-medium text-[var(--text)] bg-[var(--bg)]" placeholder="https://tiktok.com/@tu_usuario" value={tiktokUrl} onChange={(e) => setTiktokUrl(e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">Twitter / X</label>
+                                    <input type="url" className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-gray-900 focus:ring-4 focus:ring-gray-900/10 outline-none transition-all font-medium text-[var(--text)] bg-[var(--bg)]" placeholder="https://twitter.com/tu_usuario" value={twitterUrl} onChange={(e) => setTwitterUrl(e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">Pinterest</label>
+                                    <input type="url" className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-red-600 focus:ring-4 focus:ring-red-600/10 outline-none transition-all font-medium text-[var(--text)] bg-[var(--bg)]" placeholder="https://pinterest.com/tu_usuario" value={pinterestUrl} onChange={(e) => setPinterestUrl(e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">YouTube</label>
+                                    <input type="url" className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-red-600 focus:ring-4 focus:ring-red-600/10 outline-none transition-all font-medium text-[var(--text)] bg-[var(--bg)]" placeholder="https://youtube.com/@tu_canal" value={youtubeUrl} onChange={(e) => setYoutubeUrl(e.target.value)} />
+                                </div>
+                            </div>
+                        </div>
                     ) : (
                         <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-right-4 duration-500">
                             {/* Theme Selection */}
                             <div className="space-y-8">
                                 <h3 className="text-sm font-black uppercase tracking-widest text-yellow-500">Diseño y Colores</h3>
 
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
                                     {[
                                         { id: 'classic', name: 'Classic', desc: 'Profesional & Azul', colors: ['#2563eb', '#ffffff'] },
                                         { id: 'fresh', name: 'Fresh', desc: 'Natural & Verde', colors: ['#10b981', '#ffffff'] },
@@ -330,19 +362,19 @@ export default function SettingsPage() {
                                             key={t.id}
                                             type="button"
                                             onClick={() => setTheme(t.id)}
-                                            className={`p-4 rounded-3xl border-2 transition-all text-left flex flex-col gap-4 ${theme === t.id
+                                            className={`p-3 md:p-4 rounded-2xl md:rounded-3xl border-2 transition-all text-left flex flex-col gap-3 md:gap-4 ${theme === t.id
                                                 ? 'border-[var(--primary)] bg-[var(--primary)]/5 ring-4 ring-[var(--primary)]/5 shadow-[var(--shadow-strong)]'
                                                 : 'border-[var(--border)] hover:border-[var(--text)]/10 bg-[var(--surface)]'
                                                 }`}
                                         >
                                             <div className="flex gap-1">
                                                 {t.colors.map((c, i) => (
-                                                    <div key={i} className="w-6 h-6 rounded-full shadow-inner" style={{ backgroundColor: c }} />
+                                                    <div key={i} className="w-5 h-5 md:w-6 md:h-6 rounded-full shadow-inner" style={{ backgroundColor: c }} />
                                                 ))}
                                             </div>
                                             <div>
-                                                <p className="font-black text-sm text-[var(--text)]">{t.name}</p>
-                                                <p className="text-[10px] text-[var(--text)]/40 font-bold uppercase">{t.desc}</p>
+                                                <p className="font-black text-xs md:text-sm text-[var(--text)]">{t.name}</p>
+                                                <p className="text-[9px] md:text-[10px] text-[var(--text)]/40 font-bold uppercase leading-tight">{t.desc}</p>
                                             </div>
                                         </button>
                                     ))}
@@ -352,61 +384,61 @@ export default function SettingsPage() {
                             {/* Mode Selection */}
                             <div className="space-y-6">
                                 <h3 className="text-sm font-black uppercase tracking-widest text-[var(--text)]">Modo de Visualización</h3>
-                                <div className="flex gap-4">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
                                     <button
                                         type="button"
                                         onClick={() => setMode('light')}
-                                        className={`flex-1 p-6 rounded-[2rem] border-2 flex flex-col items-center justify-center gap-2 transition-all ${mode === 'light'
+                                        className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${mode === 'light'
                                             ? 'border-yellow-500 bg-yellow-50/10 text-yellow-600'
                                             : 'border-[var(--border)] text-[var(--text)]/40 hover:border-[var(--border)]'
                                             }`}
                                     >
-                                        <Sun className="w-6 h-6" />
-                                        <span className="font-black text-[10px] tracking-widest">CLARO</span>
+                                        <Sun className="w-5 h-5 md:w-6 md:h-6" />
+                                        <span className="font-black text-[9px] md:text-[10px] tracking-widest">CLARO</span>
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setMode('dark')}
-                                        className={`flex-1 p-6 rounded-[2rem] border-2 flex flex-col items-center justify-center gap-2 transition-all ${mode === 'dark'
+                                        className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${mode === 'dark'
                                             ? 'border-gray-900 bg-gray-900 text-white'
                                             : 'border-[var(--border)] text-[var(--text)]/40 hover:border-[var(--border)]'
                                             }`}
                                     >
-                                        <Moon className="w-6 h-6" />
-                                        <span className="font-black text-[10px] tracking-widest">OSCURO</span>
+                                        <Moon className="w-5 h-5 md:w-6 md:h-6" />
+                                        <span className="font-black text-[9px] md:text-[10px] tracking-widest">OSCURO</span>
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setMode('beige')}
-                                        className={`flex-1 p-6 rounded-[2rem] border-2 flex flex-col items-center justify-center gap-2 transition-all ${mode === 'beige'
+                                        className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${mode === 'beige'
                                             ? 'border-[#d2b48c] bg-[#f5f5dc] text-[#4a3728]'
                                             : 'border-[var(--border)] text-[var(--text)]/40 hover:border-[var(--border)]'
                                             }`}
                                     >
-                                        <div className="w-6 h-6 rounded-full bg-[#f5f5dc] border border-[#d2b48c]" />
-                                        <span className="font-black text-[10px] tracking-widest">BEIGE</span>
+                                        <div className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-[#f5f5dc] border border-[#d2b48c]" />
+                                        <span className="font-black text-[9px] md:text-[10px] tracking-widest">BEIGE</span>
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setMode('gray')}
-                                        className={`flex-1 p-6 rounded-[2rem] border-2 flex flex-col items-center justify-center gap-2 transition-all ${mode === 'gray'
+                                        className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${mode === 'gray'
                                             ? 'border-gray-400 bg-gray-100 text-gray-700'
                                             : 'border-[var(--border)] text-[var(--text)]/40 hover:border-[var(--border)]'
                                             }`}
                                     >
-                                        <div className="w-6 h-6 rounded-full bg-gray-100 border border-gray-300" />
-                                        <span className="font-black text-[10px] tracking-widest uppercase">Gris Claro</span>
+                                        <div className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-gray-100 border border-gray-300" />
+                                        <span className="font-black text-[9px] md:text-[10px] tracking-widest uppercase text-center leading-tight">Gris<br className="hidden sm:inline" /> Claro</span>
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setMode('dark-gray')}
-                                        className={`flex-1 p-6 rounded-[2rem] border-2 flex flex-col items-center justify-center gap-2 transition-all ${mode === 'dark-gray'
+                                        className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${mode === 'dark-gray'
                                             ? 'border-gray-600 bg-gray-700 text-gray-100'
                                             : 'border-[var(--border)] text-[var(--text)]/40 hover:border-[var(--border)]'
                                             }`}
                                     >
-                                        <div className="w-6 h-6 rounded-full bg-gray-700 border border-gray-500" />
-                                        <span className="font-black text-[10px] tracking-widest uppercase text-center leading-none">Gris<br />Oscuro</span>
+                                        <div className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-gray-700 border border-gray-500" />
+                                        <span className="font-black text-[9px] md:text-[10px] tracking-widest uppercase text-center leading-tight">Gris<br />Oscuro</span>
                                     </button>
                                 </div>
                             </div>
@@ -416,7 +448,7 @@ export default function SettingsPage() {
                                 <h3 className="text-sm font-black uppercase tracking-widest text-[var(--primary)]">Sincronización de Interfaz</h3>
                                 <div
                                     onClick={() => setApplyToDashboard(!applyToDashboard)}
-                                    className={`p-6 rounded-[2rem] border-2 transition-all cursor-pointer flex items-center justify-between ${applyToDashboard ? 'border-[var(--primary)] bg-[var(--primary)]/10' : 'border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]'
+                                    className={`p-6 rounded-[2rem] border-2 transition-all cursor-pointer flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between ${applyToDashboard ? 'border-[var(--primary)] bg-[var(--primary)]/10' : 'border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]'
                                         }`}
                                 >
                                     <div className="space-y-1">
