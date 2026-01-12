@@ -13,7 +13,6 @@ import {
     ExternalLink,
     ChevronDown,
     PlusCircle,
-    Menu,
     X as CloseIcon
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
@@ -21,7 +20,6 @@ import { twMerge } from 'tailwind-merge';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
 import { StoreProvider, useStore } from '@/contexts/StoreContext';
 
 function cn(...inputs: ClassValue[]) {
@@ -54,7 +52,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
     if (storeLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-400 font-medium">
+            <div className="min-h-screen flex items-center justify-center bg-[var(--bg)] text-[var(--text)]/40 font-medium">
                 Cargando panel...
             </div>
         );
@@ -66,28 +64,32 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <div className="flex min-h-screen bg-white">
+        <div
+            data-theme={activeStore?.applyThemeToDashboard ? activeStore.theme : 'classic'}
+            data-mode={activeStore?.applyThemeToDashboard ? activeStore.mode : 'light'}
+            className="flex min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-300"
+        >
             {/* Mobile Header */}
-            <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-100 z-50 px-4 flex items-center justify-between">
+            <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[var(--bg)] border-b border-[var(--border)] z-50 px-4 flex items-center justify-between transition-colors">
                 <div className="relative">
                     <button
                         onClick={() => setIsSwitcherOpen(!isSwitcherOpen)}
                         className="flex items-center gap-3 active:scale-95 transition-all text-left"
                     >
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden shadow-sm border border-gray-50">
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden shadow-[var(--shadow)] border border-transparent bg-[var(--surface)]">
                             {activeStore?.logoUrl ? (
                                 <img src={activeStore.logoUrl} alt="Logo" className="w-full h-full object-contain" />
                             ) : (
-                                <div className="w-full h-full bg-blue-600 flex items-center justify-center">
-                                    <ShoppingBag className="text-white w-5 h-5" />
+                                <div className="w-full h-full bg-[var(--primary)] flex items-center justify-center">
+                                    <ShoppingBag className="text-[var(--bg)] w-5 h-5" />
                                 </div>
                             )}
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-sm font-black text-gray-900 leading-none truncate max-w-[120px]">{activeStore?.name || 'ShopyLink'}</span>
+                            <span className="text-sm font-black text-[var(--text)] leading-none truncate max-w-[120px]">{activeStore?.name || 'ShopyLink'}</span>
                             <div className="flex items-center gap-1 mt-0.5">
-                                <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Cambiar</span>
-                                <ChevronDown className="w-2.5 h-2.5 text-blue-400" />
+                                <span className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-widest">Cambiar</span>
+                                <ChevronDown className="w-2.5 h-2.5 text-[var(--primary)]/60" />
                             </div>
                         </div>
                     </button>
@@ -96,8 +98,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                     {isSwitcherOpen && (
                         <>
                             <div className="fixed inset-0 z-40" onClick={() => setIsSwitcherOpen(false)} />
-                            <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 py-2 animate-in fade-in slide-in-from-top-2">
-                                <div className="px-4 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Mis Tiendas</div>
+                            <div className="absolute top-full left-0 mt-2 w-64 bg-[var(--bg)] rounded-2xl shadow-xl border border-[var(--border)] z-50 py-2 animate-in fade-in slide-in-from-top-2">
+                                <div className="px-4 py-2 text-[10px] font-bold text-[var(--text)]/40 uppercase tracking-widest">Mis Tiendas</div>
                                 {stores.map(s => (
                                     <button
                                         key={s.id}
@@ -106,22 +108,22 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                                             setIsSwitcherOpen(false);
                                         }}
                                         className={cn(
-                                            "w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left",
-                                            activeStore?.id === s.id ? "bg-blue-50/50" : ""
+                                            "w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--secondary)] transition-colors text-left",
+                                            activeStore?.id === s.id ? "bg-[var(--primary)]/10" : ""
                                         )}
                                     >
-                                        <div className="w-8 h-8 rounded-lg overflow-hidden border border-gray-100 bg-white">
-                                            {s.logoUrl ? <img src={s.logoUrl} className="w-full h-full object-contain" /> : <div className="w-full h-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">{s.name[0]}</div>}
+                                        <div className="w-8 h-8 rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--bg)]">
+                                            {s.logoUrl ? <img src={s.logoUrl} className="w-full h-full object-contain" /> : <div className="w-full h-full bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] font-bold text-xs">{s.name[0]}</div>}
                                         </div>
-                                        <span className={cn("text-sm font-bold", activeStore?.id === s.id ? "text-blue-600" : "text-gray-700")}>{s.name}</span>
+                                        <span className={cn("text-sm font-bold", activeStore?.id === s.id ? "text-[var(--primary)]" : "text-[var(--text)]")}>{s.name}</span>
                                     </button>
                                 ))}
-                                <div className="h-px bg-gray-100 my-2" />
+                                <div className="h-px bg-[var(--border)] my-2" />
                                 <Link
                                     href="/setup"
-                                    className="flex items-center gap-3 px-4 py-3 text-sm font-bold text-gray-900 hover:bg-gray-50"
+                                    className="flex items-center gap-3 px-4 py-3 text-sm font-bold text-[var(--text)] hover:bg-[var(--secondary)]"
                                 >
-                                    <PlusCircle className="w-5 h-5 text-blue-600" />
+                                    <PlusCircle className="w-5 h-5 text-[var(--primary)]" />
                                     Nueva Tienda
                                 </Link>
                             </div>
@@ -131,14 +133,14 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
                 <button
                     onClick={() => setIsMobileMenuOpen(true)}
-                    className="w-10 h-10 flex items-center justify-center text-gray-400 hover:bg-gray-50 rounded-xl transition-colors border border-gray-100"
+                    className="w-10 h-10 flex items-center justify-center text-[var(--text)]/40 hover:bg-[var(--secondary)] rounded-xl transition-colors border border-[var(--border)]"
                 >
                     <Settings className="w-5 h-5" />
                 </button>
             </header>
 
             {/* Bottom Navigation (Mobile) */}
-            <nav className="md:hidden fixed bottom-6 left-4 right-4 h-16 bg-white/80 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.12)] z-50 rounded-[2rem] flex items-center justify-around px-2 overflow-hidden ring-1 ring-black/5">
+            <nav className="md:hidden fixed bottom-6 left-4 right-4 h-16 bg-[var(--bg)]/80 backdrop-blur-xl border border-[var(--border)] shadow-[var(--shadow-strong)] z-50 rounded-[2rem] flex items-center justify-around px-2 overflow-hidden ring-1 ring-[var(--text)]/5">
                 {menuItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = pathname === item.href;
@@ -148,12 +150,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                             href={item.href}
                             className={cn(
                                 "flex flex-col items-center justify-center p-2 rounded-2xl transition-all duration-300 relative",
-                                isActive ? "text-blue-600 scale-105" : "text-gray-400 hover:text-gray-600"
+                                isActive ? "text-[var(--primary)] scale-105" : "text-[var(--text)]/40 hover:text-[var(--text)]"
                             )}
                         >
                             <Icon className={cn("w-6 h-6", isActive ? "stroke-[2.5]" : "stroke-[1.5]")} />
                             {isActive && (
-                                <span className="absolute -bottom-1 w-1 h-1 bg-blue-600 rounded-full" />
+                                <span className="absolute -bottom-1 w-1 h-1 bg-[var(--primary)] rounded-full" />
                             )}
                         </Link>
                     );
@@ -162,23 +164,23 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
             {/* Sidebar (Desktop + Mobile Drawer) */}
             <aside className={cn(
-                "fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-100 z-[60] transition-transform duration-300 md:translate-x-0",
+                "fixed inset-y-0 left-0 w-64 bg-[var(--bg)] border-r border-[var(--border)] z-[60] transition-transform duration-300 md:translate-x-0",
                 isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
             )}>
                 <div className="flex flex-col h-full p-6 pt-10 md:pt-6">
                     {/* Drawer Header (Mobile) */}
                     <div className="md:hidden flex items-center justify-between mb-8">
                         <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                                <ShoppingBag className="text-white w-4 h-4" />
+                            <div className="w-8 h-8 bg-[var(--primary)] rounded-lg flex items-center justify-center">
+                                <ShoppingBag className="text-[var(--bg)] w-4 h-4" />
                             </div>
-                            <span className="font-extrabold text-gray-900 tracking-tight">ShopyLink</span>
+                            <span className="font-extrabold text-[var(--text)] tracking-tight">ShopyLink</span>
                         </div>
                         <button
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className="p-2 hover:bg-gray-50 rounded-xl"
+                            className="p-2 hover:bg-[var(--secondary)] rounded-xl"
                         >
-                            <CloseIcon className="w-5 h-5 text-gray-400" />
+                            <CloseIcon className="w-5 h-5 text-[var(--text)]/40" />
                         </button>
                     </div>
 
@@ -187,29 +189,29 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                     <div className="hidden md:block relative mb-10">
                         <button
                             onClick={() => setIsSwitcherOpen(!isSwitcherOpen)}
-                            className="w-full flex items-center gap-3 p-2 rounded-2xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100 active:scale-95"
+                            className="w-full flex items-center gap-3 p-2 rounded-2xl hover:bg-[var(--secondary)] transition-all border border-transparent active:scale-95"
                         >
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden border border-gray-100 shadow-sm">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden border border-transparent shadow-[var(--shadow)] bg-[var(--surface)]">
                                 {activeStore?.logoUrl ? (
                                     <img src={activeStore.logoUrl} alt="Logo" className="w-full h-full object-contain" />
                                 ) : (
-                                    <div className="w-full h-full bg-blue-600 flex items-center justify-center">
-                                        <ShoppingBag className="text-white w-6 h-6" />
+                                    <div className="w-full h-full bg-[var(--primary)] flex items-center justify-center">
+                                        <ShoppingBag className="text-[var(--bg)] w-6 h-6" />
                                     </div>
                                 )}
                             </div>
                             <div className="flex-1 text-left min-w-0">
-                                <p className="text-sm font-black text-gray-900 leading-none truncate">{activeStore?.name || 'ShopyLink'}</p>
-                                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">Dashboard</p>
+                                <p className="text-sm font-black text-[var(--text)] leading-none truncate">{activeStore?.name || 'ShopyLink'}</p>
+                                <p className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-widest mt-1">Dashboard</p>
                             </div>
-                            <ChevronDown className="w-4 h-4 text-gray-400" />
+                            <ChevronDown className="w-4 h-4 text-[var(--text)]/40" />
                         </button>
 
                         {isSwitcherOpen && (
                             <>
                                 <div className="fixed inset-0 z-[70]" onClick={() => setIsSwitcherOpen(false)} />
-                                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 z-[80] py-2 animate-in fade-in slide-in-from-top-2">
-                                    <div className="px-4 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Mis Tiendas</div>
+                                <div className="absolute top-full left-0 right-0 mt-2 bg-[var(--bg)] rounded-2xl shadow-2xl border border-[var(--border)] z-[80] py-2 animate-in fade-in slide-in-from-top-2">
+                                    <div className="px-4 py-2 text-[10px] font-bold text-[var(--text)]/40 uppercase tracking-widest">Mis Tiendas</div>
                                     {stores.map(s => (
                                         <button
                                             key={s.id}
@@ -218,22 +220,22 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                                                 setIsSwitcherOpen(false);
                                             }}
                                             className={cn(
-                                                "w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left",
-                                                activeStore?.id === s.id ? "bg-blue-50/50" : ""
+                                                "w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--secondary)] transition-colors text-left",
+                                                activeStore?.id === s.id ? "bg-[var(--primary)]/10" : ""
                                             )}
                                         >
-                                            <div className="w-8 h-8 rounded-lg overflow-hidden border border-gray-100 bg-white">
-                                                {s.logoUrl ? <img src={s.logoUrl} className="w-full h-full object-contain" /> : <div className="w-full h-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">{s.name[0]}</div>}
+                                            <div className="w-8 h-8 rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--bg)]">
+                                                {s.logoUrl ? <img src={s.logoUrl} className="w-full h-full object-contain" /> : <div className="w-full h-full bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] font-bold text-xs">{s.name[0]}</div>}
                                             </div>
-                                            <span className={cn("text-sm font-bold", activeStore?.id === s.id ? "text-blue-600" : "text-gray-700")}>{s.name}</span>
+                                            <span className={cn("text-sm font-bold", activeStore?.id === s.id ? "text-[var(--primary)]" : "text-[var(--text)]")}>{s.name}</span>
                                         </button>
                                     ))}
-                                    <div className="h-px bg-gray-100 my-2" />
+                                    <div className="h-px bg-[var(--border)] my-2" />
                                     <Link
                                         href="/setup"
-                                        className="flex items-center gap-3 px-4 py-3 text-sm font-bold text-gray-900 hover:bg-gray-50"
+                                        className="flex items-center gap-3 px-4 py-3 text-sm font-bold text-[var(--text)] hover:bg-[var(--secondary)]"
                                     >
-                                        <PlusCircle className="w-5 h-5 text-blue-600" />
+                                        <PlusCircle className="w-5 h-5 text-[var(--primary)]" />
                                         Nueva Tienda
                                     </Link>
                                 </div>
@@ -252,30 +254,30 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                                     className={cn(
                                         "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all group",
                                         isActive
-                                            ? "bg-blue-50 text-blue-600"
-                                            : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                                            ? "bg-[var(--primary)]/10 text-[var(--primary)]"
+                                            : "text-[var(--text)]/60 hover:bg-[var(--secondary)] hover:text-[var(--text)]"
                                     )}
                                 >
-                                    <Icon className={cn("w-5 h-5", isActive ? "text-blue-600" : "text-gray-400 group-hover:text-gray-600")} />
+                                    <Icon className={cn("w-5 h-5", isActive ? "text-[var(--primary)]" : "text-[var(--text)]/40 group-hover:text-[var(--text)]/60")} />
                                     {item.label}
                                 </Link>
                             );
                         })}
                     </nav>
 
-                    <div className="mt-auto space-y-1 pt-6 border-t border-gray-100">
+                    <div className="mt-auto space-y-1 pt-6 border-t border-[var(--border)]">
                         <Link
                             href={activeStore?.slug ? `/${activeStore.slug}` : '#'}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-all border-none bg-transparent active:scale-95 text-left w-full"
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-[var(--text)]/40 hover:bg-[var(--secondary)] hover:text-[var(--text)] transition-all border-none bg-transparent active:scale-95 text-left w-full"
                         >
-                            <ExternalLink className="w-5 h-5 text-gray-400" />
+                            <ExternalLink className="w-5 h-5 text-[var(--text)]/30" />
                             <span>Ver mi tienda</span>
                         </Link>
                         <button
                             onClick={handleLogout}
-                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-all active:scale-95"
+                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-500 hover:bg-red-500/10 transition-all active:scale-95"
                         >
                             <LogOut className="w-5 h-5" />
                             Cerrar Sesión

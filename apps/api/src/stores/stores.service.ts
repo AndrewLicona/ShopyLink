@@ -1,4 +1,3 @@
-
 import { Injectable, ConflictException } from '@nestjs/common';
 
 // Actually in my PrismaModule I exported PrismaClient directly but widely it's better to wrap it or use it directly.
@@ -14,62 +13,71 @@ import { UpdateStoreDto } from './dto/update-store.dto';
 
 @Injectable()
 export class StoresService {
-    constructor(private prisma: PrismaClient) { }
+  constructor(private prisma: PrismaClient) {}
 
-    async create(userId: string, userEmail: string, createStoreDto: CreateStoreDto) {
-        // Check if slug exists
-        const existing = await this.prisma.store.findUnique({
-            where: { slug: createStoreDto.slug },
-        });
-        if (existing) {
-            throw new ConflictException('Store identifier (slug) already exists');
-        }
-
-        // Upsert User to ensure local DB record exists
-        // We assume userId comes from Supabase Auth (UUID)
-        const user = await this.prisma.user.upsert({
-            where: { id: userId },
-            update: { email: userEmail },
-            create: {
-                id: userId,
-                email: userEmail,
-            },
-        });
-
-        return this.prisma.store.create({
-            data: {
-                ...createStoreDto,
-                userId: user.id,
-            },
-        });
+  async create(
+    userId: string,
+    userEmail: string,
+    createStoreDto: CreateStoreDto,
+  ) {
+    // Check if slug exists
+    const existing = await this.prisma.store.findUnique({
+      where: { slug: createStoreDto.slug },
+    });
+    if (existing) {
+      throw new ConflictException('Store identifier (slug) already exists');
     }
 
-    async findAllByUser(userId: string) {
-        return this.prisma.store.findMany({
-            where: { userId },
-            orderBy: { createdAt: 'desc' },
-        });
-    }
+    // Upsert User to ensure local DB record exists
+    // We assume userId comes from Supabase Auth (UUID)
+    const user = await this.prisma.user.upsert({
+      where: { id: userId },
+      update: { email: userEmail },
+      create: {
+        id: userId,
+        email: userEmail,
+      },
+    });
 
-    async findOneByUser(userId: string) {
-        return this.prisma.store.findFirst({
-            where: { userId },
-        });
-    }
+    return this.prisma.store.create({
+      data: {
+        ...createStoreDto,
+        userId: user.id,
+      },
+    });
+  }
 
-    async findOneBySlug(slug: string) {
-        return this.prisma.store.findUnique({
-            where: { slug },
-            include: {
-                categories: true,
-            },
-        });
-    }
+  async findAllByUser(userId: string) {
+    return this.prisma.store.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 
-    async update(id: string, userId: string, updateStoreDto: UpdateStoreDto) {
-        return this.prisma.store.update({
-            where: { id, userId }, // Ensure ownership
-            data: updateStoreDto
-        })
+  async findOneByUser(userId: string) {
+    return this.prisma.store.findFirst({
+      where: { userId },
+    });
+  }
+
+  async findOneBySlug(slug: string) {
+    return this.prisma.store.findUnique({
+      where: { slug },
+      include: {
+        categories: true,
+      },
+    });
+  }
+
+  async update(id: string, userId: string, updateStoreDto: UpdateStoreDto) {
+    try {
+      return await this.prisma.store.update({
+        where: { id, userId }, // Ensure ownership
+        data: updateStoreDto,
+      });
+    } catch (error) {
+      console.error('Prisma Update Error:', error);
+      throw error;
     }
+  }
 }

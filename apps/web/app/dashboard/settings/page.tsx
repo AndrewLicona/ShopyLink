@@ -11,9 +11,12 @@ import {
     Save,
     CheckCircle2,
     Upload,
-    X, // Added X import
+    X,
     X as CloseIcon,
-    ArrowLeft
+    ArrowLeft,
+    Palette,
+    Moon,
+    Sun
 } from 'lucide-react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
@@ -21,6 +24,7 @@ import { createClient } from '@/lib/supabase';
 import { storage } from '@/lib/storage';
 
 import { useStore } from '@/contexts/StoreContext';
+import { ConnectivityIcon } from '@/components/ConnectivityIcon';
 
 export default function SettingsPage() {
     const { activeStore, refreshStores } = useStore();
@@ -36,6 +40,16 @@ export default function SettingsPage() {
     const [hasManuallyEditedSlug, setHasManuallyEditedSlug] = useState(false);
     const [whatsapp, setWhatsapp] = useState('');
     const [logoUrl, setLogoUrl] = useState('');
+    const [instagramUrl, setInstagramUrl] = useState('');
+    const [facebookUrl, setFacebookUrl] = useState('');
+    const [tiktokUrl, setTiktokUrl] = useState('');
+    const [twitterUrl, setTwitterUrl] = useState('');
+    const [pinterestUrl, setPinterestUrl] = useState('');
+    const [youtubeUrl, setYoutubeUrl] = useState('');
+    const [theme, setTheme] = useState('classic');
+    const [mode, setMode] = useState('light');
+    const [applyToDashboard, setApplyToDashboard] = useState(false);
+    const [activeTab, setActiveTab] = useState<'info' | 'social' | 'appearance'>('info');
 
     const router = useRouter();
 
@@ -45,6 +59,15 @@ export default function SettingsPage() {
             setSlug(activeStore.slug);
             setWhatsapp(activeStore.whatsappNumber || '');
             setLogoUrl(activeStore.logoUrl || '');
+            setInstagramUrl(activeStore.instagramUrl || '');
+            setFacebookUrl(activeStore.facebookUrl || '');
+            setTiktokUrl(activeStore.tiktokUrl || '');
+            setTwitterUrl(activeStore.twitterUrl || '');
+            setPinterestUrl(activeStore.pinterestUrl || '');
+            setYoutubeUrl(activeStore.youtubeUrl || '');
+            setTheme(activeStore.theme || 'classic');
+            setMode(activeStore.mode || 'light');
+            setApplyToDashboard(activeStore.applyThemeToDashboard || false);
             setLoading(false);
         }
     }, [activeStore]);
@@ -101,12 +124,22 @@ export default function SettingsPage() {
                 slug,
                 whatsappNumber: whatsapp,
                 logoUrl,
+                instagramUrl,
+                facebookUrl,
+                tiktokUrl,
+                twitterUrl,
+                pinterestUrl,
+                youtubeUrl,
+                theme,
+                mode,
+                applyThemeToDashboard: applyToDashboard
             });
             await refreshStores();
             setSuccess(true);
             window.scrollTo({ top: 0, behavior: 'smooth' });
             setTimeout(() => setSuccess(false), 3000);
         } catch (err: any) {
+            console.error('Update Store Error:', err);
             setError(err.message || 'Error al actualizar la tienda');
         } finally {
             setSaving(false);
@@ -116,8 +149,8 @@ export default function SettingsPage() {
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-                <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
-                <p className="text-gray-500 font-medium">Cargando configuración...</p>
+                <Loader2 className="w-10 h-10 text-[var(--primary)] animate-spin" />
+                <p className="text-[var(--text)]/60 font-medium">Cargando configuración...</p>
             </div>
         );
     }
@@ -132,20 +165,57 @@ export default function SettingsPage() {
                     >
                         <ArrowLeft className="w-5 h-5" />
                     </Link>
-                    <div>
-                        <h1 className="text-3xl font-black text-gray-900">Configuración</h1>
-                        <p className="text-gray-500 mt-1">Personaliza los detalles de tu tienda.</p>
+                    <div className="flex items-center gap-3">
+                        <ConnectivityIcon className="w-10 h-10" />
+                        <div>
+                            <h1 className="text-3xl font-black text-[var(--text)]">Configuración</h1>
+                            <p className="text-[var(--text)]/60 mt-1">Personaliza los detalles de tu tienda.</p>
+                        </div>
                     </div>
+                    {success && (
+                        <div className="flex items-center gap-2 bg-green-50 text-green-600 px-4 py-2 rounded-xl text-sm font-bold border border-green-100 animate-in fade-in slide-in-from-top-2">
+                            <CheckCircle2 className="w-4 h-4" />
+                            ¡Cambios guardados!
+                        </div>
+                    )}
                 </div>
-                {success && (
-                    <div className="flex items-center gap-2 bg-green-50 text-green-600 px-4 py-2 rounded-xl text-sm font-bold border border-green-100 animate-in fade-in slide-in-from-top-2">
-                        <CheckCircle2 className="w-4 h-4" />
-                        ¡Cambios guardados!
-                    </div>
-                )}
             </div>
 
-            <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+            {/* Tabs Selector */}
+            <div className="flex border-b border-gray-200 mb-8 overflow-x-auto no-scrollbar scroll-smooth">
+                <button
+                    onClick={() => setActiveTab('info')}
+                    className={`px-8 py-4 text-sm font-black transition-all duration-300 whitespace-nowrap border-b-4 flex items-center gap-2 ${activeTab === 'info'
+                        ? "border-[var(--primary)] text-[var(--primary)] bg-[var(--primary)]/5 rounded-t-2xl"
+                        : "border-transparent text-[var(--text)]/40 hover:text-[var(--text)]/60 hover:bg-[var(--secondary)]/50 rounded-t-2xl"
+                        }`}
+                >
+                    <Store className="w-4 h-4" />
+                    TIENDA & BRANDING
+                </button>
+                <button
+                    onClick={() => setActiveTab('social')}
+                    className={`px-8 py-4 text-sm font-black transition-all duration-300 whitespace-nowrap border-b-4 flex items-center gap-2 ${activeTab === 'social'
+                        ? "border-pink-600 text-pink-600 bg-pink-50/50 rounded-t-2xl"
+                        : "border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50/50 rounded-t-2xl"
+                        }`}
+                >
+                    <Globe className="w-4 h-4" />
+                    REDES SOCIALES
+                </button>
+                <button
+                    onClick={() => setActiveTab('appearance')}
+                    className={`px-8 py-4 text-sm font-black transition-all duration-300 whitespace-nowrap border-b-4 flex items-center gap-2 ${activeTab === 'appearance'
+                        ? "border-yellow-500 text-yellow-500 bg-yellow-50/50 rounded-t-2xl"
+                        : "border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50/50 rounded-t-2xl"
+                        }`}
+                >
+                    <Palette className="w-4 h-4" />
+                    APARIENCIA
+                </button>
+            </div>
+
+            <div className="bg-[var(--surface)] rounded-[2.5rem] shadow-[var(--shadow)] border border-[var(--border)] overflow-hidden">
                 <form onSubmit={handleUpdateStore} className="p-8 md:p-12 space-y-10">
                     {error && (
                         <div className="p-4 bg-red-50 text-red-600 text-sm rounded-2xl border border-red-100 italic">
@@ -153,31 +223,30 @@ export default function SettingsPage() {
                         </div>
                     )}
 
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                        {/* Basic Info */}
-                        <div className="lg:col-span-12 xl:col-span-7 space-y-8">
-                            <h3 className="text-sm font-black uppercase tracking-widest text-blue-600">Información Básica</h3>
+                    {activeTab === 'info' ? (
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 animate-in fade-in slide-in-from-left-4 duration-500">
+                            {/* Basic Info */}
+                            <div className="lg:col-span-12 xl:col-span-7 space-y-8">
+                                <h3 className="text-sm font-black uppercase tracking-widest text-blue-600">Información Básica</h3>
 
-                            <div className="grid grid-cols-1 gap-6">
-                                {/* Store Info */}
-                                <div className="space-y-6">
+                                <div className="grid grid-cols-1 gap-6">
                                     <div>
-                                        <label className="text-sm font-bold text-gray-700 mb-2 block px-1">Nombre de la tienda</label>
+                                        <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">Nombre de la tienda</label>
                                         <input
                                             type="text"
-                                            className="w-full px-5 py-4 rounded-2xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all font-bold text-gray-900 bg-white"
+                                            className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/10 outline-none transition-all font-bold text-[var(--text)] bg-[var(--bg)]"
                                             value={name}
                                             onChange={handleNameChange}
                                         />
                                     </div>
 
                                     <div>
-                                        <label className="text-sm font-bold text-gray-700 mb-2 block px-1">Enlace de tu tienda</label>
-                                        <div className="flex items-center w-full px-5 py-4 rounded-2xl border-2 border-gray-200 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/10 bg-white transition-all overflow-hidden">
-                                            <span className="text-gray-400 font-bold text-sm whitespace-nowrap shrink-0">shopylink.com/</span>
+                                        <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">Enlace de tu tienda</label>
+                                        <div className="flex items-center w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus-within:border-[var(--primary)] focus-within:ring-4 focus-within:ring-[var(--primary)]/10 bg-[var(--bg)] transition-all overflow-hidden">
+                                            <span className="text-[var(--text)]/40 font-bold text-sm whitespace-nowrap shrink-0">shopylink.com/</span>
                                             <input
                                                 type="text"
-                                                className="flex-1 ml-1 outline-none font-black text-gray-900 bg-transparent text-sm min-w-0"
+                                                className="flex-1 ml-1 outline-none font-black text-[var(--text)] bg-transparent text-sm min-w-0"
                                                 value={slug}
                                                 onChange={handleSlugChange}
                                             />
@@ -185,10 +254,10 @@ export default function SettingsPage() {
                                     </div>
 
                                     <div>
-                                        <label className="text-sm font-bold text-gray-700 mb-2 block px-1 text-[#25D366]">WhatsApp para pedidos</label>
+                                        <label className="text-sm font-bold text-[#25D366] mb-2 block px-1 opacity-80">WhatsApp para pedidos</label>
                                         <input
                                             type="tel"
-                                            className="w-full px-5 py-4 rounded-2xl border-2 border-gray-200 focus:border-[#25D366] focus:ring-4 focus:ring-[#25D366]/10 outline-none transition-all font-bold text-gray-900 bg-white"
+                                            className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-[#25D366] focus:ring-4 focus:ring-[#25D366]/10 outline-none transition-all font-bold text-[var(--text)] bg-[var(--bg)]"
                                             placeholder="+57 300 000 000"
                                             value={whatsapp}
                                             onChange={(e) => setWhatsapp(e.target.value)}
@@ -196,56 +265,217 @@ export default function SettingsPage() {
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Branding */}
-                        <div className="lg:col-span-12 xl:col-span-5 space-y-8">
-                            <h3 className="text-sm font-black uppercase tracking-widest text-purple-600">Identidad Visual</h3>
+                            {/* Branding */}
+                            <div className="lg:col-span-12 xl:col-span-5 space-y-8">
+                                <h3 className="text-sm font-black uppercase tracking-widest text-purple-600">Identidad Visual</h3>
 
-                            <div className="space-y-6">
-                                <label className="text-sm font-bold text-gray-700 mb-2 block px-1">
-                                    Logo de la Tienda
-                                </label>
+                                <div className="space-y-6">
+                                    <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">
+                                        Logo de la Tienda
+                                    </label>
 
-                                <div className="p-8 border-2 border-dashed border-gray-200 rounded-[2.5rem] bg-gray-50/50 flex flex-col items-center justify-center gap-6 relative group/logo transition-colors hover:border-blue-200">
-                                    <div className="w-32 h-32 md:w-40 md:h-40 bg-white rounded-[2rem] shadow-sm border border-gray-200 flex items-center justify-center text-6xl overflow-hidden relative">
-                                        {logoUrl ? (
-                                            <>
-                                                <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setLogoUrl('')}
-                                                    className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-xl opacity-0 group-hover/logo:opacity-100 transition-opacity shadow-lg"
-                                                >
-                                                    <X className="w-4 h-4" />
-                                                </button>
-                                            </>
-                                        ) : (
-                                            <Store className="w-16 h-16 text-gray-200" />
-                                        )}
-                                        {uploading && (
-                                            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
-                                                <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="w-full max-w-[200px]">
-                                        <label className="flex items-center justify-center gap-2 w-full py-4 bg-white border-2 border-gray-200 rounded-2xl font-bold text-sm text-gray-600 cursor-pointer hover:bg-gray-50 active:scale-95 transition-all shadow-sm">
-                                            <Upload className="w-4 h-4" />
-                                            {logoUrl ? 'Cambiar Logo' : 'Subir Logo'}
-                                            <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} disabled={uploading} />
-                                        </label>
+                                    <div className="p-8 border-2 border-dashed border-[var(--border)] rounded-[2.5rem] bg-[var(--secondary)]/30 flex flex-col items-center justify-center gap-6 relative group/logo transition-colors hover:border-[var(--primary)]/40">
+                                        <div className="w-32 h-32 md:w-40 md:h-40 bg-[var(--surface)] rounded-[2rem] shadow-[var(--shadow)] border border-[var(--border)] flex items-center justify-center text-6xl overflow-hidden relative">
+                                            {logoUrl ? (
+                                                <>
+                                                    <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setLogoUrl('')}
+                                                        className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-xl opacity-0 group-hover/logo:opacity-100 transition-opacity shadow-lg"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <Store className="w-16 h-16 text-[var(--text)]/20" />
+                                            )}
+                                            {uploading && (
+                                                <div className="absolute inset-0 bg-[var(--surface)]/80 backdrop-blur-sm flex items-center justify-center">
+                                                    <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="w-full max-w-[200px]">
+                                            <label className="flex items-center justify-center gap-2 w-full py-4 bg-[var(--surface)] border-2 border-[var(--border)] rounded-2xl font-bold text-sm text-[var(--text)]/60 cursor-pointer hover:bg-[var(--secondary)] active:scale-95 transition-all shadow-[var(--shadow)]">
+                                                <Upload className="w-4 h-4" />
+                                                {logoUrl ? 'Cambiar Logo' : 'Subir Logo'}
+                                                <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} disabled={uploading} />
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    ) : (
+                        <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-right-4 duration-500">
+                            {/* Theme Selection */}
+                            <div className="space-y-8">
+                                <h3 className="text-sm font-black uppercase tracking-widest text-yellow-500">Diseño y Colores</h3>
 
-                    <div className="pt-8 border-t border-gray-50 flex justify-end">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                    {[
+                                        { id: 'classic', name: 'Classic', desc: 'Profesional & Azul', colors: ['#2563eb', '#ffffff'] },
+                                        { id: 'fresh', name: 'Fresh', desc: 'Natural & Verde', colors: ['#10b981', '#ffffff'] },
+                                        { id: 'modern', name: 'Modern', desc: 'Elegante & Indigo', colors: ['#6366f1', '#ffffff'] },
+                                        { id: 'minimal', name: 'Minimal', desc: 'Simple & Negro', colors: ['#27272a', '#ffffff'] },
+                                        { id: 'gold', name: 'Gold', desc: 'Premium & Oro', colors: ['#d4af37', '#111827'] },
+                                        { id: 'pastel', name: 'Pastel', desc: 'Suave & Rosa', colors: ['#f8bbd0', '#fdf2f8'] },
+                                        { id: 'lilac', name: 'Lilac', desc: 'Dulce & Lavanda', colors: ['#d1c4e9', '#f3e5f5'] },
+                                        { id: 'gray', name: 'Gris', desc: 'Neutro & Claro', colors: ['#9ca3af', '#f3f4f6'] },
+                                        { id: 'dark-gray', name: 'Antracita', desc: 'Profundo & Serio', colors: ['#4b5563', '#1f2937'] },
+                                    ].map((t) => (
+                                        <button
+                                            key={t.id}
+                                            type="button"
+                                            onClick={() => setTheme(t.id)}
+                                            className={`p-4 rounded-3xl border-2 transition-all text-left flex flex-col gap-4 ${theme === t.id
+                                                ? 'border-[var(--primary)] bg-[var(--primary)]/5 ring-4 ring-[var(--primary)]/5 shadow-[var(--shadow-strong)]'
+                                                : 'border-[var(--border)] hover:border-[var(--text)]/10 bg-[var(--surface)]'
+                                                }`}
+                                        >
+                                            <div className="flex gap-1">
+                                                {t.colors.map((c, i) => (
+                                                    <div key={i} className="w-6 h-6 rounded-full shadow-inner" style={{ backgroundColor: c }} />
+                                                ))}
+                                            </div>
+                                            <div>
+                                                <p className="font-black text-sm text-[var(--text)]">{t.name}</p>
+                                                <p className="text-[10px] text-[var(--text)]/40 font-bold uppercase">{t.desc}</p>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Mode Selection */}
+                            <div className="space-y-6">
+                                <h3 className="text-sm font-black uppercase tracking-widest text-[var(--text)]">Modo de Visualización</h3>
+                                <div className="flex gap-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setMode('light')}
+                                        className={`flex-1 p-6 rounded-[2rem] border-2 flex flex-col items-center justify-center gap-2 transition-all ${mode === 'light'
+                                            ? 'border-yellow-500 bg-yellow-50/10 text-yellow-600'
+                                            : 'border-[var(--border)] text-[var(--text)]/40 hover:border-[var(--border)]'
+                                            }`}
+                                    >
+                                        <Sun className="w-6 h-6" />
+                                        <span className="font-black text-[10px] tracking-widest">CLARO</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setMode('dark')}
+                                        className={`flex-1 p-6 rounded-[2rem] border-2 flex flex-col items-center justify-center gap-2 transition-all ${mode === 'dark'
+                                            ? 'border-gray-900 bg-gray-900 text-white'
+                                            : 'border-[var(--border)] text-[var(--text)]/40 hover:border-[var(--border)]'
+                                            }`}
+                                    >
+                                        <Moon className="w-6 h-6" />
+                                        <span className="font-black text-[10px] tracking-widest">OSCURO</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setMode('beige')}
+                                        className={`flex-1 p-6 rounded-[2rem] border-2 flex flex-col items-center justify-center gap-2 transition-all ${mode === 'beige'
+                                            ? 'border-[#d2b48c] bg-[#f5f5dc] text-[#4a3728]'
+                                            : 'border-[var(--border)] text-[var(--text)]/40 hover:border-[var(--border)]'
+                                            }`}
+                                    >
+                                        <div className="w-6 h-6 rounded-full bg-[#f5f5dc] border border-[#d2b48c]" />
+                                        <span className="font-black text-[10px] tracking-widest">BEIGE</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setMode('gray')}
+                                        className={`flex-1 p-6 rounded-[2rem] border-2 flex flex-col items-center justify-center gap-2 transition-all ${mode === 'gray'
+                                            ? 'border-gray-400 bg-gray-100 text-gray-700'
+                                            : 'border-[var(--border)] text-[var(--text)]/40 hover:border-[var(--border)]'
+                                            }`}
+                                    >
+                                        <div className="w-6 h-6 rounded-full bg-gray-100 border border-gray-300" />
+                                        <span className="font-black text-[10px] tracking-widest uppercase">Gris Claro</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setMode('dark-gray')}
+                                        className={`flex-1 p-6 rounded-[2rem] border-2 flex flex-col items-center justify-center gap-2 transition-all ${mode === 'dark-gray'
+                                            ? 'border-gray-600 bg-gray-700 text-gray-100'
+                                            : 'border-[var(--border)] text-[var(--text)]/40 hover:border-[var(--border)]'
+                                            }`}
+                                    >
+                                        <div className="w-6 h-6 rounded-full bg-gray-700 border border-gray-500" />
+                                        <span className="font-black text-[10px] tracking-widest uppercase text-center leading-none">Gris<br />Oscuro</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Dashboard Sync */}
+                            <div className="space-y-6">
+                                <h3 className="text-sm font-black uppercase tracking-widest text-[var(--primary)]">Sincronización de Interfaz</h3>
+                                <div
+                                    onClick={() => setApplyToDashboard(!applyToDashboard)}
+                                    className={`p-6 rounded-[2rem] border-2 transition-all cursor-pointer flex items-center justify-between ${applyToDashboard ? 'border-[var(--primary)] bg-[var(--primary)]/10' : 'border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]'
+                                        }`}
+                                >
+                                    <div className="space-y-1">
+                                        <p className="font-black text-[var(--text)]">Aplicar tema a mi Dashboard</p>
+                                        <p className="text-xs text-[var(--text)]/40 font-medium italic">Si lo activas, tu panel de administración usará los mismos colores que tu tienda.</p>
+                                    </div>
+                                    <div className={`w-14 h-8 rounded-full transition-all flex items-center px-1 ${applyToDashboard ? 'bg-[var(--primary)]' : 'bg-[var(--secondary)]'}`}>
+                                        <div className={`w-6 h-6 rounded-full bg-[var(--bg)] shadow-sm transition-all transform ${applyToDashboard ? 'translate-x-6' : 'translate-x-0'}`} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Live Preview */}
+                            <div className="p-8 bg-[var(--secondary)]/30 rounded-[2.5rem] border border-[var(--border)] space-y-6 shadow-inner">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text)]/40">Previsualización rápida</h3>
+                                    <div className="flex gap-1">
+                                        <div className="w-2 h-2 rounded-full bg-red-400" />
+                                        <div className="w-2 h-2 rounded-full bg-yellow-400" />
+                                        <div className="w-2 h-2 rounded-full bg-green-400" />
+                                    </div>
+                                </div>
+
+                                <div
+                                    data-theme={theme}
+                                    data-mode={mode}
+                                    className="rounded-[2rem] overflow-hidden border border-[var(--border)] shadow-[var(--shadow-strong)] bg-[var(--bg)] transition-all duration-300"
+                                >
+                                    <div className="p-6 border-b border-[var(--border)] flex items-center justify-between bg-[var(--bg)]">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 rounded-lg bg-[var(--secondary)] border border-[var(--border)]" />
+                                            <div className="w-20 h-3 bg-[var(--text)]/20 rounded-full" />
+                                        </div>
+                                        <div className="w-10 h-10 rounded-xl bg-[var(--primary)]" />
+                                    </div>
+                                    <div className="p-6 space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {[1, 2].map(i => (
+                                                <div key={i} className="p-3 rounded-2xl border border-[var(--border)] space-y-2">
+                                                    <div className="aspect-square bg-[var(--secondary)] rounded-xl" />
+                                                    <div className="w-full h-2 bg-[var(--text)]/20 rounded-full" />
+                                                    <div className="w-1/2 h-2 bg-[var(--primary)]/40 rounded-full" />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                                <p className="text-center text-[10px] text-[var(--text)]/40 font-bold uppercase tracking-widest">
+                                    Esta es una vista previa de cómo se verá tu catálogo
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="pt-8 border-t border-[var(--border)] flex justify-end">
                         <button
                             type="submit"
                             disabled={saving}
-                            className="w-full md:w-auto bg-blue-600 text-white px-10 py-5 rounded-[2rem] font-black text-xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50"
+                            className="w-full md:w-auto bg-[var(--primary)] text-[var(--bg)] px-10 py-5 rounded-[2rem] font-black text-xl hover:opacity-90 transition-all shadow-[var(--shadow-strong)] active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50"
                         >
                             {saving ? (
                                 <Loader2 className="w-6 h-6 animate-spin" />

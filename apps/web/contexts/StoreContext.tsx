@@ -10,6 +10,15 @@ interface Store {
     slug: string;
     logoUrl?: string;
     whatsappNumber?: string;
+    instagramUrl?: string;
+    facebookUrl?: string;
+    tiktokUrl?: string;
+    twitterUrl?: string;
+    pinterestUrl?: string;
+    youtubeUrl?: string;
+    theme?: string;
+    mode?: string;
+    applyThemeToDashboard?: boolean;
 }
 
 interface StoreContextType {

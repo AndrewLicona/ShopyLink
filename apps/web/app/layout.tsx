@@ -7,6 +7,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "ShopyLink | Tu tienda en WhatsApp en minutos",
   description: "Crea tu catálogo digital, gestiona inventario y vende por WhatsApp de forma profesional.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({

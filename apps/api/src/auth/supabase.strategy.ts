@@ -1,4 +1,3 @@
-
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
@@ -7,23 +6,23 @@ import { passportJwtSecret } from 'jwks-rsa';
 
 @Injectable()
 export class SupabaseStrategy extends PassportStrategy(Strategy) {
-    constructor(private readonly configService: ConfigService) {
-        const supabaseUrl = configService.get<string>('SUPABASE_URL');
+  constructor(private readonly configService: ConfigService) {
+    const supabaseUrl = configService.get<string>('SUPABASE_URL');
 
-        super({
-            jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-            ignoreExpiration: false,
-            secretOrKeyProvider: passportJwtSecret({
-                cache: true,
-                rateLimit: true,
-                jwksRequestsPerMinute: 5,
-                jwksUri: `${supabaseUrl}/auth/v1/.well-known/jwks.json`,
-            }),
-            algorithms: ['ES256', 'RS256', 'HS256'], // Support multiple algs
-        });
-    }
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ignoreExpiration: false,
+      secretOrKeyProvider: passportJwtSecret({
+        cache: true,
+        rateLimit: true,
+        jwksRequestsPerMinute: 5,
+        jwksUri: `${supabaseUrl}/auth/v1/.well-known/jwks.json`,
+      }),
+      algorithms: ['ES256', 'RS256', 'HS256'], // Support multiple algs
+    });
+  }
 
-    async validate(payload: any) {
-        return payload;
-    }
+  validate(payload: any) {
+    return payload;
+  }
 }
