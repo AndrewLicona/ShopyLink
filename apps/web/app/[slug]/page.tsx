@@ -8,13 +8,15 @@ import {
     Minus,
     Search,
     ChevronRight,
+    ChevronLeft,
     Loader2,
     Clock,
     X,
     Filter,
-    AlertCircle
+    AlertCircle,
+    ArrowLeft
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 
@@ -109,9 +111,50 @@ export default function StorePage({ params }: { params: any }) {
     const [showNameModal, setShowNameModal] = useState(false);
     const [customerName, setCustomerName] = useState('');
     const [stockAlert, setStockAlert] = useState<{ show: boolean, message: string }>({ show: false, message: '' });
+    const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+    const [modalQuantity, setModalQuantity] = useState(1);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const touchStartX = useRef<number | null>(null);
 
     const showMessage = (msg: string) => {
         setStockAlert({ show: true, message: msg });
+    };
+
+    const openProductModal = (product: any) => {
+        setSelectedProduct(product);
+        setModalQuantity(1);
+        setCurrentImageIndex(0);
+    };
+
+    const handleAddToCartFromModal = () => {
+        if (!selectedProduct) return;
+
+        const availableStock = selectedProduct.inventory?.stock ?? 0;
+
+        setCart(prev => {
+            const existing = prev.find(item => item.id === selectedProduct.id);
+            const currentQty = existing ? existing.quantity : 0;
+            const newTotalQty = currentQty + modalQuantity;
+
+            if (selectedProduct.inventory?.stock !== null && newTotalQty > availableStock) {
+                showMessage(`¡Lo sentimos! Solo hay ${availableStock} unidades disponibles en total.`);
+                return prev;
+            }
+
+            if (existing) {
+                return prev.map(item => item.id === selectedProduct.id ? { ...item, quantity: newTotalQty } : item);
+            }
+
+            return [...prev, {
+                id: selectedProduct.id,
+                quantity: modalQuantity,
+                name: selectedProduct.name,
+                price: Number(selectedProduct.price),
+                image: selectedProduct.images?.[0]
+            }];
+        });
+
+        setSelectedProduct(null);
     };
 
     const handleConfirmOrder = async () => {
@@ -248,12 +291,24 @@ export default function StorePage({ params }: { params: any }) {
                 {/* Product Grid - New Compact Layout */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                     {filteredProducts.map((product) => (
-                        <div key={product.id} className="bg-white rounded-[2rem] p-3 border border-transparent hover:border-blue-100 hover:shadow-xl transition-all group flex flex-col relative">
+                        <div
+                            key={product.id}
+                            onClick={() => openProductModal(product)}
+                            className="bg-white rounded-[2rem] p-3 border border-transparent hover:border-blue-100 hover:shadow-xl transition-all group flex flex-col relative cursor-pointer"
+                        >
                             <div className="aspect-square bg-gray-50 rounded-[1.5rem] flex items-center justify-center relative overflow-hidden">
                                 {product.images?.[0] ? (
                                     <img src={product.images[0]} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-500" />
                                 ) : (
                                     <ShoppingBag className="w-8 h-8 text-gray-200" />
+                                )}
+
+                                {product.discountPrice && (
+                                    <div className="absolute top-2 right-2">
+                                        <span className="bg-green-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
+                                            Oferta
+                                        </span>
+                                    </div>
                                 )}
 
                                 {product.categoryId && (
@@ -266,11 +321,29 @@ export default function StorePage({ params }: { params: any }) {
                             </div>
                             <div className="mt-4 flex-1 flex flex-col px-1">
                                 <h3 className="text-sm font-black text-gray-900 line-clamp-1">{product.name}</h3>
-                                <div className="mt-auto pt-3 flex items-center justify-between">
-                                    <span className="text-base font-black text-blue-600">{formatCurrency(product.price)}</span>
+                                <div className="mt-auto pt-3 flex items-center justify-between gap-2">
+                                    <div className="flex flex-col">
+                                        {product.discountPrice ? (
+                                            <>
+                                                <span className="text-[10px] font-bold text-gray-400 line-through decoration-red-500/50">
+                                                    {formatCurrency(product.price)}
+                                                </span>
+                                                <span className="text-base font-black text-green-600">
+                                                    {formatCurrency(product.discountPrice)}
+                                                </span>
+                                            </>
+                                        ) : (
+                                            <span className="text-base font-black text-blue-600">
+                                                {formatCurrency(product.price)}
+                                            </span>
+                                        )}
+                                    </div>
                                     <button
-                                        onClick={() => addToCart(product)}
-                                        className="w-9 h-9 bg-black text-white rounded-xl flex items-center justify-center hover:bg-blue-600 transition-all shadow-lg active:scale-90"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            addToCart(product);
+                                        }}
+                                        className="w-9 h-9 bg-black text-white rounded-xl flex items-center justify-center hover:bg-blue-600 transition-all shadow-lg active:scale-90 flex-shrink-0"
                                     >
                                         <Plus className="w-5 h-5" />
                                     </button>
@@ -453,6 +526,198 @@ export default function StorePage({ params }: { params: any }) {
                             >
                                 Entendido
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Product Detail Modal */}
+            {selectedProduct && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="bg-white w-full max-w-4xl rounded-[2.5rem] sm:rounded-[3.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col md:flex-row max-h-[90vh]">
+                        {/* Header for Mobile: Close */}
+                        <div className="md:hidden absolute top-4 right-4 z-50">
+                            <button
+                                onClick={() => setSelectedProduct(null)}
+                                className="w-10 h-10 bg-white/80 backdrop-blur-xl rounded-full flex items-center justify-center shadow-xl text-gray-900 border border-black/5 active:scale-90 transition-all"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Left Side: Images Gallery */}
+                        <div className="w-full md:w-[55%] bg-gray-50 flex items-center justify-center relative aspect-[4/5] md:aspect-auto overflow-hidden">
+                            {selectedProduct.images?.length > 0 ? (
+                                <div
+                                    className="w-full h-full relative group touch-pan-y"
+                                    onTouchStart={(e) => {
+                                        const touch = e.touches[0];
+                                        if (touch) touchStartX.current = touch.clientX;
+                                    }}
+                                    onTouchEnd={(e) => {
+                                        if (touchStartX.current === null) return;
+                                        const touchEndX = e.changedTouches[0]?.clientX;
+                                        if (touchEndX === undefined) return;
+                                        const diff = touchStartX.current - touchEndX;
+
+                                        if (Math.abs(diff) > 50) { // Umbral de 50px
+                                            if (diff > 0) {
+                                                setCurrentImageIndex(prev => (prev === selectedProduct.images.length - 1 ? 0 : prev + 1));
+                                            } else {
+                                                setCurrentImageIndex(prev => (prev === 0 ? selectedProduct.images.length - 1 : prev - 1));
+                                            }
+                                        }
+                                        touchStartX.current = null;
+                                    }}
+                                >
+                                    <img
+                                        src={selectedProduct.images[currentImageIndex]}
+                                        className="w-full h-full object-contain md:object-cover"
+                                        alt={selectedProduct.name}
+                                    />
+
+                                    {/* Navigation Arrows (Minimalist) */}
+                                    {selectedProduct.images.length > 1 && (
+                                        <>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev === 0 ? selectedProduct.images.length - 1 : prev - 1)) }}
+                                                className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/40 hover:bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-900 transition-all active:scale-90 border border-black/5 opacity-0 md:opacity-100 group-hover:opacity-100 z-10"
+                                            >
+                                                <ChevronLeft className="w-5 h-5" />
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev === selectedProduct.images.length - 1 ? 0 : prev + 1)) }}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/40 hover:bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-900 transition-all active:scale-90 border border-black/5 opacity-0 md:opacity-100 group-hover:opacity-100 z-10"
+                                            >
+                                                <ChevronRight className="w-5 h-5" />
+                                            </button>
+
+                                            {/* Counter (Minimalist) */}
+                                            <div className="absolute top-4 left-4 bg-black/20 backdrop-blur-md text-white px-3 py-1 rounded-full text-[9px] font-black tracking-widest uppercase border border-white/10 z-10">
+                                                {currentImageIndex + 1} / {selectedProduct.images.length}
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {/* Navigation Dots (Minimalist) */}
+                                    {selectedProduct.images.length > 1 && (
+                                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1 z-10">
+                                            {selectedProduct.images.map((_: any, idx: number) => (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => setCurrentImageIndex(idx)}
+                                                    className={`h-1 rounded-full transition-all duration-300 ${idx === currentImageIndex ? 'bg-blue-600 w-6' : 'bg-gray-300 w-1'}`}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="h-full flex items-center justify-center text-gray-200">
+                                    <ShoppingBag className="w-20 h-20" />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Right Side: Details */}
+                        <div className="w-full md:w-1/2 p-8 sm:p-12 flex flex-col h-full overflow-y-auto custom-scrollbar">
+                            <button
+                                onClick={() => setSelectedProduct(null)}
+                                className="hidden md:flex self-end w-12 h-12 bg-gray-50 hover:bg-white border border-gray-100 rounded-2xl items-center justify-center shadow-sm text-gray-400 hover:text-gray-900 transition-all active:scale-95 mb-4"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+
+                            <div className="flex-1 space-y-6">
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        {selectedProduct.sku && (
+                                            <span className="bg-black text-white px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest">
+                                                #{selectedProduct.sku}
+                                            </span>
+                                        )}
+                                        {selectedProduct.categoryId && (
+                                            <span className="text-blue-600 font-black text-[10px] uppercase tracking-[0.2em]">
+                                                {categories.find(c => c.id === selectedProduct.categoryId)?.name}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="space-y-1">
+                                        <h2 className="text-3xl sm:text-5xl font-black text-gray-900 leading-tight tracking-tight">
+                                            {selectedProduct.name}
+                                        </h2>
+                                        <div className="flex items-center gap-4">
+                                            {selectedProduct.discountPrice ? (
+                                                <>
+                                                    <span className="text-4xl font-black text-green-600">
+                                                        {formatCurrency(selectedProduct.discountPrice)}
+                                                    </span>
+                                                    <span className="text-xl font-bold text-gray-400 line-through decoration-red-500/50">
+                                                        {formatCurrency(selectedProduct.price)}
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                <p className="text-4xl font-black text-blue-600">
+                                                    {formatCurrency(selectedProduct.price)}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
+                                        <h3 className="text-xs font-black uppercase tracking-widest text-gray-900">Descripción</h3>
+                                    </div>
+                                    <p className="text-gray-500 font-medium leading-relaxed text-base sm:text-lg italic">
+                                        {selectedProduct.description || 'Este producto no tiene una descripción detallada.'}
+                                    </p>
+                                </div>
+
+                                <div className="flex items-center justify-between p-6 bg-gray-50 rounded-[2.5rem] border border-gray-100/50">
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Disponibilidad</p>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                                            <p className="font-black text-gray-900">
+                                                {selectedProduct.inventory?.stock ?? 'Stock Ilimitado'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-5 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
+                                        <button
+                                            onClick={() => setModalQuantity(Math.max(1, modalQuantity - 1))}
+                                            className="w-10 h-10 md:w-12 md:h-10 flex items-center justify-center rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-900 transition-all active:scale-90"
+                                        >
+                                            <Minus className="w-4 h-4 md:w-5 md:h-5" />
+                                        </button>
+                                        <span className="w-6 md:w-8 text-center font-black text-xl md:text-2xl text-gray-900">{modalQuantity}</span>
+                                        <button
+                                            onClick={() => {
+                                                const available = selectedProduct.inventory?.stock ?? Infinity;
+                                                if (modalQuantity < available) {
+                                                    setModalQuantity(modalQuantity + 1);
+                                                } else {
+                                                    showMessage(`Solo hay ${available} disponibles.`);
+                                                }
+                                            }}
+                                            className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-900 transition-all active:scale-90"
+                                        >
+                                            <Plus className="w-4 h-4 md:w-5 md:h-5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-6 mt-auto">
+                                <button
+                                    onClick={handleAddToCartFromModal}
+                                    className="w-full bg-blue-600 text-white py-4 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-lg md:text-xl flex items-center justify-center gap-3 hover:bg-blue-700 transition-all shadow-[0_20px_50px_rgba(59,130,246,0.3)] active:scale-[0.98]"
+                                >
+                                    <ShoppingCart className="w-5 h-5 md:w-6 md:h-6" />
+                                    Añadir • {formatCurrency((Number(selectedProduct.discountPrice || selectedProduct.price)) * modalQuantity)}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

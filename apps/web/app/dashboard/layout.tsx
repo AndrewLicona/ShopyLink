@@ -182,16 +182,6 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                         </button>
                     </div>
 
-                    <div className="md:hidden flex flex-col gap-4 mb-8">
-                        <Link
-                            href={activeStore?.slug ? `/${activeStore.slug}` : '#'}
-                            target="_blank"
-                            className="bg-blue-600 text-white p-4 rounded-2xl font-black flex items-center justify-center gap-3 shadow-lg shadow-blue-100 active:scale-95 transition-all text-sm"
-                        >
-                            <ExternalLink className="w-5 h-5" />
-                            Ver Tienda Pública
-                        </Link>
-                    </div>
 
                     {/* Desktop Switcher */}
                     <div className="hidden md:block relative mb-10">

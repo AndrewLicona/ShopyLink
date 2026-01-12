@@ -17,7 +17,10 @@ export class ProductsService {
         if (!store) throw new NotFoundException('Store not found');
         if (store.userId !== userId) throw new ForbiddenException('You do not own this store');
 
-        const { stock, ...productData } = createProductDto;
+        const { stock, sku, ...rest } = createProductDto;
+        // Generate SKU if not provided
+        const generatedSku = sku && sku.trim().length > 0 ? sku.trim() : `SKU-${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
+        const productData = { ...rest, sku: generatedSku };
 
         return this.prisma.$transaction(async (tx: any) => {
             const product = await tx.product.create({
@@ -69,7 +72,13 @@ export class ProductsService {
         if (!product) throw new NotFoundException('Product not found');
         if (product.store.userId !== userId) throw new ForbiddenException('You do not own this product');
 
-        const { stock, ...productData } = updateProductDto;
+        const { stock, sku, ...productData } = updateProductDto;
+
+        // Si el producto no tiene SKU, generamos uno automáticamente
+        let finalSku = product.sku;
+        if (!finalSku || finalSku.trim().length === 0) {
+            finalSku = `SKU-${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
+        }
 
         return this.prisma.$transaction(async (tx: any) => {
             if (stock !== undefined) {
@@ -82,7 +91,7 @@ export class ProductsService {
 
             return tx.product.update({
                 where: { id },
-                data: productData,
+                data: { ...productData, sku: finalSku },
                 include: { inventory: true }
             });
         });

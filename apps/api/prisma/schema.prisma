@@ -56,6 +56,7 @@ model Product {
     price         Decimal  @db.Decimal(10, 2)
     discountPrice Decimal? @db.Decimal(10, 2)
     images        String[] // Array de URLs
+    sku           String?
     isActive      Boolean  @default(true)
     
     storeId       String
@@ -75,7 +76,7 @@ model Inventory {
     id        String  @id @default(uuid())
     stock     Int     @default(0)
     productId String  @unique
-    product   Product @relation(fields: [productId], references: [id])
+    product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
 
 enum OrderStatus {
@@ -106,6 +107,7 @@ model OrderItem {
     quantity  Int
     price     Decimal @db.Decimal(10, 2) // Precio al momento de la compra
     productName String // Guardamos nombre por si cambia el original
+    sku         String?
     
     orderId   String
     order     Order   @relation(fields: [orderId], references: [id])

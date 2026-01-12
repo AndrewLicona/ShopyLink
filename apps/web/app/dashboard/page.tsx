@@ -127,7 +127,12 @@ export default function DashboardPage() {
             <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
                 <div className="p-6 md:p-8 border-b border-gray-50 flex items-center justify-between">
                     <h3 className="text-xl font-black text-gray-900">Ventas Recientes</h3>
-                    <button className="text-sm font-black text-blue-600 hover:text-blue-700">Ver historial</button>
+                    <Link
+                        href="/dashboard/orders"
+                        className="text-sm font-black text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-4 py-2 rounded-xl transition-all"
+                    >
+                        Ver historial
+                    </Link>
                 </div>
 
                 {recentOrders.length === 0 ? (
@@ -138,49 +143,72 @@ export default function DashboardPage() {
                         <p className="text-gray-500 font-medium">Aún no tienes pedidos registrados.</p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="hidden md:table-header-group">
-                                <tr className="bg-gray-50/50 text-gray-400 text-xs font-black uppercase tracking-widest">
-                                    <th className="px-8 py-4">Orden</th>
-                                    <th className="px-8 py-4">Cliente</th>
-                                    <th className="px-8 py-4 text-right">Total</th>
-                                    <th className="px-8 py-4">Estado</th>
-                                    <th className="px-8 py-4"></th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                                {recentOrders.map((order, i) => (
-                                    <tr key={i} className="hover:bg-gray-50/30 transition-colors group flex flex-col md:table-row p-6 md:p-0">
-                                        <td className="md:px-8 md:py-5 font-black text-blue-600 text-sm md:text-base">
-                                            #{order.id.slice(0, 8)}
-                                        </td>
-                                        <td className="mt-1 md:mt-0 md:px-8 md:py-5 text-gray-900 font-bold">
-                                            {order.customerName}
-                                            <div className="md:hidden text-xs text-gray-400 font-medium">{new Date(order.createdAt).toLocaleDateString()}</div>
-                                        </td>
-                                        <td className="mt-2 md:mt-0 md:px-8 md:py-5 text-gray-900 font-black text-lg md:text-base md:text-right">
-                                            ${Number(order.total).toFixed(2)}
-                                        </td>
-                                        <td className="mt-4 md:mt-0 md:px-8 md:py-5">
-                                            <span className={cn(
-                                                "px-4 py-2 md:py-1 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-wider inline-flex",
-                                                order.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
-                                                    order.status === 'PENDING' ? 'bg-orange-100 text-orange-700' :
-                                                        'bg-red-100 text-red-700'
-                                            )}>
-                                                {order.status}
-                                            </span>
-                                        </td>
-                                        <td className="hidden md:table-cell px-8 py-5 text-right">
-                                            <button className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400">
-                                                <MoreVertical className="w-4 h-4" />
-                                            </button>
-                                        </td>
+                    <div className="overflow-hidden">
+                        {/* Desktop Table */}
+                        <div className="hidden md:block">
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="bg-gray-50/50 text-gray-400 text-xs font-black uppercase tracking-widest">
+                                        <th className="px-8 py-4">Orden</th>
+                                        <th className="px-8 py-4">Cliente</th>
+                                        <th className="px-8 py-5 text-right">Total</th>
+                                        <th className="px-8 py-4">Estado</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50 uppercase">
+                                    {recentOrders.map((order, i) => (
+                                        <tr key={i} className="hover:bg-gray-50/30 transition-colors group">
+                                            <td className="px-8 py-5 font-black text-blue-600 text-sm">
+                                                #{order.id.slice(0, 8)}
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <p className="text-gray-900 font-bold">{order.customerName}</p>
+                                                <p className="text-[10px] text-gray-400 font-medium">{new Date(order.createdAt).toLocaleDateString()}</p>
+                                            </td>
+                                            <td className="px-8 py-5 text-gray-900 font-black text-right">
+                                                {formatCurrency(order.total)}
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <span className={cn(
+                                                    "px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider inline-flex",
+                                                    order.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                                                        order.status === 'PENDING' ? 'bg-orange-100 text-orange-700' :
+                                                            'bg-red-100 text-red-700'
+                                                )}>
+                                                    {order.status === 'COMPLETED' ? 'Completado' : order.status === 'PENDING' ? 'Pendiente' : 'Cancelado'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Mobile List View */}
+                        <div className="md:hidden divide-y divide-gray-50">
+                            {recentOrders.map((order, i) => (
+                                <div key={i} className="p-6 space-y-3">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">#{order.id.slice(0, 8)}</span>
+                                            <p className="text-sm font-bold text-gray-900">{order.customerName}</p>
+                                        </div>
+                                        <span className={cn(
+                                            "px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider",
+                                            order.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                                                order.status === 'PENDING' ? 'bg-orange-100 text-orange-700' :
+                                                    'bg-red-100 text-red-700'
+                                        )}>
+                                            {order.status === 'COMPLETED' ? 'Completado' : order.status === 'PENDING' ? 'Pendiente' : 'Cancelado'}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-end">
+                                        <span className="text-[10px] text-gray-400 font-medium">{new Date(order.createdAt).toLocaleDateString()}</span>
+                                        <span className="text-lg font-black text-gray-900">{formatCurrency(order.total)}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>

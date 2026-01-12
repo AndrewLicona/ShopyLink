@@ -27,6 +27,10 @@ export class CreateProductDto {
     @IsOptional()
     isActive?: boolean;
 
+    @IsString()
+    @IsOptional()
+    sku?: string;
+
     @IsUUID()
     storeId: string;
 

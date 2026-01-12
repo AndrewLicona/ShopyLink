@@ -27,7 +27,7 @@ export class OrdersService {
         }
 
         let total = 0;
-        const orderItemsData: { productId: string; productName: string; quantity: number; price: number }[] = [];
+        const orderItemsData: { productId: string; productName: string; quantity: number; price: number; sku?: string }[] = [];
 
         // 3. Calculate total and prepare items
         for (const itemDto of items) {
@@ -47,6 +47,7 @@ export class OrdersService {
                 productName: product.name,
                 quantity: itemDto.quantity,
                 price: price,
+                sku: (product as any).sku,
             });
         }
 
@@ -91,13 +92,25 @@ export class OrdersService {
         return { ...order, whatsappLink: waLink };
     }
 
+    private formatCurrency(value: number): string {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2,
+        }).format(value);
+    }
+
     private generateWhatsAppLink(storeName: string | null, order: any, whatsappNumber: string | null) {
         // Basic formatting
-        // If store has no number, we fallback to a generic link or maybe just the text
         const phone = whatsappNumber ? whatsappNumber.replace(/\D/g, '') : '';
 
-        const itemsList = order.items.map((i: any) => `${i.quantity}x ${i.productName} ($${i.price})`).join('\n');
-        const text = `Hola *${storeName || 'Tienda'}*,\n\nMi nombre es *${order.customerName}*.\nQuiero confirmar mi pedido #${order.id.slice(0, 8)}\n\n${itemsList}\n\nTotal: $${order.total}`;
+        // Bulleted list with formatted prices and SKU
+        const itemsList = order.items
+            .map((i: any) => `• ${i.quantity}x ${i.productName}${i.sku ? ` [${i.sku}]` : ''} (${this.formatCurrency(i.price)})`)
+            .join('\n');
+
+        const text = `Hola *${storeName || 'Tienda'}*.\n\nMi nombre es *${order.customerName}*.\nQuiero confirmar mi pedido #${order.id.slice(0, 8)}\n\n${itemsList}\n\n*Total: ${this.formatCurrency(order.total)}*`;
 
         const baseUrl = phone ? `https://wa.me/${phone}` : `https://wa.me/`;
         return `${baseUrl}?text=${encodeURIComponent(text)}`;
