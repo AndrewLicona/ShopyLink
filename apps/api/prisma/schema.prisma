@@ -26,6 +26,7 @@ model Store {
     slug        String   @unique // Para la URL pública: shopylink.com/mi-tienda
     description String?
     logoUrl     String?
+    whatsappNumber String? // Store owner's WhatsApp for receiving orders
     createdAt   DateTime @default(now())
     updatedAt   DateTime @updatedAt
     

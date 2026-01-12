@@ -51,6 +51,12 @@ export class StoresService {
         });
     }
 
+    async findOneByUser(userId: string) {
+        return this.prisma.store.findFirst({
+            where: { userId },
+        });
+    }
+
     async findOneBySlug(slug: string) {
         return this.prisma.store.findUnique({
             where: { slug },

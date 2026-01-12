@@ -25,6 +25,14 @@ export class StoresController {
         return this.storesService.findAllByUser(userId);
     }
 
+    @UseGuards(JwtAuthGuard)
+    @Get('user/:userId')
+    async findOneByUser(@Param('userId') userId: string) {
+        const store = await this.storesService.findOneByUser(userId);
+        if (!store) return null;
+        return store;
+    }
+
     @Get(':slug')
     async findOne(@Param('slug') slug: string) {
         const store = await this.storesService.findOneBySlug(slug);

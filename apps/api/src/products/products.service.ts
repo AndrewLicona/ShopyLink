@@ -17,14 +17,26 @@ export class ProductsService {
         if (!store) throw new NotFoundException('Store not found');
         if (store.userId !== userId) throw new ForbiddenException('You do not own this store');
 
-        return this.prisma.product.create({
-            data: {
-                ...createProductDto,
-                inventory: createProductDto.stock ? {
-                    create: { stock: createProductDto.stock }
-                } : undefined
-            },
-            include: { inventory: true }
+        const { stock, ...productData } = createProductDto;
+
+        return this.prisma.$transaction(async (tx: any) => {
+            const product = await tx.product.create({
+                data: productData,
+            });
+
+            if (stock !== undefined) {
+                await tx.inventory.create({
+                    data: {
+                        productId: product.id,
+                        stock: stock || 0
+                    }
+                });
+            }
+
+            return tx.product.findUnique({
+                where: { id: product.id },
+                include: { inventory: true }
+            });
         });
     }
 
@@ -57,9 +69,22 @@ export class ProductsService {
         if (!product) throw new NotFoundException('Product not found');
         if (product.store.userId !== userId) throw new ForbiddenException('You do not own this product');
 
-        return this.prisma.product.update({
-            where: { id },
-            data: updateProductDto,
+        const { stock, ...productData } = updateProductDto;
+
+        return this.prisma.$transaction(async (tx: any) => {
+            if (stock !== undefined) {
+                await tx.inventory.upsert({
+                    where: { productId: id },
+                    create: { productId: id, stock },
+                    update: { stock },
+                });
+            }
+
+            return tx.product.update({
+                where: { id },
+                data: productData,
+                include: { inventory: true }
+            });
         });
     }
 

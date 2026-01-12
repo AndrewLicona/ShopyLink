@@ -13,7 +13,11 @@ export class CreateStoreDto {
     @IsString()
     description?: string;
 
+    @IsString()
     @IsOptional()
-    @IsUrl()
     logoUrl?: string;
+
+    @IsString()
+    @IsOptional()
+    whatsappNumber?: string;
 }
