@@ -8,6 +8,7 @@ import { passportJwtSecret } from 'jwks-rsa';
 export class SupabaseStrategy extends PassportStrategy(Strategy) {
   constructor(private readonly configService: ConfigService) {
     const supabaseUrl = configService.get<string>('SUPABASE_URL');
+    console.log('Supabase Strategy Init: URL:', supabaseUrl);
 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
