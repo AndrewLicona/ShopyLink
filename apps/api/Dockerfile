@@ -25,11 +25,15 @@ COPY --from=pruner /app/out/full/ .
 COPY turbo.json turbo.json
 
 # Build api
+RUN npx prisma generate --schema=packages/database/prisma/schema.prisma
 RUN npx turbo run build --filter=api...
 
 # Phase 3: Runner
 FROM base AS runner
 WORKDIR /app
+
+# Install openssl for Prisma
+RUN apk add --no-cache openssl
 
 # Don't run production as root
 RUN addgroup --system --gid 1001 nodejs
