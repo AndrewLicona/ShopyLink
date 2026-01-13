@@ -2,11 +2,14 @@
 const nextConfig = {
     output: "standalone",
     async rewrites() {
-        console.log('Next.js Rewrites: Proxying /api-proxy to http://api:3001/api');
+        // Docker Internal vs Localhost Fallback
+        const apiUrl = process.env.INTERNAL_API_URL || 'http://localhost:3001/api';
+        console.log(`[Next.js] Proxying /api-proxy to: ${apiUrl}`);
+
         return [
             {
                 source: '/api-proxy/:path*',
-                destination: 'http://api:3001/api/:path*', // Hardcoded Internal Docker URL
+                destination: `${apiUrl}/:path*`,
             },
         ];
     },
