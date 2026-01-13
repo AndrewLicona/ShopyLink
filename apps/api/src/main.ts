@@ -4,14 +4,11 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');
+  console.log('Enabling permissive CORS for debugging...');
   app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'https://shopylink.andrewlamaquina.my',
-      'https://andrewlamaquina.my',
-    ],
+    origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: true,
+    credentials: false,
   });
   await app.listen(process.env.PORT ?? 3001);
 }
