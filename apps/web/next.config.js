@@ -2,10 +2,12 @@
 const nextConfig = {
     output: "standalone",
     async rewrites() {
+        const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL;
+        console.log('Proxying API requests to:', apiUrl);
         return [
             {
                 source: '/api-proxy/:path*',
-                destination: `${process.env.NEXT_PUBLIC_API_URL}/:path*`, // Proxy to Backend
+                destination: `${apiUrl}/:path*`, // Proxy to Backend (Internal or Public)
             },
         ];
     },

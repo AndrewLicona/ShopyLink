@@ -13,6 +13,7 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - NEXTAUTH_URL=${NEXTAUTH_URL}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - INTERNAL_API_URL=http://api:3001/api
     networks:
       - shopylink-network
 
