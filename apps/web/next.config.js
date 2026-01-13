@@ -2,12 +2,11 @@
 const nextConfig = {
     output: "standalone",
     async rewrites() {
-        const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL;
-        console.log('Proxying API requests to:', apiUrl);
+        console.log('Next.js Rewrites: Proxying /api-proxy to http://api:3001/api');
         return [
             {
                 source: '/api-proxy/:path*',
-                destination: `${apiUrl}/:path*`, // Proxy to Backend (Internal or Public)
+                destination: 'http://api:3001/api/:path*', // Hardcoded Internal Docker URL
             },
         ];
     },
