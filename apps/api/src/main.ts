@@ -9,9 +9,11 @@ async function bootstrap() {
   console.log('Enabling permissive CORS for debugging...');
   app.enableCors({
     origin: '*',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: false,
+    credentials: false, // Must be false if origin is *
   });
-  await app.listen(process.env.PORT ?? 3001);
+
+  const port = process.env.PORT || 3001;
+  await app.listen(port, '0.0.0.0');
+  console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();
