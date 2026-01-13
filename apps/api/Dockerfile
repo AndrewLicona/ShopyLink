@@ -28,6 +28,13 @@ COPY turbo.json turbo.json
 RUN npx prisma generate --schema=packages/database/prisma/schema.prisma
 RUN npx turbo run build --filter=api...
 
+# Phase 2.5: Production Dependencies
+FROM base AS prod-deps
+WORKDIR /app
+COPY --from=pruner /app/out/json/ .
+COPY --from=pruner /app/out/package-lock.json ./package-lock.json
+RUN npm install --omit=dev
+
 # Phase 3: Runner
 FROM base AS runner
 WORKDIR /app
@@ -41,7 +48,7 @@ RUN adduser --system --uid 1001 nestjs
 USER nestjs
 
 COPY --from=builder /app/apps/api/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
+COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/packages/database/prisma/schema.prisma ./prisma/schema.prisma
 
