@@ -139,3 +139,10 @@ git fetch origin main
 git reset --hard origin/main
 docker compose down
 docker compose --env-file .env up -d --build
+
+
+git pull origin main
+docker compose down
+docker compose build --no-cache web
+docker compose build --no-cache api
+docker compose --env-file .env up -d

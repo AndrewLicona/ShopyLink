@@ -33,7 +33,9 @@ FROM base AS prod-deps
 WORKDIR /app
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/package-lock.json ./package-lock.json
+COPY --from=pruner /app/out/full/packages/database/prisma/schema.prisma ./packages/database/prisma/schema.prisma
 RUN npm install --omit=dev
+RUN npx prisma generate --schema=packages/database/prisma/schema.prisma
 
 # Phase 3: Runner
 FROM base AS runner
