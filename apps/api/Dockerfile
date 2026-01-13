@@ -1,4 +1,4 @@
-FROM node:18-alpine AS base
+FROM node:20-alpine AS base
 
 # Phase 1: Prune
 FROM base AS pruner
@@ -43,6 +43,7 @@ USER nestjs
 COPY --from=builder /app/apps/api/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/packages/database/prisma/schema.prisma ./prisma/schema.prisma
 
 EXPOSE 3001
 
