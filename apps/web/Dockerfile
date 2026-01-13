@@ -24,6 +24,12 @@ RUN npm install
 COPY --from=pruner /app/out/full/ .
 COPY turbo.json turbo.json
 
+# Build args
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+
 # Build web - this generates the standalone server
 RUN npx turbo run build --filter=web...
 
