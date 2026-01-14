@@ -9,7 +9,7 @@ import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 
 @Injectable()
 export class OrdersService {
-  constructor(private prisma: PrismaClient) {}
+  constructor(private prisma: PrismaClient) { }
 
   async create(createOrderDto: CreateOrderDto) {
     const { storeId, items, customerName, customerPhone } = createOrderDto;
@@ -136,7 +136,16 @@ export class OrdersService {
       )
       .join('\n');
 
-    const text = `Hola *${storeName || 'Tienda'}*.\n\nMi nombre es *${order.customerName}*.\nQuiero confirmar mi pedido #${order.id.slice(0, 8)}\n\n${itemsList}\n\n*Total: ${this.formatCurrency(order.total)}*`;
+    const dashboardLink = `https://shopylink.andrewlamaquina.my/dashboard/orders?id=${order.id}`;
+
+    const text = `Hola *${storeName || 'Tienda'}*.\n\n` +
+      `Mi nombre es *${order.customerName}*.\n` +
+      `Quiero confirmar mi pedido *#${order.id.slice(0, 8)}*\n\n` +
+      `📦 *DETALLE:*\n${itemsList}\n\n` +
+      `💰 *TOTAL: ${this.formatCurrency(order.total)}*\n\n` +
+      `-------------------\n` +
+      `⚠️ *Nota para el cliente:* No modifiques este mensaje para asegurar la validez de tu pedido.\n\n` +
+      `🔗 *Verificar en Dashboard (Solo dueño):*\n${dashboardLink}`;
 
     const baseUrl = phone ? `https://wa.me/${phone}` : `https://wa.me/`;
     return `${baseUrl}?text=${encodeURIComponent(text)}`;

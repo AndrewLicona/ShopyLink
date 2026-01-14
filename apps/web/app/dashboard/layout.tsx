@@ -160,6 +160,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                         </Link>
                     );
                 })}
+                <button
+                    onClick={handleLogout}
+                    className="flex flex-col items-center justify-center p-2 rounded-2xl text-red-500/60 hover:text-red-500 transition-all"
+                >
+                    <LogOut className="w-6 h-6 stroke-[1.5]" />
+                </button>
             </nav>
 
             {/* Sidebar (Desktop + Mobile Drawer) */}

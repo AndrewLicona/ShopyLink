@@ -42,31 +42,40 @@ export default function StorePage({ params }: { params: Promise<{ slug: string }
     const [showManualShare, setShowManualShare] = useState(false);
     const searchParams = useSearchParams();
 
-    useEffect(() => {
-        const loadStoreData = async () => {
-            try {
-                const resolvedParams = await params;
-                const slug = resolvedParams.slug;
+    const loadStoreData = async () => {
+        try {
+            const resolvedParams = await params;
+            const slug = resolvedParams.slug;
 
-                // Fetch store by slug (public endpoint)
-                const storeData = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stores/${slug}`).then(res => res.json());
-                setStore(storeData);
+            // Fetch store by slug (public endpoint)
+            const storeData = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stores/${slug}`).then(res => res.json());
+            setStore(storeData);
 
-                // Fetch products and categories
-                if (storeData.id) {
-                    const [productsData, categoriesData] = await Promise.all([
-                        api.getProducts(storeData.id),
-                        api.getCategories(storeData.id)
-                    ]);
-                    setProducts(productsData.filter((p: any) => p.isActive));
-                    setCategories(categoriesData);
-                }
-            } catch (err) {
-                console.error('Error loading store:', err);
-            } finally {
-                setLoading(false);
+            // Fetch products and categories
+            if (storeData.id) {
+                const [productsData, categoriesData] = await Promise.all([
+                    api.getProducts(storeData.id),
+                    api.getCategories(storeData.id)
+                ]);
+
+                const activeProducts = productsData.filter((p: any) =>
+                    p.isActive && (p.inventory ? p.inventory.stock > 0 : true)
+                );
+                setProducts(activeProducts);
+
+                // Filter categories: Only show categories that have at least one active product
+                const activeCategoryIds = new Set(activeProducts.map((p: any) => p.categoryId));
+                const visibleCategories = categoriesData.filter((c: any) => activeCategoryIds.has(c.id));
+                setCategories(visibleCategories);
             }
-        };
+        } catch (err) {
+            console.error('Error loading store:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         loadStoreData();
     }, [params]);
 
@@ -207,9 +216,12 @@ export default function StorePage({ params }: { params: Promise<{ slug: string }
 
             // The backend returns a pre-formatted whatsappLink
             if (response.whatsappLink) {
-                window.open(response.whatsappLink, '_blank');
+                // Use location.href for more reliable mobile redirection (popup blockers avoid)
+                window.location.href = response.whatsappLink;
                 setCart([]); // Clear cart after success
                 setIsCartOpen(false);
+                // Refresh data to update stock
+                await loadStoreData();
             }
         } catch (err: any) {
             console.error('Error creating order:', err);
@@ -317,67 +329,89 @@ export default function StorePage({ params }: { params: Promise<{ slug: string }
 
                 {/* Product Grid - New Compact Layout */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                    {filteredProducts.map((product) => (
-                        <div
-                            key={product.id}
-                            onClick={() => openProductModal(product)}
-                            className="bg-[var(--bg)] rounded-[2rem] p-3 border border-[var(--border)] hover:border-[var(--primary)]/50 hover:shadow-xl transition-all group flex flex-col relative cursor-pointer"
-                        >
-                            <div className="aspect-square bg-[var(--secondary)] rounded-[1.5rem] flex items-center justify-center relative overflow-hidden">
-                                {product.images?.[0] ? (
-                                    <img src={product.images[0]} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-500" />
-                                ) : (
-                                    <ShoppingBag className="w-8 h-8 text-gray-200" />
-                                )}
+                    {filteredProducts.length > 0 ? (
+                        filteredProducts.map((product) => (
+                            <div
+                                key={product.id}
+                                onClick={() => openProductModal(product)}
+                                className="bg-[var(--bg)] rounded-[2rem] p-3 border border-[var(--border)] hover:border-[var(--primary)]/50 hover:shadow-xl transition-all group flex flex-col relative cursor-pointer"
+                            >
+                                <div className="aspect-square bg-[var(--secondary)] rounded-[1.5rem] flex items-center justify-center relative overflow-hidden">
+                                    {product.images?.[0] ? (
+                                        <img src={product.images[0]} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-500" />
+                                    ) : (
+                                        <ShoppingBag className="w-8 h-8 text-gray-200" />
+                                    )}
 
-                                {product.discountPrice && (
-                                    <div className="absolute top-2 right-2">
-                                        <span className="bg-green-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
-                                            Oferta
-                                        </span>
-                                    </div>
-                                )}
+                                    {product.discountPrice && (
+                                        <div className="absolute top-2 right-2">
+                                            <span className="bg-green-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
+                                                Oferta
+                                            </span>
+                                        </div>
+                                    )}
 
-                                {product.categoryId && (
-                                    <div className="absolute top-2 left-2">
-                                        <span className="bg-[var(--surface)]/90 backdrop-blur-sm text-[var(--text)] px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-tighter shadow-sm border border-[var(--border)]">
-                                            {categories.find(c => c.id === product.categoryId)?.name}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="mt-4 flex-1 flex flex-col px-1">
-                                <h3 className="text-sm font-black text-[var(--text)] line-clamp-1">{product.name}</h3>
-                                <div className="mt-auto pt-3 flex items-center justify-between gap-2">
-                                    <div className="flex flex-col">
-                                        {product.discountPrice ? (
-                                            <>
-                                                <span className="text-[10px] font-bold text-[var(--text)]/40 line-through decoration-red-500/50">
+                                    {product.categoryId && (
+                                        <div className="absolute top-2 left-2">
+                                            <span className="bg-[var(--surface)]/90 backdrop-blur-sm text-[var(--text)] px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-tighter shadow-sm border border-[var(--border)]">
+                                                {categories.find(c => c.id === product.categoryId)?.name}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="mt-4 flex-1 flex flex-col px-1">
+                                    <h3 className="text-sm font-black text-[var(--text)] line-clamp-1">{product.name}</h3>
+                                    <div className="mt-auto pt-3 flex items-center justify-between gap-2">
+                                        <div className="flex flex-col">
+                                            {product.discountPrice ? (
+                                                <>
+                                                    <span className="text-[10px] font-bold text-[var(--text)]/40 line-through decoration-red-500/50">
+                                                        {formatCurrency(product.price)}
+                                                    </span>
+                                                    <span className="text-base font-black text-green-500">
+                                                        {formatCurrency(product.discountPrice)}
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                <span className="text-base font-black text-[var(--primary)]">
                                                     {formatCurrency(product.price)}
                                                 </span>
-                                                <span className="text-base font-black text-green-500">
-                                                    {formatCurrency(product.discountPrice)}
-                                                </span>
-                                            </>
-                                        ) : (
-                                            <span className="text-base font-black text-[var(--primary)]">
-                                                {formatCurrency(product.price)}
-                                            </span>
-                                        )}
+                                            )}
+                                        </div>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                addToCart(product);
+                                            }}
+                                            className="w-9 h-9 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-xl flex items-center justify-center hover:scale-105 transition-all shadow-lg active:scale-90 flex-shrink-0"
+                                        >
+                                            <Plus className="w-5 h-5" />
+                                        </button>
                                     </div>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            addToCart(product);
-                                        }}
-                                        className="w-9 h-9 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-xl flex items-center justify-center hover:scale-105 transition-all shadow-lg active:scale-90 flex-shrink-0"
-                                    >
-                                        <Plus className="w-5 h-5" />
-                                    </button>
                                 </div>
                             </div>
+                        ))
+                    ) : (
+                        <div className="col-span-full flex flex-col items-center justify-center py-20 text-center space-y-4">
+                            <div className="w-24 h-24 bg-[var(--secondary)] rounded-full flex items-center justify-center mb-4 text-[var(--text)]/20 animate-pulse">
+                                <Search className="w-10 h-10" />
+                            </div>
+                            <h3 className="text-xl font-black text-[var(--text)]">No encontramos productos</h3>
+                            <p className="text-[var(--text)]/60 max-w-xs mx-auto">
+                                {searchTerm
+                                    ? `No hay resultados para "${searchTerm}"`
+                                    : "Esta categoría aún no tiene productos disponibles."}
+                            </p>
+                            {searchTerm && (
+                                <button
+                                    onClick={() => setSearchTerm('')}
+                                    className="px-6 py-2 bg-[var(--primary)] text-[var(--bg)] rounded-xl font-bold text-sm hover:scale-105 transition-transform"
+                                >
+                                    Ver todo
+                                </button>
+                            )}
                         </div>
-                    ))}
+                    )}
                 </div>
             </main>
 
