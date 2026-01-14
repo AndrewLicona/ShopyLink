@@ -4,7 +4,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase';
-import { ShoppingBag, Mail, Lock, Loader2, User, Eye, EyeOff } from 'lucide-react';
+import { ShoppingBag, Mail, Lock, Loader2, User, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function SignupPage() {
     const [email, setEmail] = useState('');
@@ -13,6 +14,7 @@ export default function SignupPage() {
     const [name, setName] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showSuccess, setShowSuccess] = useState(false);
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -35,8 +37,8 @@ export default function SignupPage() {
             setError(error.message);
             setLoading(false);
         } else {
-            alert("¡Cuenta creada! Revisa tu email para confirmar.");
-            window.location.href = '/login';
+            setShowSuccess(true);
+            setLoading(false);
         }
     };
 
@@ -134,6 +136,49 @@ export default function SignupPage() {
                     </Link>
                 </p>
             </div>
+            {/* Success Modal */}
+            <AnimatePresence>
+                {showSuccess && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-blue-900/40 backdrop-blur-sm"
+                            onClick={() => window.location.href = '/login'}
+                        />
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            className="bg-white w-full max-w-sm rounded-[2.5rem] p-10 shadow-2xl relative border border-white/20 text-center space-y-6"
+                        >
+                            <div className="w-20 h-20 bg-green-100 text-green-600 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
+                                <CheckCircle2 className="w-10 h-10" />
+                            </div>
+
+                            <div className="space-y-2">
+                                <h3 className="text-2xl font-black text-gray-900">¡Casi listo!</h3>
+                                <p className="text-gray-500 font-medium leading-relaxed">
+                                    Hemos enviado un enlace de confirmación a <span className="text-blue-600 font-bold">{email}</span>.
+                                    Por favor, revísalo para activar tu cuenta.
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={() => window.location.href = '/login'}
+                                className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 active:scale-95"
+                            >
+                                Ir al Login
+                            </button>
+
+                            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">
+                                ShopyLink Security • Supabase Auth
+                            </p>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
