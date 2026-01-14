@@ -15,15 +15,19 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateInventoryDto } from './dto/update-inventory.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RequestWithUser } from '../auth/interfaces/user.interface';
 
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) { }
+  constructor(private readonly productsService: ProductsService) {}
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Request() req: any, @Body() createProductDto: CreateProductDto) {
-    const userId = req.user.sub as string;
+  create(
+    @Request() req: RequestWithUser,
+    @Body() createProductDto: CreateProductDto,
+  ) {
+    const userId = req.user.sub;
     return this.productsService.create(userId, createProductDto);
   }
 
@@ -40,22 +44,22 @@ export class ProductsController {
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
   update(
-    @Request() req: any,
+    @Request() req: RequestWithUser,
     @Param('id') id: string,
     @Body() updateProductDto: UpdateProductDto,
   ) {
-    const userId = req.user.sub as string;
+    const userId = req.user.sub;
     return this.productsService.update(id, userId, updateProductDto);
   }
 
   @UseGuards(JwtAuthGuard)
   @Patch(':id/inventory')
   updateStock(
-    @Request() req: any,
+    @Request() req: RequestWithUser,
     @Param('id') id: string,
     @Body() updateInventoryDto: UpdateInventoryDto,
   ) {
-    const userId = req.user.sub as string;
+    const userId = req.user.sub;
     return this.productsService.updateStock(
       id,
       userId,
@@ -65,8 +69,8 @@ export class ProductsController {
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  remove(@Request() req: any, @Param('id') id: string) {
-    const userId = req.user.sub as string;
+  remove(@Request() req: RequestWithUser, @Param('id') id: string) {
+    const userId = req.user.sub;
     return this.productsService.remove(id, userId);
   }
 }

@@ -23,7 +23,7 @@ export class SupabaseStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(payload: any) {
+  validate(payload: Record<string, any>) {
     return payload;
   }
 }

@@ -1,24 +1,22 @@
-import { Global, Module, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Global,
+  Module,
+  OnModuleInit,
+  OnModuleDestroy,
+  Injectable,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
-@Global()
-@Module({
-  providers: [
-    {
-      provide: PrismaClient,
-      useClass: PrismaClient,
-    },
-    {
-      provide: 'PRISMA_CLIENT',
-      useExisting: PrismaClient,
-    },
-  ],
-  exports: [PrismaClient, 'PRISMA_CLIENT'],
-})
-export class PrismaModule
+@Injectable()
+export class PrismaService
   extends PrismaClient
-  implements OnModuleInit, OnModuleDestroy
-{
+  implements OnModuleInit, OnModuleDestroy {
+  constructor() {
+    super({
+      log: ['error', 'warn'],
+    });
+  }
+
   async onModuleInit() {
     await this.$connect();
   }
@@ -27,3 +25,10 @@ export class PrismaModule
     await this.$disconnect();
   }
 }
+
+@Global()
+@Module({
+  providers: [PrismaService],
+  exports: [PrismaService],
+})
+export class PrismaModule { }

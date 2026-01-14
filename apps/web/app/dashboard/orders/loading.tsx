@@ -1,5 +1,3 @@
-import { ShoppingCart } from 'lucide-react';
-
 export default function OrdersLoading() {
     return (
         <div className="space-y-8 pb-12 animate-pulse">

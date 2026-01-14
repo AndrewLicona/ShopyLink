@@ -4,19 +4,35 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase';
-import { ShoppingBag, Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [resending, setResending] = useState(false);
+    const [resendSuccess, setResendSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const getErrorMessage = (message: string) => {
+        if (message.includes('Invalid login credentials')) {
+            return 'Correo o contraseña incorrectos. Verifica tus datos e intenta de nuevo.';
+        }
+        if (message.includes('Email not confirmed')) {
+            return 'Tu correo electrónico aún no ha sido verificado. Revisa tu bandeja de entrada o solicita un nuevo enlace.';
+        }
+        if (message.includes('User not found')) {
+            return 'No encontramos ninguna cuenta asociada a este correo.';
+        }
+        return message;
+    };
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
+        setResendSuccess(false);
 
         const supabase = createClient();
         const { error } = await supabase.auth.signInWithPassword({
@@ -25,10 +41,32 @@ export default function LoginPage() {
         });
 
         if (error) {
-            setError(error.message);
+            setError(getErrorMessage(error.message));
             setLoading(false);
         } else {
             window.location.href = '/dashboard';
+        }
+    };
+
+    const handleResendLink = async () => {
+        setResending(true);
+        setError(null);
+        try {
+            const supabase = createClient();
+            const { error } = await supabase.auth.resend({
+                type: 'signup',
+                email: email,
+                options: {
+                    emailRedirectTo: `${window.location.origin}/dashboard`
+                }
+            });
+
+            if (error) throw error;
+            setResendSuccess(true);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Error al reenviar el correo');
+        } finally {
+            setResending(false);
         }
     };
 
@@ -50,13 +88,29 @@ export default function LoginPage() {
                 </div>
 
                 <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-                    {error && (
-                        <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 italic">
-                            {error}
-                        </div>
-                    )}
-
                     <div className="space-y-4">
+                        {error && (
+                            <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 italic space-y-3">
+                                <p>{error}</p>
+                                {error.includes('verificado') && (
+                                    <button
+                                        type="button"
+                                        onClick={handleResendLink}
+                                        disabled={resending}
+                                        className="text-xs font-black uppercase tracking-widest bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-all disabled:opacity-50"
+                                    >
+                                        {resending ? 'Enviando...' : 'Reenviar enlace de confirmación'}
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
+                        {resendSuccess && (
+                            <div className="p-4 bg-green-50 text-green-600 text-sm rounded-xl border border-green-100 font-bold">
+                                Enlace enviado con éxito. Revisa tu correo.
+                            </div>
+                        )}
+
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                             <div className="relative">

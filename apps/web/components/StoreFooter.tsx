@@ -7,10 +7,11 @@ import {
     Youtube,
     Link as LinkIcon
 } from 'lucide-react';
+import type { Store } from '@/lib/types';
 
 // Social media footer for the public store
 
-export function StoreFooter({ store }: { store: any }) {
+export function StoreFooter({ store }: { store: Store }) {
     const hasSocial = store.instagramUrl || store.facebookUrl || store.tiktokUrl || store.twitterUrl || store.pinterestUrl || store.youtubeUrl;
 
     if (!hasSocial) return null;
@@ -33,7 +34,7 @@ export function StoreFooter({ store }: { store: any }) {
                         {socialLinks.map((link, idx) => (
                             <a
                                 key={idx}
-                                href={link.url}
+                                href={link.url || undefined}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className={`p-3 bg-[var(--secondary)] rounded-2xl text-[var(--text)]/40 transition-all hover:scale-110 active:scale-90 hover:bg-[var(--bg)] hover:shadow-lg ${link.color}`}

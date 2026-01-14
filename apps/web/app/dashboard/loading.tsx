@@ -1,5 +1,3 @@
-import { LayoutDashboard, ShoppingBag, ShoppingCart, Clock, TrendingUp } from 'lucide-react';
-
 export default function DashboardLoading() {
     return (
         <div className="space-y-6 md:space-y-10 animate-pulse">

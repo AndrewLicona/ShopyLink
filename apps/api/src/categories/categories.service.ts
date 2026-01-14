@@ -3,12 +3,12 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../common/prisma/prisma.module';
 import { CreateCategoryDto } from './dto/create-category.dto';
 
 @Injectable()
 export class CategoriesService {
-  constructor(private prisma: PrismaClient) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(userId: string, createCategoryDto: CreateCategoryDto) {
     // Verify store ownership

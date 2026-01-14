@@ -5,8 +5,9 @@ generator client {
 }
 
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
+    provider  = "postgresql"
+    url       = env("DATABASE_URL")
+    directUrl = env("DIRECT_URL")
 }
 
 // Representa a un Owner de tienda (vinculado a Supabase Auth)
@@ -52,7 +53,7 @@ model Category {
     name     String
     slug     String
     storeId  String
-    store    Store     @relation(fields: [storeId], references: [id])
+    store    Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
     products Product[]
 
     @@unique([storeId, slug]) // El slug es único por tienda
@@ -67,9 +68,10 @@ model Product {
     discountPrice Decimal? @db.Decimal(10, 2)
     images        String[] // Array de URLs
     isActive      Boolean  @default(true)
+    trackInventory Boolean @default(true)
 
     storeId String
-    store   Store  @relation(fields: [storeId], references: [id])
+    store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
     categoryId String?
     category   Category? @relation(fields: [categoryId], references: [id])
@@ -85,7 +87,7 @@ model Inventory {
     id        String  @id @default(uuid())
     stock     Int     @default(0)
     productId String  @unique
-    product   Product @relation(fields: [productId], references: [id])
+    product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
 
 enum OrderStatus {
@@ -100,10 +102,10 @@ model Order {
     total         Decimal     @db.Decimal(10, 2)
     status        OrderStatus @default(PENDING)
     customerName  String
-    customerPhone String // WhatsApp number
+    customerPhone String? // WhatsApp number
 
     storeId String
-    store   Store  @relation(fields: [storeId], references: [id])
+    store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
     items OrderItem[]
 
@@ -116,9 +118,10 @@ model OrderItem {
     quantity    Int
     price       Decimal @db.Decimal(10, 2) // Precio al momento de la compra
     productName String // Guardamos nombre por si cambia el original
+    sku         String? // Guardamos SKU por si cambia el original
 
     orderId String
-    order   Order  @relation(fields: [orderId], references: [id])
+    order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
     productId String?
     product   Product? @relation(fields: [productId], references: [id])

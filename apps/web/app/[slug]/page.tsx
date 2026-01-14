@@ -2,6 +2,8 @@ import { StoreView } from './StoreView';
 import { api } from '@/lib/api';
 import { ShoppingBag } from 'lucide-react';
 import { Metadata } from 'next';
+import Link from 'next/link';
+import type { Product, Category } from '@/lib/types';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
     const { slug } = await params;
@@ -44,18 +46,18 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
                         El enlace que seguiste no parece ser correcto o la tienda ha cambiado de dirección.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
-                        <a
+                        <Link
                             href="/"
                             className="flex-1 bg-[var(--primary)] text-white px-8 py-5 rounded-[2rem] font-black text-lg hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center justify-center"
                         >
                             Ir al Inicio
-                        </a>
-                        <a
+                        </Link>
+                        <Link
                             href="/signup"
                             className="flex-1 bg-[var(--bg)] text-[var(--text)] border-2 border-[var(--border)] px-8 py-5 rounded-[2rem] font-black text-lg hover:bg-[var(--secondary)] transition-all active:scale-95 flex items-center justify-center"
                         >
                             Crear mi Tienda
-                        </a>
+                        </Link>
                     </div>
                 </div>
             );
@@ -69,13 +71,13 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
             api.getCategories(storeData.id)
         ]);
 
-        const activeProducts = productsData.filter((p: any) =>
+        const activeProducts = productsData.filter((p: Product) =>
             p.isActive && (!p.trackInventory || (p.inventory && p.inventory.stock > 0))
         );
 
         // Filter categories: Only show categories that have at least one active product
-        const activeCategoryIds = new Set(activeProducts.map((p: any) => p.categoryId));
-        const visibleCategories = categoriesData.filter((c: any) => activeCategoryIds.has(c.id));
+        const activeCategoryIds = new Set(activeProducts.map((p: Product) => p.categoryId));
+        const visibleCategories = categoriesData.filter((c: Category) => activeCategoryIds.has(c.id));
 
         return (
             <StoreView

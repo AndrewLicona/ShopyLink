@@ -33,6 +33,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     const { stores, activeStore, setActiveStoreById, loading: storeLoading } = useStore();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -43,7 +44,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         setIsMobileMenuOpen(false);
     }, [pathname]);
 
-    const handleLogout = async () => {
+    const handleConfirmLogout = async () => {
         const supabase = createClient();
         await supabase.auth.signOut();
         localStorage.clear();
@@ -197,7 +198,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                     );
                 })}
                 <button
-                    onClick={handleLogout}
+                    onClick={() => setIsLogoutModalOpen(true)}
                     className="flex flex-col items-center justify-center p-2 rounded-2xl text-red-500/60 hover:text-red-500 transition-all"
                 >
                     <LogOut className="w-6 h-6 stroke-[1.5]" />
@@ -328,7 +329,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                             <span>Ver mi tienda</span>
                         </Link>
                         <button
-                            onClick={handleLogout}
+                            onClick={() => setIsLogoutModalOpen(true)}
                             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-500 hover:bg-red-500/10 transition-all active:scale-95"
                         >
                             <LogOut className="w-5 h-5" />
@@ -351,6 +352,39 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                     className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden"
                     onClick={() => setIsMobileMenuOpen(false)}
                 />
+            )}
+            {/* Logout Confirmation Modal */}
+            {isLogoutModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-[var(--surface)] w-full max-w-sm rounded-[2.5rem] shadow-[var(--shadow-strong)] overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-8 space-y-6">
+                            <div className="flex flex-col items-center text-center gap-4">
+                                <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center">
+                                    <LogOut className="w-8 h-8" />
+                                </div>
+                                <div className="space-y-2">
+                                    <h2 className="text-xl font-black text-[var(--text)] uppercase tracking-tight">¿Cerrar Sesión?</h2>
+                                    <p className="text-[var(--text)]/40 font-bold text-xs">¿Estás seguro que deseas salir de tu cuenta?</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    onClick={() => setIsLogoutModalOpen(false)}
+                                    className="py-3.5 px-4 rounded-2xl font-black text-xs transition-all active:scale-95 bg-[var(--bg)] text-[var(--text)]/40 border border-[var(--border)] hover:bg-[var(--secondary)]"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleConfirmLogout}
+                                    className="py-3.5 px-4 rounded-2xl font-black text-xs transition-all active:scale-95 bg-red-500 text-white shadow-lg shadow-red-500/20 hover:scale-[1.02]"
+                                >
+                                    Cerrar Sesión
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

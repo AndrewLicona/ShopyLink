@@ -2,12 +2,11 @@
 'use client';
 
 import { useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { Loader2 } from 'lucide-react';
 
 function ConfirmContent() {
-    const router = useRouter();
     const searchParams = useSearchParams();
 
     useEffect(() => {
@@ -21,7 +20,7 @@ function ConfirmContent() {
         if (token_hash && type) {
             supabase.auth.verifyOtp({
                 token_hash,
-                type: type as any,
+                type: type as 'signup' | 'invite' | 'magiclink' | 'recovery' | 'email_change' | 'email',
             }).then(({ error }) => {
                 if (error) {
                     console.error('Verify OTP error:', error);
