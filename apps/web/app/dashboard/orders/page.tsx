@@ -20,6 +20,7 @@ import { useStore } from '@/contexts/StoreContext';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { formatCurrency, cn } from '@/lib/utils';
+import { useSearchParams } from 'next/navigation';
 
 export default function OrdersPage() {
     const { activeStore } = useStore();
@@ -28,23 +29,43 @@ export default function OrdersPage() {
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [loadingStatus, setLoadingStatus] = useState<string | null>(null);
     const [selectedOrder, setSelectedOrder] = useState<any>(null);
+    const searchParams = useSearchParams();
 
     const loadOrders = async () => {
-        if (!activeStore) return;
+        if (!activeStore) return [];
         setLoading(true);
         try {
             const data = await api.getOrders(activeStore.id);
             setOrders(data);
+            return data;
         } catch (err) {
             console.error('Error loading orders:', err);
+            return [];
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        loadOrders();
+        const initOrders = async () => {
+            const data = await loadOrders();
+            const orderId = searchParams.get('id');
+            if (orderId && data.length > 0) {
+                const found = data.find((o: any) => o.id === orderId);
+                if (found) setSelectedOrder(found);
+            }
+        };
+        initOrders();
     }, [activeStore]);
+
+    // Handle order selection when orders list changes (first load)
+    useEffect(() => {
+        const orderId = searchParams.get('id');
+        if (orderId && orders.length > 0 && !selectedOrder) {
+            const found = orders.find(o => o.id === orderId);
+            if (found) setSelectedOrder(found);
+        }
+    }, [orders, searchParams]);
 
     const handleUpdateStatus = async (orderId: string, newStatus: string) => {
         setUpdatingId(orderId);

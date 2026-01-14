@@ -35,11 +35,14 @@ export default function LoginPage() {
         <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
             <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-3xl shadow-xl border border-gray-100">
                 <div className="text-center">
-                    <Link href="/" className="inline-flex items-center gap-2 mb-6">
-                        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-                            <ShoppingBag className="text-white w-6 h-6" />
+                    <Link href="/" className="inline-flex items-center gap-2 mb-6 group">
+                        <div className="w-12 h-12 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
                         </div>
-                        <span className="text-xl font-bold tracking-tight text-gray-900">ShopyLink</span>
+                        <span className="text-2xl font-black tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">ShopyLink</span>
                     </Link>
                     <h2 className="text-3xl font-extrabold text-gray-900">Bienvenido de nuevo</h2>
                     <p className="mt-2 text-gray-500">Ingresa a tu cuenta para gestionar tu tienda</p>

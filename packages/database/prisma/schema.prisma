@@ -26,6 +26,16 @@ model Store {
     slug        String   @unique // Para la URL pública: shopylink.com/mi-tienda
     description String?
     logoUrl     String?
+    whatsappNumber String?
+    instagramUrl   String?
+    facebookUrl    String?
+    tiktokUrl      String?
+    twitterUrl     String?
+    pinterestUrl   String?
+    youtubeUrl     String?
+    theme          String?  @default("classic")
+    mode           String?  @default("light")
+    applyThemeToDashboard Boolean? @default(false)
     createdAt   DateTime @default(now())
     updatedAt   DateTime @updatedAt
 

@@ -74,6 +74,9 @@ export default function LandingPage() {
             <div className="px-4 py-6 space-y-4">
               <a href="#features" onClick={() => setMobileMenuOpen(false)} className="block text-gray-600 hover:text-blue-600 transition-colors py-2">Funcionalidades</a>
               <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="block text-gray-600 hover:text-blue-600 transition-colors py-2">Cómo Funciona</a>
+              <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="block w-full px-5 py-3 text-blue-600 border border-blue-600 rounded-xl text-center font-bold hover:bg-blue-50 transition-all">
+                Iniciar Sesión
+              </Link>
               <Link href="/signup" onClick={() => setMobileMenuOpen(false)} className="block w-full px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-center font-bold hover:shadow-lg transition-all">
                 Empieza Gratis
               </Link>
