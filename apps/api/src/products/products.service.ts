@@ -3,13 +3,13 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../common/prisma/prisma.module';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaClient) { }
+  constructor(private prisma: PrismaService) { }
 
   async create(userId: string, createProductDto: CreateProductDto) {
     // Verify store ownership
@@ -27,11 +27,20 @@ export class ProductsService {
       sku && sku.trim().length > 0
         ? sku.trim()
         : `SKU-${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
-    const productData = { ...rest, sku: generatedSku, trackInventory: trackInventory ?? true };
 
-    return this.prisma.$transaction(async (tx: any) => {
+    return this.prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
-        data: productData as any,
+        data: {
+          name: rest.name,
+          description: rest.description,
+          price: rest.price,
+          discountPrice: rest.discountPrice,
+          images: rest.images,
+          sku: generatedSku,
+          trackInventory: trackInventory ?? true,
+          storeId: rest.storeId,
+          categoryId: rest.categoryId,
+        },
       });
 
       if (stock !== undefined) {
@@ -89,13 +98,13 @@ export class ProductsService {
 
     const { stock, sku, trackInventory, ...productData } = updateProductDto;
 
-    // Si el producto no tiene SKU, generamos uno automáticamente
-    let finalSku = product.sku;
+    // Usamos el SKU proporcionado o el actual, o generamos uno si no existe ninguno
+    let finalSku = sku && sku.trim().length > 0 ? sku.trim() : product.sku;
     if (!finalSku || finalSku.trim().length === 0) {
       finalSku = `SKU-${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
     }
 
-    return this.prisma.$transaction(async (tx: any) => {
+    return this.prisma.$transaction(async (tx) => {
       if (stock !== undefined) {
         await tx.inventory.upsert({
           where: { productId: id },
@@ -107,10 +116,16 @@ export class ProductsService {
       return tx.product.update({
         where: { id },
         data: {
-          ...productData,
+          name: productData.name,
+          description: productData.description,
+          price: productData.price,
+          discountPrice: productData.discountPrice,
+          images: productData.images,
           sku: finalSku,
-          trackInventory: trackInventory !== undefined ? trackInventory : undefined
-        } as any,
+          trackInventory:
+            trackInventory !== undefined ? trackInventory : undefined,
+          categoryId: productData.categoryId,
+        },
         include: { inventory: true },
       });
     });

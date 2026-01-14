@@ -1,5 +1,6 @@
 
 import { createClient } from './supabase';
+import type { Store, Product, Category, Order } from './types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
@@ -37,27 +38,40 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
     return response.json();
 }
 
+export interface CreateOrderDto {
+    storeId: string;
+    customerName: string;
+    customerPhone?: string | null;
+    items: {
+        productId: string;
+        quantity: number;
+    }[];
+}
+
 // API Methods
 export const api = {
     // Stores
-    getStores: () => fetchWithAuth('/stores'),
-    getStoreByUserId: (userId: string) => fetchWithAuth(`/stores/user/${userId}`),
-    createStore: (data: any) => fetchWithAuth('/stores', {
+    getStores: (): Promise<Store[]> => fetchWithAuth('/stores'),
+    getStoreByUserId: (userId: string): Promise<Store> => fetchWithAuth(`/stores/user/${userId}`),
+    createStore: (data: Partial<Store>) => fetchWithAuth('/stores', {
         method: 'POST',
         body: JSON.stringify(data),
     }),
-    updateStore: (id: string, data: any) => fetchWithAuth(`/stores/${id}`, {
+    updateStore: (id: string, data: Partial<Store>) => fetchWithAuth(`/stores/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(data),
     }),
+    deleteStore: (id: string) => fetchWithAuth(`/stores/${id}`, {
+        method: 'DELETE',
+    }),
 
     // Products
-    getProducts: (storeId: string) => fetchWithAuth(`/products?storeId=${storeId}`),
-    createProduct: (data: any) => fetchWithAuth('/products', {
+    getProducts: (storeId: string): Promise<Product[]> => fetchWithAuth(`/products?storeId=${storeId}`),
+    createProduct: (data: Partial<Product>) => fetchWithAuth('/products', {
         method: 'POST',
         body: JSON.stringify(data),
     }),
-    updateProduct: (id: string, data: any) => fetchWithAuth(`/products/${id}`, {
+    updateProduct: (id: string, data: Partial<Product>) => fetchWithAuth(`/products/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(data),
     }),
@@ -66,8 +80,8 @@ export const api = {
     }),
 
     // Categories
-    getCategories: (storeId: string) => fetchWithAuth(`/categories?storeId=${storeId}`),
-    createCategory: (data: any) => fetchWithAuth('/categories', {
+    getCategories: (storeId: string): Promise<Category[]> => fetchWithAuth(`/categories?storeId=${storeId}`),
+    createCategory: (data: Partial<Category>) => fetchWithAuth('/categories', {
         method: 'POST',
         body: JSON.stringify(data),
     }),
@@ -76,8 +90,8 @@ export const api = {
     }),
 
     // Orders
-    getOrders: (storeId: string) => fetchWithAuth(`/orders?storeId=${storeId}`),
-    createOrder: (data: any) => fetchWithAuth('/orders', {
+    getOrders: (storeId: string): Promise<Order[]> => fetchWithAuth(`/orders?storeId=${storeId}`),
+    createOrder: (data: CreateOrderDto) => fetchWithAuth('/orders', {
         method: 'POST',
         body: JSON.stringify(data),
     }),

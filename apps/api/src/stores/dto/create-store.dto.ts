@@ -1,4 +1,10 @@
-import { IsString, IsOptional, Matches, IsIn, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  Matches,
+  IsIn,
+  IsBoolean,
+} from 'class-validator';
 
 export class CreateStoreDto {
   @IsString()
@@ -21,13 +27,24 @@ export class CreateStoreDto {
   @IsString()
   @IsOptional()
   @Matches(/^\+[1-9]\d{1,14}$/, {
-    message: 'WhatsApp number must be in international format (e.g., +573001234567)',
+    message:
+      'WhatsApp number must be in international format (e.g., +573001234567)',
   })
   whatsappNumber?: string;
 
   @IsString()
   @IsOptional()
-  @IsIn(['classic', 'fresh', 'modern', 'minimal', 'gold', 'pastel', 'lilac', 'gray', 'dark-gray'])
+  @IsIn([
+    'classic',
+    'fresh',
+    'modern',
+    'minimal',
+    'gold',
+    'pastel',
+    'lilac',
+    'gray',
+    'dark-gray',
+  ])
   theme?: string;
 
   @IsString()

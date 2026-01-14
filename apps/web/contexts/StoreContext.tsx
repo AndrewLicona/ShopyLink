@@ -4,22 +4,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
-interface Store {
-    id: string;
-    name: string;
-    slug: string;
-    logoUrl?: string;
-    whatsappNumber?: string;
-    instagramUrl?: string;
-    facebookUrl?: string;
-    tiktokUrl?: string;
-    twitterUrl?: string;
-    pinterestUrl?: string;
-    youtubeUrl?: string;
-    theme?: string;
-    mode?: string;
-    applyThemeToDashboard?: boolean;
-}
+import type { Store } from '@/lib/types';
+import { useCallback } from 'react';
 
 interface StoreContextType {
     stores: Store[];
@@ -38,7 +24,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const refreshStores = async () => {
+    const refreshStores = useCallback(async () => {
         try {
             setError(null);
             const data = await api.getStores();
@@ -51,22 +37,22 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                 if (found) {
                     setActiveStore(found);
                 } else if (data.length > 0) {
-                    setActiveStore(data[0]);
+                    setActiveStore(data[0] || null);
                 }
             } else if (data.length > 0) {
-                setActiveStore(data[0]);
+                setActiveStore(data[0] || null);
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Error fetching stores:', err);
-            setError(err.message || 'Error fetching stores');
+            setError(err instanceof Error ? err.message : 'Error fetching stores');
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         refreshStores();
-    }, []);
+    }, [refreshStores]);
 
     const setActiveStoreById = (id: string) => {
         const found = stores.find(s => s.id === id);

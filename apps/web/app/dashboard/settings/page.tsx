@@ -1,26 +1,24 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+
 import {
     Store,
-    MessageCircle,
     Globe,
     Loader2,
-    Image as ImageIcon,
     Save,
     CheckCircle2,
     Upload,
     X,
-    X as CloseIcon,
     ArrowLeft,
     Palette,
     Moon,
-    Sun
+    Sun,
+    Trash2,
+    AlertTriangle
 } from 'lucide-react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import { createClient } from '@/lib/supabase';
 import Image from 'next/image';
 import { storage } from '@/lib/storage';
 import { PhoneInput } from '@/components/PhoneInput';
@@ -54,7 +52,12 @@ export default function SettingsPage() {
     const [applyToDashboard, setApplyToDashboard] = useState(false);
     const [activeTab, setActiveTab] = useState<'info' | 'social' | 'appearance'>('info');
 
-    const router = useRouter();
+    // Deletion state
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deleteConfirmationName, setDeleteConfirmationName] = useState('');
+    const [deleting, setDeleting] = useState(false);
+
+
 
     useEffect(() => {
         if (activeStore) {
@@ -108,7 +111,7 @@ export default function SettingsPage() {
         try {
             const url = await storage.uploadImage(file, 'logos');
             setLogoUrl(url);
-        } catch (err: any) {
+        } catch (err) {
             setError('Error al subir el logo. Asegúrate de que el bucket existe en Supabase.');
             console.error(err);
         } finally {
@@ -143,16 +146,34 @@ export default function SettingsPage() {
             setSuccess(true);
             window.scrollTo({ top: 0, behavior: 'smooth' });
             setTimeout(() => setSuccess(false), 3000);
-        } catch (err: any) {
+        } catch (err) {
             console.error('Update Store Error:', err);
-            setError(err.message || 'Error al actualizar la tienda');
+            const message = err instanceof Error ? err.message : 'Error al actualizar la tienda';
+            setError(message);
 
-            if (err.message?.includes('uso') || err.message?.includes('already in use')) {
+            if (message.includes('uso') || message.includes('already in use')) {
                 const suggestion = `${slug}-${Math.floor(Math.random() * 90) + 10}`;
                 setSuggestedSlug(suggestion);
             }
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleDeleteStore = async () => {
+        if (!activeStore || deleteConfirmationName !== activeStore.name) return;
+
+        setDeleting(true);
+        try {
+            await api.deleteStore(activeStore.id);
+            await refreshStores();
+            window.location.href = '/dashboard';
+        } catch (err) {
+            console.error('Delete Store Error:', err);
+            setError('Error al eliminar la tienda');
+            setIsDeleteModalOpen(false);
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -554,6 +575,95 @@ export default function SettingsPage() {
                     </div>
                 </form>
             </div>
+
+            {/* Danger Zone */}
+            {activeTab === 'info' && (
+                <div className="bg-red-50/50 rounded-[2.5rem] border border-red-100/50 overflow-hidden animate-in fade-in slide-in-from-bottom-4">
+                    <div className="p-8 md:p-12 space-y-8">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-red-500/10 text-red-600 rounded-2xl flex items-center justify-center">
+                                <AlertTriangle className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-black text-red-600 uppercase tracking-tight">Zona de Peligro</h2>
+                                <p className="text-red-500/60 font-medium text-sm">Acciones irreversibles para tu tienda.</p>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 rounded-3xl bg-white/50 border border-red-100">
+                            <div className="space-y-1">
+                                <p className="font-black text-gray-900">Eliminar esta tienda</p>
+                                <p className="text-xs text-red-500/60 font-bold uppercase tracking-tight">
+                                    Esta acción borrará todos los productos, categorías y pedidos permanentemente.
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setIsDeleteModalOpen(true)}
+                                className="bg-red-500 text-white px-8 py-3.5 rounded-2xl font-black text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-red-500/20"
+                            >
+                                Eliminar Tienda
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {isDeleteModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-[var(--surface)] w-full max-w-md rounded-[3rem] shadow-[var(--shadow-strong)] overflow-hidden animate-in zoom-in-95 duration-200 border border-[var(--border)]">
+                        <div className="p-10 space-y-8 text-center">
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="w-20 h-20 bg-red-500/10 text-red-500 rounded-[2rem] flex items-center justify-center">
+                                    <Trash2 className="w-10 h-10" />
+                                </div>
+                                <div className="space-y-2">
+                                    <h2 className="text-2xl font-black text-[var(--text)] uppercase tracking-tight">¿Estás seguro?</h2>
+                                    <p className="text-[var(--text)]/40 font-bold text-sm">
+                                        Esta acción es irreversible. Se eliminarán todos los datos asociados a la tienda <span className="text-[var(--text)]">&quot;{activeStore?.name}&quot;</span>.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 text-left">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text)]/40 px-1">
+                                    Escribe el nombre de la tienda para confirmar:
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder={activeStore?.name}
+                                    value={deleteConfirmationName}
+                                    onChange={(e) => setDeleteConfirmationName(e.target.value)}
+                                    className="w-full px-6 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all font-bold text-[var(--text)] bg-[var(--bg)]"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <button
+                                    onClick={() => {
+                                        setIsDeleteModalOpen(false);
+                                        setDeleteConfirmationName('');
+                                    }}
+                                    className="py-4 px-6 rounded-2xl font-black text-sm transition-all active:scale-95 bg-[var(--bg)] text-[var(--text)]/40 border border-[var(--border)] hover:bg-[var(--secondary)]"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleDeleteStore}
+                                    disabled={deleteConfirmationName !== activeStore?.name || deleting}
+                                    className="py-4 px-6 rounded-2xl font-black text-sm transition-all active:scale-95 bg-red-500 text-white shadow-lg shadow-red-500/20 enabled:hover:scale-[1.02] disabled:opacity-30 disabled:grayscale"
+                                >
+                                    {deleting ? (
+                                        <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+                                    ) : (
+                                        'Eliminar Tienda'
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

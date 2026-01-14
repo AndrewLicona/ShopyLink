@@ -1,5 +1,3 @@
-import { Package, Plus, Search } from 'lucide-react';
-
 export default function ProductsLoading() {
     return (
         <div className="space-y-8 pb-12 animate-pulse">

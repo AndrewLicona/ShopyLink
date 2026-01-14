@@ -3,22 +3,21 @@
 import {
     TrendingUp,
     Clock,
-    AlertCircle,
     Plus,
-    MoreVertical,
     ShoppingBag,
     Loader2
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import { useStore } from '@/contexts/StoreContext';
+import type { Order, Product } from '@/lib/types';
 
 export default function DashboardPage() {
     const { activeStore } = useStore();
-    const [stats, setStats] = useState<any[]>([]);
-    const [recentOrders, setRecentOrders] = useState<any[]>([]);
+    const [stats, setStats] = useState<{ label: string, value: string, change: string, icon: React.ElementType, color: string, bg: string }[]>([]);
+    const [recentOrders, setRecentOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const storeName = activeStore?.name || 'Tu Tienda';
 
@@ -39,7 +38,7 @@ export default function DashboardPage() {
                 setStats([
                     {
                         label: 'Ventas Totales',
-                        value: formatCurrency(orders.filter((o: any) => o.status === 'COMPLETED').reduce((acc: number, o: any) => acc + Number(o.total), 0)),
+                        value: formatCurrency(orders.filter((o: Order) => o.status === 'COMPLETED').reduce((acc: number, o: Order) => acc + Number(o.total), 0)),
                         change: 'Consolidado',
                         icon: TrendingUp,
                         color: 'text-[var(--primary)]',
@@ -47,7 +46,7 @@ export default function DashboardPage() {
                     },
                     {
                         label: 'Pedidos Pendientes',
-                        value: orders.filter((o: any) => o.status === 'PENDING').length.toString(),
+                        value: orders.filter((o: Order) => o.status === 'PENDING').length.toString(),
                         change: 'Actualizado',
                         icon: Clock,
                         color: 'text-orange-500',
@@ -55,7 +54,7 @@ export default function DashboardPage() {
                     },
                     {
                         label: 'Productos Activos',
-                        value: products.length.toString(),
+                        value: (products as Product[]).length.toString(),
                         change: 'En catálogo',
                         icon: ShoppingBag,
                         color: 'text-[var(--primary)]',
@@ -216,6 +215,3 @@ export default function DashboardPage() {
     );
 }
 
-function cn(...inputs: any[]) {
-    return inputs.filter(Boolean).join(' ');
-}

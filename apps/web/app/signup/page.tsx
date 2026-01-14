@@ -4,14 +4,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase';
-import { ShoppingBag, Mail, Lock, Loader2, User, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import { Mail, Lock, Loader2, User, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs));
-}
+import { cn } from '@/lib/utils';
 
 export default function SignupPage() {
     const [email, setEmail] = useState('');
@@ -60,7 +55,7 @@ export default function SignupPage() {
         setError(null);
 
         const supabase = createClient();
-        const { error } = await supabase.auth.signUp({
+        const { error: signUpError } = await supabase.auth.signUp({
             email,
             password,
             options: {
@@ -71,8 +66,8 @@ export default function SignupPage() {
             }
         });
 
-        if (error) {
-            setError(error.message);
+        if (signUpError) {
+            setError(signUpError.message);
             setLoading(false);
         } else {
             setShowSuccess(true);

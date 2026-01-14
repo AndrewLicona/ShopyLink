@@ -3,14 +3,15 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Plus, Package, Search, MoreVertical, Edit2, Trash2, Loader2, Image as ImageIcon, X, DollarSign, Upload, AlertCircle } from 'lucide-react';
+import { Plus, Package, Search, Edit2, Trash2, Loader2, Image as ImageIcon, X, DollarSign, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
-import { createClient } from '@/lib/supabase';
 import { storage } from '@/lib/storage';
 import { formatCurrency } from '@/lib/utils';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import type { Product, Category } from '@/lib/types';
+import { useCallback } from 'react';
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -20,14 +21,14 @@ import { useStore } from '@/contexts/StoreContext';
 
 function ProductsContent() {
     const { activeStore } = useStore();
-    const [products, setProducts] = useState<any[]>([]);
-    const [categories, setCategories] = useState<any[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isCatModalOpen, setIsCatModalOpen] = useState(false);
     const [creating, setCreating] = useState(false);
     const [uploading, setUploading] = useState(false);
-    const [editingProduct, setEditingProduct] = useState<any>(null);
+    const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const searchParams = useSearchParams();
 
@@ -59,14 +60,8 @@ function ProductsContent() {
     // Category Form
     const [newCatName, setNewCatName] = useState('');
 
-    // Auto-open modal if action=new is present
-    useEffect(() => {
-        if (searchParams.get('action') === 'new' && storeId) {
-            openCreateModal();
-        }
-    }, [searchParams, storeId]);
 
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         if (!activeStore) return;
 
         setLoading(true);
@@ -77,16 +72,16 @@ function ProductsContent() {
             ]);
             setProducts(prods);
             setCategories(cats);
-        } catch (err) {
+        } catch (err: unknown) {
             console.error('Error loading data:', err);
         } finally {
             setLoading(false);
         }
-    };
+    }, [activeStore]);
 
     useEffect(() => {
         loadData();
-    }, [activeStore]);
+    }, [activeStore, loadData]);
 
     const handleProductImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
@@ -97,7 +92,7 @@ function ProductsContent() {
             const uploadPromises = files.map(file => storage.uploadImage(file, 'products'));
             const urls = await Promise.all(uploadPromises);
             setImageUrls(prev => [...prev, ...urls].slice(0, 5));
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Upload error:', err);
             setErrorAlert({
                 show: true,
@@ -127,7 +122,8 @@ function ProductsContent() {
             setNewCatName('');
             const cats = await api.getCategories(storeId);
             setCategories(cats);
-        } catch (err) {
+        } catch (err: unknown) {
+            console.error('Create category error:', err);
             setErrorAlert({
                 show: true,
                 title: 'Error de Categoría',
@@ -142,7 +138,8 @@ function ProductsContent() {
             const cats = await api.getCategories(storeId!);
             setCategories(cats);
             await loadData();
-        } catch (err) {
+        } catch (err: unknown) {
+            console.error('Delete category error:', err);
             setErrorAlert({
                 show: true,
                 title: 'Error al eliminar',
@@ -151,7 +148,7 @@ function ProductsContent() {
         }
     };
 
-    const openCreateModal = () => {
+    const openCreateModal = useCallback(() => {
         setEditingProduct(null);
         setName('');
         setPrice('');
@@ -164,9 +161,16 @@ function ProductsContent() {
         setIsActive(true);
         setTrackInventory(true);
         setIsModalOpen(true);
-    };
+    }, []);
 
-    const openEditModal = (product: any) => {
+    // Auto-open modal if action=new is present
+    useEffect(() => {
+        if (searchParams.get('action') === 'new' && storeId) {
+            openCreateModal();
+        }
+    }, [searchParams, storeId, openCreateModal]);
+
+    const openEditModal = (product: Product) => {
         setEditingProduct(product);
         setName(product.name);
         setPrice(product.price.toString());
@@ -208,7 +212,8 @@ function ProductsContent() {
             }
             setIsModalOpen(false);
             await loadData();
-        } catch (err) {
+        } catch (err: unknown) {
+            console.error('Save product error:', err);
             setErrorAlert({
                 show: true,
                 title: 'Error al guardar',
@@ -219,7 +224,7 @@ function ProductsContent() {
         }
     };
 
-    const handleDeleteProduct = (product: any) => {
+    const handleDeleteProduct = (product: Product) => {
         setConfirmModal({
             show: true,
             type: 'product',
@@ -238,7 +243,8 @@ function ProductsContent() {
             try {
                 await api.deleteProduct(id);
                 await loadData();
-            } catch (err) {
+            } catch (err: unknown) {
+                console.error('Delete product error:', err);
                 setErrorAlert({
                     show: true,
                     title: 'No se puede eliminar',
@@ -252,11 +258,12 @@ function ProductsContent() {
         }
     };
 
-    const handleToggleStatus = async (product: any) => {
+    const handleToggleStatus = async (product: Product) => {
         try {
             await api.updateProduct(product.id, { isActive: !product.isActive });
             await loadData();
-        } catch (err) {
+        } catch (err: unknown) {
+            console.error('Toggle status error:', err);
             setErrorAlert({
                 show: true,
                 title: 'Error de Estado',
@@ -682,10 +689,10 @@ function ProductsContent() {
                                     </h2>
                                     <div className="text-gray-500 font-bold text-sm px-4 leading-relaxed">
                                         {confirmModal.type === 'category' ? (
-                                            `Vas a eliminar la categoría "${confirmModal.name}". Los productos asociados quedarán sin categoría.`
+                                            `Vas a eliminar la categoría &quot;${confirmModal.name}&quot;. Los productos asociados quedarán sin categoría.`
                                         ) : confirmModal.isPaused ? (
                                             <>
-                                                Eliminar <span className="text-red-600">"${confirmModal.name}"</span> borrará su historial de ventas y métricas. Esta acción es <span className="text-red-600 uppercase">irreversible</span>.
+                                                Eliminar <span className="text-red-600">&quot;${confirmModal.name}&quot;</span> borrará su historial de ventas y métricas. Esta acción es <span className="text-red-600 uppercase">irreversible</span>.
                                             </>
                                         ) : (
                                             <>

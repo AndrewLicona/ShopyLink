@@ -10,7 +10,7 @@ export const storage = {
         const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
         const filePath = `${path}/${fileName}`;
 
-        const { data, error } = await supabase.storage
+        const { error } = await supabase.storage
             .from('shopy-images')
             .upload(filePath, file, {
                 cacheControl: '3600',

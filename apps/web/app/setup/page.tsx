@@ -3,7 +3,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShoppingBag, ArrowRight, Store, Globe, Loader2, Image as ImageIcon, Plus as PlusIcon, Upload, X as CloseIcon } from 'lucide-react';
+import { ShoppingBag, ArrowRight, Store, Globe, Loader2, Image as ImageIcon, Upload, X as CloseIcon } from 'lucide-react';
+import Image from 'next/image';
 import { api } from '@/lib/api';
 import { storage } from '@/lib/storage';
 import { PhoneInput } from '@/components/PhoneInput';
@@ -54,7 +55,8 @@ export default function SetupPage() {
         try {
             const url = await storage.uploadImage(file, 'logos');
             setLogoUrl(url);
-        } catch (err: any) {
+        } catch (err: unknown) {
+            console.error('Logo upload error:', err);
             setError('Error al subir el logo. Asegúrate de que el bucket existe.');
         } finally {
             setUploading(false);
@@ -81,11 +83,12 @@ export default function SetupPage() {
                 logoUrl: logoUrl || undefined
             });
             router.push('/dashboard');
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Setup Error:', err);
-            setError(err.message || 'Error al crear la tienda');
+            const error = err as { message?: string };
+            setError(error.message || 'Error al crear la tienda');
 
-            if (err.message?.includes('uso') || err.message?.includes('already in use')) {
+            if (error.message?.includes('uso') || error.message?.includes('already in use')) {
                 const suggestion = `${slug}-${Math.floor(Math.random() * 90) + 10}`;
                 setSuggestedSlug(suggestion);
             }
@@ -191,7 +194,13 @@ export default function SetupPage() {
                                     <div className="w-24 h-24 bg-white rounded-3xl shadow-sm border border-gray-200 flex items-center justify-center text-4xl overflow-hidden relative">
                                         {logoUrl ? (
                                             <>
-                                                <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                                                <Image
+                                                    src={logoUrl}
+                                                    alt="Logo"
+                                                    width={96}
+                                                    height={96}
+                                                    className="w-full h-full object-contain"
+                                                />
                                                 <button
                                                     type="button"
                                                     onClick={() => setLogoUrl('')}
@@ -241,10 +250,4 @@ export default function SetupPage() {
     );
 }
 
-function Plus({ className }: { className?: string }) {
-    return (
-        <svg fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className={className}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-        </svg>
-    )
-}
+

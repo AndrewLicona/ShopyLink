@@ -3,31 +3,51 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../common/prisma/prisma.module';
+import { OrderStatus } from '@prisma/client';
 import { createHash } from 'crypto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { decrypt } from '../common/encryption.util';
 
+interface StoreWithDetails {
+  id: string;
+  name: string | null;
+  whatsappNumber?: string | null;
+  slug?: string;
+}
+
+interface ProductWithInventory {
+  id: string;
+  name: string;
+  price: any;
+  discountPrice?: any;
+  sku?: string | null;
+  trackInventory: boolean;
+  inventory?: {
+    stock: number;
+  } | null;
+}
+
 @Injectable()
 export class OrdersService {
-  constructor(private prisma: PrismaClient) { }
+  constructor(private prisma: PrismaService) { }
 
   async create(createOrderDto: CreateOrderDto) {
     const { storeId, items, customerName, customerPhone } = createOrderDto;
 
     // 1. Verify Store exists
-    const store = await this.prisma.store.findUnique({
+    const store = (await this.prisma.store.findUnique({
       where: { id: storeId },
-    });
+    })) as StoreWithDetails | null;
     if (!store) throw new NotFoundException('Store not found');
 
     // 2. Fetch products and validate stock
     const productIds = items.map((i) => i.productId);
-    const products = await this.prisma.product.findMany({
+    const products = (await this.prisma.product.findMany({
       where: { id: { in: productIds }, storeId },
       include: { inventory: true },
-    });
+    })) as ProductWithInventory[];
 
     if (products.length !== productIds.length) {
       throw new BadRequestException(
@@ -46,11 +66,15 @@ export class OrdersService {
 
     // 3. Calculate total and prepare items
     for (const itemDto of items) {
-      const product = products.find((p: any) => p.id === itemDto.productId);
+      const product = products.find((p) => p.id === itemDto.productId);
       if (!product) continue; // Should not happen due to check above
 
       // Check stock if inventory exists AND tracking is enabled
-      if ((product as any).trackInventory && product.inventory && product.inventory.stock < itemDto.quantity) {
+      if (
+        product.trackInventory &&
+        product.inventory &&
+        product.inventory.stock < itemDto.quantity
+      ) {
         throw new BadRequestException(
           `Insufficient stock for product: ${product.name}`,
         );
@@ -64,12 +88,12 @@ export class OrdersService {
         productName: product.name,
         quantity: itemDto.quantity,
         price: price,
-        sku: (product as any).sku,
+        sku: product.sku ?? undefined,
       });
     }
 
     // 4. Transaction: Create Order, Items, and Update Inventory
-    const order = await this.prisma.$transaction(async (tx: PrismaClient) => {
+    const order = await this.prisma.$transaction(async (tx: PrismaService) => {
       const hashedPhone = customerPhone
         ? createHash('sha256').update(customerPhone).digest('hex')
         : null;
@@ -85,15 +109,15 @@ export class OrdersService {
           items: {
             create: orderItemsData,
           },
-        } as any,
+        },
         include: { items: true },
       });
 
       // Decrement Stock
       for (const item of items) {
         // We only decrement if inventory record exists AND tracking is enabled.
-        const product = products.find((p: any) => p.id === item.productId);
-        if ((product as any)?.trackInventory && product?.inventory) {
+        const product = products.find((p) => p.id === item.productId);
+        if (product?.trackInventory && product?.inventory) {
           await tx.inventory.update({
             where: { productId: item.productId },
             data: { stock: { decrement: item.quantity } },
@@ -105,11 +129,24 @@ export class OrdersService {
     });
 
     // 5. Generate WhatsApp Link
-    // We cast store to any because Typescript doesn't know about the new field yet until we regenerate client
-    const decryptedWhatsapp = (store as any).whatsappNumber ? decrypt((store as any).whatsappNumber) : null;
+    const orderForWhatsApp = {
+      id: order.id,
+      customerName: order.customerName,
+      total: Number(order.total),
+      items: (order.items || []).map((i) => ({
+        quantity: i.quantity,
+        productName: i.productName,
+        sku: i.sku || null,
+        price: Number(i.price),
+      })),
+    };
+
+    const decryptedWhatsapp = store.whatsappNumber
+      ? decrypt(store.whatsappNumber)
+      : null;
     const waLink = this.generateWhatsAppLink(
       store.name,
-      order,
+      orderForWhatsApp,
       decryptedWhatsapp,
     );
 
@@ -127,7 +164,17 @@ export class OrdersService {
 
   private generateWhatsAppLink(
     storeName: string | null,
-    order: any,
+    order: {
+      id: string;
+      customerName: string;
+      total: number;
+      items: {
+        quantity: number;
+        productName: string;
+        sku?: string | null;
+        price: number;
+      }[];
+    },
     whatsappNumber: string | null,
   ) {
     // Basic formatting
@@ -136,14 +183,15 @@ export class OrdersService {
     // Bulleted list with formatted prices and SKU
     const itemsList = order.items
       .map(
-        (i: any) =>
-          `• ${i.quantity}x ${i.productName}${i.sku ? ` [${i.sku}]` : ''} (${this.formatCurrency(i.price)})`,
+        (i) =>
+          `• ${i.quantity}x ${i.productName}${i.sku ? ` [${i.sku}]` : ''} (${this.formatCurrency(Number(i.price))})`,
       )
       .join('\n');
 
     const dashboardLink = `https://shopylink.andrewlamaquina.my/dashboard/orders?id=${order.id}`;
 
-    const text = `Hola *${storeName || 'Tienda'}*.\n\n` +
+    const text =
+      `Hola *${storeName || 'Tienda'}*.\n\n` +
       `Mi nombre es *${order.customerName}*.\n` +
       `Quiero confirmar mi pedido *#${order.id.slice(0, 8)}*\n\n` +
       `📦 *DETALLE:*\n${itemsList}\n\n` +
@@ -195,23 +243,26 @@ export class OrdersService {
       throw new NotFoundException('Access denied');
 
     const oldStatus = order.status;
-    const newStatus = updateOrderStatusDto.status;
+    const newStatus = updateOrderStatusDto.status as unknown as OrderStatus;
 
     if (oldStatus === newStatus) return order;
 
-    return this.prisma.$transaction(async (tx: any) => {
+    return this.prisma.$transaction(async (tx: PrismaService) => {
       // 1. Logic to return stock if moving from [PENDING, COMPLETED] to CANCELLED
-      if (newStatus === 'CANCELLED' && oldStatus !== 'CANCELLED') {
+      if (
+        newStatus === OrderStatus.CANCELLED &&
+        oldStatus !== OrderStatus.CANCELLED
+      ) {
         for (const item of order.items) {
           // Check if product exists and has inventory tracking
           const product = await tx.product.findUnique({
-            where: { id: item.productId },
-            include: { inventory: true }
+            where: { id: item.productId || undefined },
+            include: { inventory: true },
           });
 
-          if ((product as any)?.trackInventory && (product as any)?.inventory) {
+          if (product?.trackInventory && product?.inventory) {
             await tx.inventory.update({
-              where: { productId: item.productId },
+              where: { productId: product.id },
               data: { stock: { increment: item.quantity } },
             });
           }
@@ -219,22 +270,25 @@ export class OrdersService {
       }
 
       // 2. Logic to deduct stock if moving from CANCELLED to [PENDING, COMPLETED]
-      if (oldStatus === 'CANCELLED' && newStatus !== 'CANCELLED') {
+      if (
+        oldStatus === OrderStatus.CANCELLED &&
+        newStatus !== OrderStatus.CANCELLED
+      ) {
         for (const item of order.items) {
           const product = await tx.product.findUnique({
-            where: { id: item.productId },
-            include: { inventory: true }
+            where: { id: item.productId || undefined },
+            include: { inventory: true },
           });
 
-          if ((product as any)?.trackInventory && (product as any)?.inventory) {
-            if ((product as any).inventory.stock < item.quantity) {
+          if (product?.trackInventory && product?.inventory) {
+            if (product.inventory.stock < item.quantity) {
               throw new BadRequestException(
                 `No hay suficiente stock para restaurar el producto: ${item.productName}`,
               );
             }
 
             await tx.inventory.update({
-              where: { productId: item.productId },
+              where: { productId: product.id },
               data: { stock: { decrement: item.quantity } },
             });
           }

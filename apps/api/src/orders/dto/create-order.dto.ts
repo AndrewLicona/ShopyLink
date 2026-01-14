@@ -28,7 +28,8 @@ export class CreateOrderDto {
   @IsString()
   @IsOptional()
   @Matches(/^\+[1-9]\d{1,14}$/, {
-    message: 'Phone number must be in international format (e.g., +573001234567)',
+    message:
+      'Phone number must be in international format (e.g., +573001234567)',
   })
   customerPhone?: string;
 

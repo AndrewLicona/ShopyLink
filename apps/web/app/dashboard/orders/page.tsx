@@ -7,61 +7,54 @@ import {
     CheckCircle2,
     XCircle,
     Clock,
-    ExternalLink,
     Eye,
     X,
     Calendar,
-    Hash,
-    User,
-    Package,
-    Shield
+    User
 } from 'lucide-react';
 import { useStore } from '@/contexts/StoreContext';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { formatCurrency, cn } from '@/lib/utils';
 import { useSearchParams } from 'next/navigation';
+import type { Order, OrderItem } from '@/lib/types';
+import { useCallback } from 'react';
+import { cn, formatCurrency } from '@/lib/utils';
 
 export default function OrdersPage() {
     const { activeStore } = useStore();
-    const [orders, setOrders] = useState<any[]>([]);
+    const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [loadingStatus, setLoadingStatus] = useState<string | null>(null);
-    const [selectedOrder, setSelectedOrder] = useState<any>(null);
+    const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const searchParams = useSearchParams();
-    const maskPhone = (phone: string) => {
-        if (!phone) return '';
-        if (phone.length > 12) return `${phone.slice(0, 8)}...`;
-        return phone;
-    };
 
-    const loadOrders = async () => {
+    const loadOrders = useCallback(async () => {
         if (!activeStore) return [];
         setLoading(true);
         try {
             const data = await api.getOrders(activeStore.id);
             setOrders(data);
             return data;
-        } catch (err) {
+        } catch (err: unknown) {
             console.error('Error loading orders:', err);
             return [];
         } finally {
             setLoading(false);
         }
-    };
+    }, [activeStore]);
 
     useEffect(() => {
         const initOrders = async () => {
             const data = await loadOrders();
             const orderId = searchParams.get('id');
-            if (orderId && data.length > 0) {
-                const found = data.find((o: any) => o.id === orderId);
+            if (orderId && Array.isArray(data) && data.length > 0) {
+                const found = data.find((o: Order) => o.id === orderId);
                 if (found) setSelectedOrder(found);
             }
         };
         initOrders();
-    }, [activeStore]);
+    }, [loadOrders, searchParams]);
 
     // Handle order selection when orders list changes (first load)
     useEffect(() => {
@@ -70,7 +63,7 @@ export default function OrdersPage() {
             const found = orders.find(o => o.id === orderId);
             if (found) setSelectedOrder(found);
         }
-    }, [orders, searchParams]);
+    }, [orders, searchParams, selectedOrder]);
 
     const handleUpdateStatus = async (orderId: string, newStatus: string) => {
         setUpdatingId(orderId);
@@ -79,14 +72,15 @@ export default function OrdersPage() {
             await api.updateOrderStatus(orderId, newStatus);
 
             // Update orders list locally
-            setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+            setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus as Order['status'] } : o));
 
             // Update selected order if it's the one being modified
             if (selectedOrder?.id === orderId) {
-                setSelectedOrder((prev: any) => ({ ...prev, status: newStatus }));
+                setSelectedOrder((prev) => prev ? ({ ...prev, status: newStatus as Order['status'] }) : null);
             }
-        } catch (err: any) {
-            alert(err.message || 'Error al actualizar el estado del pedido');
+        } catch (err: unknown) {
+            const error = err as { message?: string };
+            alert(error.message || 'Error al actualizar el estado del pedido');
         } finally {
             setUpdatingId(null);
             setLoadingStatus(null);
@@ -149,11 +143,7 @@ export default function OrdersPage() {
                                             </td>
                                             <td className="px-8 py-6">
                                                 <p className="font-bold text-[var(--text)] truncate max-w-[150px]">{order.customerName}</p>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <span className="text-[10px] font-medium text-[var(--text)]/40 tabular-nums">
-                                                        ID Privado: {order.customerPhone.slice(0, 8)}...
-                                                    </span>
-                                                </div>
+
                                             </td>
                                             <td className="px-8 py-6 text-right font-black text-[var(--text)]">{formatCurrency(order.total)}</td>
                                             <td className="px-8 py-6">
@@ -254,15 +244,7 @@ export default function OrdersPage() {
                                                 <p className="font-black text-[var(--text)]">{selectedOrder.customerName}</p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-3 bg-[var(--secondary)]/30 p-4 rounded-2xl relative group">
-                                            <Shield className="w-4 h-4 text-[var(--text)]/30" />
-                                            <div>
-                                                <p className="text-[10px] font-black text-[var(--text)]/30 uppercase tracking-tighter">Teléfono (Hasheado)</p>
-                                                <p className="font-black text-[var(--text)] tabular-nums text-xs">
-                                                    {selectedOrder.customerPhone.slice(0, 16)}...
-                                                </p>
-                                            </div>
-                                        </div>
+
                                     </div>
                                 </div>
 
@@ -282,7 +264,7 @@ export default function OrdersPage() {
                             <div className="space-y-6">
                                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--primary)] opacity-80">Resumen de Productos</h3>
                                 <div className="space-y-2 border border-[var(--border)] rounded-3xl p-4 bg-[var(--bg)]/30">
-                                    {selectedOrder.items?.map((item: any, i: number) => (
+                                    {selectedOrder.items?.map((item: OrderItem, i: number) => (
                                         <div key={i} className="flex items-center justify-between py-2 border-b border-[var(--border)] last:border-0">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 bg-[var(--surface)] rounded-lg flex items-center justify-center text-[10px] font-black text-[var(--text)]/30 border border-[var(--border)]">
@@ -354,15 +336,6 @@ export default function OrdersPage() {
                             >
                                 Cerrar
                             </button>
-                            <a
-                                href={`https://wa.me/${selectedOrder.customerPhone.replace(/\D/g, '')}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 bg-[#25D366] text-white px-8 py-3 rounded-2xl font-black text-sm hover:scale-105 transition-all shadow-lg shadow-green-500/20"
-                            >
-                                <ExternalLink className="w-4 h-4" />
-                                Hablar por WhatsApp
-                            </a>
                         </div>
                     </div>
                 </div>

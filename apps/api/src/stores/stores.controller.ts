@@ -14,24 +14,28 @@ import { StoresService } from './stores.service';
 import { CreateStoreDto } from './dto/create-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RequestWithUser } from '../auth/interfaces/user.interface';
 
 @Controller('stores')
 export class StoresController {
-  constructor(private readonly storesService: StoresService) { }
+  constructor(private readonly storesService: StoresService) {}
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Request() req: any, @Body() createStoreDto: CreateStoreDto) {
+  create(
+    @Request() req: RequestWithUser,
+    @Body() createStoreDto: CreateStoreDto,
+  ) {
     // req.user contains the decoded JWT. Supabase passes 'sub' as userId and 'email'
-    const userId = req.user.sub as string;
-    const email = req.user.email as string;
+    const userId = req.user.sub;
+    const email = req.user.email;
     return this.storesService.create(userId, email, createStoreDto);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  findAll(@Request() req: any) {
-    const userId = req.user.sub as string;
+  findAll(@Request() req: RequestWithUser) {
+    const userId = req.user.sub;
     return this.storesService.findAllByUser(userId);
   }
 
@@ -53,11 +57,18 @@ export class StoresController {
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
   update(
-    @Request() req: any,
+    @Request() req: RequestWithUser,
     @Param('id') id: string,
     @Body() updateStoreDto: UpdateStoreDto,
   ) {
-    const userId = req.user.sub as string;
+    const userId = req.user.sub;
     return this.storesService.update(id, userId, updateStoreDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  remove(@Request() req: RequestWithUser, @Param('id') id: string) {
+    const userId = req.user.sub;
+    return this.storesService.remove(id, userId);
   }
 }

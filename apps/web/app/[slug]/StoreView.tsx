@@ -23,19 +23,20 @@ import { twMerge } from 'tailwind-merge';
 import { useState, useEffect, useRef } from 'react';
 import { api } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
+import type { Store, Product, Category } from '@/lib/types';
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
 interface StoreViewProps {
-    store: any;
-    products: any[];
-    categories: any[];
+    store: Store;
+    products: Product[];
+    categories: Category[];
 }
 
 export function StoreView({ store, products: initialProducts, categories }: StoreViewProps) {
-    const [products, setProducts] = useState(initialProducts);
+    const products = initialProducts;
     const [cart, setCart] = useState<{ id: string, quantity: number, name: string, price: number, image?: string }[]>([]);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [categoryFilter, setCategoryFilter] = useState('all');
@@ -48,7 +49,7 @@ export function StoreView({ store, products: initialProducts, categories }: Stor
     const [showNameModal, setShowNameModal] = useState(false);
     const [customerName, setCustomerName] = useState('');
     const [stockAlert, setStockAlert] = useState<{ show: boolean, message: string }>({ show: false, message: '' });
-    const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [modalQuantity, setModalQuantity] = useState(1);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const touchStartX = useRef<number | null>(null);
@@ -57,7 +58,7 @@ export function StoreView({ store, products: initialProducts, categories }: Stor
         setStockAlert({ show: true, message: msg });
     };
 
-    const openProductModal = (product: any) => {
+    const openProductModal = (product: Product) => {
         setSelectedProduct(product);
         setModalQuantity(1);
         setCurrentImageIndex(0);
@@ -110,7 +111,7 @@ export function StoreView({ store, products: initialProducts, categories }: Stor
         }
     }, [products, searchParams]);
 
-    const addToCart = (product: any) => {
+    const addToCart = (product: Product) => {
         setCart(prev => {
             const existing = prev.find(item => item.id === product.id);
             const availableStock = product.inventory?.stock ?? 0;
@@ -190,10 +191,11 @@ export function StoreView({ store, products: initialProducts, categories }: Stor
                 // we'll rely on the redirect or manual refresh for now.
                 // In a real app, router.refresh() would work.
             }
-        } catch (err: any) {
-            console.error('Error creating order:', err);
-            if (err.message?.includes('Insufficient stock')) {
-                const productName = err.message.split(': ')[1] || 'un producto';
+        } catch (err: unknown) {
+            const error = err as { message?: string };
+            console.error('Error creating order:', error);
+            if (error.message?.includes('Insufficient stock')) {
+                const productName = error.message.split(': ')[1] || 'un producto';
                 showMessage(`¡Lo sentimos! No hay suficiente stock disponible para: ${productName}. Por favor, reduce la cantidad e intenta de nuevo.`);
             } else {
                 showMessage('Hubo un error al procesar tu pedido. Por favor intenta de nuevo.');
@@ -356,9 +358,17 @@ export function StoreView({ store, products: initialProducts, categories }: Stor
                                                 e.stopPropagation();
                                                 addToCart(product);
                                             }}
-                                            className="w-9 h-9 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-xl flex items-center justify-center hover:scale-105 transition-all shadow-lg active:scale-90 flex-shrink-0"
+                                            className="w-9 h-9 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-xl flex items-center justify-center hover:scale-105 transition-all shadow-lg active:scale-90 flex-shrink-0 relative"
                                         >
                                             <Plus className="w-5 h-5" />
+                                            {(() => {
+                                                const quantity = cart.find(item => item.id === product.id)?.quantity;
+                                                return quantity && quantity > 0 ? (
+                                                    <span className="absolute -top-2 -right-2 bg-[var(--text)] text-[var(--bg)] text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-[var(--bg)] animate-in zoom-in-50">
+                                                        {quantity}
+                                                    </span>
+                                                ) : null;
+                                            })()}
                                         </button>
                                     </div>
                                 </div>
@@ -579,7 +589,7 @@ export function StoreView({ store, products: initialProducts, categories }: Stor
 
                         {/* Left Side: Images Gallery */}
                         <div className="w-full md:w-[55%] bg-[var(--secondary)] flex items-center justify-center relative aspect-[4/5] md:aspect-auto overflow-hidden">
-                            {selectedProduct.images?.length > 0 ? (
+                            {selectedProduct.images && selectedProduct.images.length > 0 ? (
                                 <div
                                     className="w-full h-full relative group touch-pan-y"
                                     onTouchStart={(e) => {
@@ -594,16 +604,16 @@ export function StoreView({ store, products: initialProducts, categories }: Stor
 
                                         if (Math.abs(diff) > 50) {
                                             if (diff > 0) {
-                                                setCurrentImageIndex(prev => (prev === selectedProduct.images.length - 1 ? 0 : prev + 1));
+                                                setCurrentImageIndex(prev => (prev === (selectedProduct.images?.length || 0) - 1 ? 0 : prev + 1));
                                             } else {
-                                                setCurrentImageIndex(prev => (prev === 0 ? selectedProduct.images.length - 1 : prev - 1));
+                                                setCurrentImageIndex(prev => (prev === 0 ? (selectedProduct.images?.length || 0) - 1 : prev - 1));
                                             }
                                         }
                                         touchStartX.current = null;
                                     }}
                                 >
                                     <Image
-                                        src={selectedProduct.images[currentImageIndex]}
+                                        src={selectedProduct.images?.[currentImageIndex] || ''}
                                         alt={selectedProduct.name}
                                         fill
                                         className="object-contain md:object-cover"
@@ -611,30 +621,29 @@ export function StoreView({ store, products: initialProducts, categories }: Stor
                                         sizes="(max-width: 768px) 100vw, 55vw"
                                     />
 
-                                    {selectedProduct.images.length > 1 && (
+                                    {selectedProduct.images && selectedProduct.images.length > 1 && (
                                         <>
                                             <button
-                                                onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev === 0 ? selectedProduct.images.length - 1 : prev - 1)) }}
+                                                onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev === 0 ? (selectedProduct.images?.length || 0) - 1 : prev - 1)) }}
                                                 className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-[var(--bg)]/40 hover:bg-[var(--bg)]/90 backdrop-blur-sm rounded-full flex items-center justify-center text-[var(--text)] transition-all active:scale-90 border border-[var(--border)] opacity-0 md:opacity-100 group-hover:opacity-100 z-10"
                                             >
                                                 <ChevronLeft className="w-5 h-5" />
                                             </button>
                                             <button
-                                                onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev === selectedProduct.images.length - 1 ? 0 : prev + 1)) }}
+                                                onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev === (selectedProduct.images?.length || 0) - 1 ? 0 : prev + 1)) }}
                                                 className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-[var(--bg)]/40 hover:bg-[var(--bg)]/90 backdrop-blur-sm rounded-full flex items-center justify-center text-[var(--text)] transition-all active:scale-90 border border-[var(--border)] opacity-0 md:opacity-100 group-hover:opacity-100 z-10"
                                             >
                                                 <ChevronRight className="w-5 h-5" />
                                             </button>
-
                                             <div className="absolute top-4 left-4 bg-black/20 backdrop-blur-md text-white px-3 py-1 rounded-full text-[9px] font-black tracking-widest uppercase border border-white/10 z-10">
-                                                {currentImageIndex + 1} / {selectedProduct.images.length}
+                                                {currentImageIndex + 1} / {selectedProduct.images?.length}
                                             </div>
                                         </>
                                     )}
 
-                                    {selectedProduct.images.length > 1 && (
+                                    {selectedProduct.images && selectedProduct.images.length > 1 && (
                                         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1 z-10">
-                                            {selectedProduct.images.map((_: any, idx: number) => (
+                                            {selectedProduct.images.map((_: string, idx: number) => (
                                                 <button
                                                     key={idx}
                                                     onClick={() => setCurrentImageIndex(idx)}
@@ -676,7 +685,7 @@ export function StoreView({ store, products: initialProducts, categories }: Stor
                                             await navigator.clipboard.writeText(url);
                                             setIsCopied(true);
                                             setTimeout(() => setIsCopied(false), 2000);
-                                        } catch (err) {
+                                        } catch {
                                             setShowManualShare(true);
                                         }
                                     }}

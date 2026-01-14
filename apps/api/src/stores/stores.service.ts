@@ -7,14 +7,14 @@ import { Injectable, ConflictException } from '@nestjs/common';
 // In Step 385 I did: provide: PrismaClient, useClass: PrismaClient.
 // So I can inject PrismaClient.
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../common/prisma/prisma.module';
 import { CreateStoreDto } from './dto/create-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
 import { encrypt, decrypt } from '../common/encryption.util';
 
 @Injectable()
 export class StoresService {
-  constructor(private prisma: PrismaClient) { }
+  constructor(private prisma: PrismaService) { }
 
   async create(
     userId: string,
@@ -26,7 +26,9 @@ export class StoresService {
       where: { slug: createStoreDto.slug },
     });
     if (existing) {
-      throw new ConflictException('Este identificador de tienda (link) ya está en uso');
+      throw new ConflictException(
+        'Este identificador de tienda (link) ya está en uso',
+      );
     }
 
     // Upsert User to ensure local DB record exists
@@ -56,9 +58,12 @@ export class StoresService {
     return this.decryptStore(store);
   }
 
-  private decryptStore(store: any) {
-    if (store && store.whatsappNumber) {
-      store.whatsappNumber = decrypt(store.whatsappNumber);
+  private decryptStore<T>(store: T): T {
+    if (!store) return store;
+
+    const s = store as Record<string, unknown>;
+    if (typeof s.whatsappNumber === 'string') {
+      s.whatsappNumber = decrypt(s.whatsappNumber);
     }
     return store;
   }
@@ -68,7 +73,7 @@ export class StoresService {
       where: { userId },
       orderBy: { createdAt: 'desc' },
     });
-    return stores.map(store => this.decryptStore(store));
+    return stores.map((store) => this.decryptStore(store));
   }
 
   async findOneByUser(userId: string) {
@@ -94,7 +99,9 @@ export class StoresService {
         where: { slug: updateStoreDto.slug },
       });
       if (existing && existing.id !== id) {
-        throw new ConflictException('Este identificador de tienda (link) ya está en uso');
+        throw new ConflictException(
+          'Este identificador de tienda (link) ya está en uso',
+        );
       }
     }
 
@@ -113,5 +120,12 @@ export class StoresService {
       console.error('Prisma Update Error:', error);
       throw error;
     }
+  }
+
+  async remove(id: string, userId: string) {
+    // Delete store - cascading deletes in DB should handle relations
+    return this.prisma.store.delete({
+      where: { id, userId },
+    });
   }
 }
