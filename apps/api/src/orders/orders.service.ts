@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
+import { createHash } from 'crypto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 
@@ -68,12 +69,14 @@ export class OrdersService {
 
     // 4. Transaction: Create Order, Items, and Update Inventory
     const order = await this.prisma.$transaction(async (tx: PrismaClient) => {
+      const hashedPhone = createHash('sha256').update(customerPhone).digest('hex');
+
       // Create Order
       const newOrder = await tx.order.create({
         data: {
           storeId,
           customerName,
-          customerPhone,
+          customerPhone: hashedPhone,
           total,
           status: 'PENDING',
           items: {

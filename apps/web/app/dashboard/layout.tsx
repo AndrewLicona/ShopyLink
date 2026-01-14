@@ -32,6 +32,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     const { stores, activeStore, setActiveStoreById, loading: storeLoading } = useStore();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     useEffect(() => {
         setIsMobileMenuOpen(false);
@@ -40,7 +45,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     const handleLogout = async () => {
         const supabase = createClient();
         await supabase.auth.signOut();
-        router.push('/login');
+        localStorage.clear();
+        window.location.href = '/login';
     };
 
     const menuItems = [
@@ -65,8 +71,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
     return (
         <div
-            data-theme={activeStore?.applyThemeToDashboard ? activeStore.theme : 'classic'}
-            data-mode={activeStore?.applyThemeToDashboard ? activeStore.mode : 'light'}
+            data-theme={mounted && activeStore?.applyThemeToDashboard ? activeStore.theme : 'classic'}
+            data-mode={mounted && activeStore?.applyThemeToDashboard ? activeStore.mode : 'light'}
             className="flex min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-300"
         >
             {/* Mobile Header */}

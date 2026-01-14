@@ -13,8 +13,8 @@ import {
     Calendar,
     Hash,
     User,
-    Phone,
-    Package
+    Package,
+    Shield
 } from 'lucide-react';
 import { useStore } from '@/contexts/StoreContext';
 import { useEffect, useState } from 'react';
@@ -30,6 +30,11 @@ export default function OrdersPage() {
     const [loadingStatus, setLoadingStatus] = useState<string | null>(null);
     const [selectedOrder, setSelectedOrder] = useState<any>(null);
     const searchParams = useSearchParams();
+    const maskPhone = (phone: string) => {
+        if (!phone) return '';
+        if (phone.length > 12) return `${phone.slice(0, 8)}...`;
+        return phone;
+    };
 
     const loadOrders = async () => {
         if (!activeStore) return [];
@@ -144,6 +149,11 @@ export default function OrdersPage() {
                                             </td>
                                             <td className="px-8 py-6">
                                                 <p className="font-bold text-[var(--text)] truncate max-w-[150px]">{order.customerName}</p>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className="text-[10px] font-medium text-[var(--text)]/40 tabular-nums">
+                                                        ID Privado: {order.customerPhone.slice(0, 8)}...
+                                                    </span>
+                                                </div>
                                             </td>
                                             <td className="px-8 py-6 text-right font-black text-[var(--text)]">{formatCurrency(order.total)}</td>
                                             <td className="px-8 py-6">
@@ -167,14 +177,6 @@ export default function OrdersPage() {
                                                     >
                                                         <Eye className="w-4 h-4" />
                                                     </button>
-                                                    <a
-                                                        href={`https://wa.me/${order.customerPhone.replace(/\D/g, '')}`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="p-2 bg-green-500/10 text-green-600 rounded-xl hover:bg-green-600 hover:text-white transition-all active:scale-95"
-                                                    >
-                                                        <ExternalLink className="w-4 h-4" />
-                                                    </a>
                                                 </div>
                                             </td>
                                         </tr>
@@ -252,11 +254,13 @@ export default function OrdersPage() {
                                                 <p className="font-black text-[var(--text)]">{selectedOrder.customerName}</p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-3 bg-[var(--secondary)]/30 p-4 rounded-2xl">
-                                            <Phone className="w-4 h-4 text-[var(--text)]/30" />
+                                        <div className="flex items-center gap-3 bg-[var(--secondary)]/30 p-4 rounded-2xl relative group">
+                                            <Shield className="w-4 h-4 text-[var(--text)]/30" />
                                             <div>
-                                                <p className="text-[10px] font-black text-[var(--text)]/30 uppercase tracking-tighter">Teléfono</p>
-                                                <p className="font-black text-[var(--text)]">{selectedOrder.customerPhone}</p>
+                                                <p className="text-[10px] font-black text-[var(--text)]/30 uppercase tracking-tighter">Teléfono (Hasheado)</p>
+                                                <p className="font-black text-[var(--text)] tabular-nums text-xs">
+                                                    {selectedOrder.customerPhone.slice(0, 16)}...
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
