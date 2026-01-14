@@ -1,7 +1,7 @@
 
 import { createClient } from './supabase';
 
-const API_URL = '/api-proxy';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
     const supabase = createClient();
