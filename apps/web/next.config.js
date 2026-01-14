@@ -1,10 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     output: "standalone",
+    images: {
+        remotePatterns: [
+            {
+                protocol: 'https',
+                hostname: 'lvlwvcftxckjeljrcszt.supabase.co',
+                port: '',
+                pathname: '/storage/v1/object/public/**',
+            },
+        ],
+    },
     async rewrites() {
         // Docker Internal vs Localhost Fallback
         const apiUrl = process.env.INTERNAL_API_URL || 'http://localhost:3001/api';
-        console.log(`[Next.js] Proxying /api-proxy to: ${apiUrl}`);
 
         return [
             {

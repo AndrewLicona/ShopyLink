@@ -6,6 +6,12 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase';
 import { ShoppingBag, Mail, Lock, Loader2, User, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+function cn(...inputs: ClassValue[]) {
+    return twMerge(clsx(inputs));
+}
 
 export default function SignupPage() {
     const [email, setEmail] = useState('');
@@ -15,9 +21,41 @@ export default function SignupPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showSuccess, setShowSuccess] = useState(false);
+    const [strength, setStrength] = useState(0);
+    const [requirements, setRequirements] = useState({
+        length: false,
+        uppercase: false,
+        number: false,
+        special: false
+    });
+
+    const checkPassword = (pass: string) => {
+        const reqs = {
+            length: pass.length >= 8,
+            uppercase: /[A-Z]/.test(pass),
+            number: /[0-9]/.test(pass),
+            special: /[^A-Za-z0-9]/.test(pass)
+        };
+        setRequirements(reqs);
+
+        let score = 0;
+        if (pass.length > 0) {
+            if (reqs.length) score += 25;
+            if (reqs.uppercase) score += 25;
+            if (reqs.number) score += 25;
+            if (reqs.special) score += 25;
+        }
+        setStrength(score);
+    };
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (strength < 75) {
+            setError('Por favor, crea una contraseña más segura (al menos 3 requisitos)');
+            return;
+        }
+
         setLoading(true);
         setError(null);
 
@@ -105,9 +143,12 @@ export default function SignupPage() {
                                     type={showPassword ? "text" : "password"}
                                     required
                                     className="w-full pl-10 pr-12 py-3 rounded-xl border border-gray-200 bg-gray-50/30 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-gray-900 placeholder:text-gray-400"
-                                    placeholder="Al menos 6 caracteres"
+                                    placeholder="Mínimo 8 caracteres"
                                     value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
+                                    onChange={(e) => {
+                                        setPassword(e.target.value);
+                                        checkPassword(e.target.value);
+                                    }}
                                 />
                                 <button
                                     type="button"
@@ -118,6 +159,40 @@ export default function SignupPage() {
                                 </button>
                             </div>
                         </div>
+
+                        {/* Password Strength Meter */}
+                        {password.length > 0 && (
+                            <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                                    <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{
+                                            width: `${strength}%`,
+                                            backgroundColor: strength <= 25 ? '#ef4444' : strength <= 50 ? '#f59e0b' : strength <= 75 ? '#3b82f6' : '#22c55e'
+                                        }}
+                                        className="h-full transition-all"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 text-[10px] font-bold uppercase tracking-wider">
+                                    <div className={cn("flex items-center gap-1.5 transition-colors", requirements.length ? "text-green-600" : "text-gray-400")}>
+                                        <div className={cn("w-1 h-1 rounded-full", requirements.length ? "bg-green-600" : "bg-gray-300")} />
+                                        8+ Caracteres
+                                    </div>
+                                    <div className={cn("flex items-center gap-1.5 transition-colors", requirements.uppercase ? "text-green-600" : "text-gray-400")}>
+                                        <div className={cn("w-1 h-1 rounded-full", requirements.uppercase ? "bg-green-600" : "bg-gray-300")} />
+                                        Mayúscula
+                                    </div>
+                                    <div className={cn("flex items-center gap-1.5 transition-colors", requirements.number ? "text-green-600" : "text-gray-400")}>
+                                        <div className={cn("w-1 h-1 rounded-full", requirements.number ? "bg-green-600" : "bg-gray-300")} />
+                                        Número
+                                    </div>
+                                    <div className={cn("flex items-center gap-1.5 transition-colors", requirements.special ? "text-green-600" : "text-gray-400")}>
+                                        <div className={cn("w-1 h-1 rounded-full", requirements.special ? "bg-green-600" : "bg-gray-300")} />
+                                        Símbolo (!@#)
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <button

@@ -7,6 +7,7 @@ import { PrismaClient } from '@prisma/client';
 import { createHash } from 'crypto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { decrypt } from '../common/encryption.util';
 
 @Injectable()
 export class OrdersService {
@@ -48,8 +49,8 @@ export class OrdersService {
       const product = products.find((p: any) => p.id === itemDto.productId);
       if (!product) continue; // Should not happen due to check above
 
-      // Check stock if inventory exists
-      if (product.inventory && product.inventory.stock < itemDto.quantity) {
+      // Check stock if inventory exists AND tracking is enabled
+      if ((product as any).trackInventory && product.inventory && product.inventory.stock < itemDto.quantity) {
         throw new BadRequestException(
           `Insufficient stock for product: ${product.name}`,
         );
@@ -69,7 +70,9 @@ export class OrdersService {
 
     // 4. Transaction: Create Order, Items, and Update Inventory
     const order = await this.prisma.$transaction(async (tx: PrismaClient) => {
-      const hashedPhone = createHash('sha256').update(customerPhone).digest('hex');
+      const hashedPhone = customerPhone
+        ? createHash('sha256').update(customerPhone).digest('hex')
+        : null;
 
       // Create Order
       const newOrder = await tx.order.create({
@@ -82,17 +85,15 @@ export class OrdersService {
           items: {
             create: orderItemsData,
           },
-        },
+        } as any,
         include: { items: true },
       });
 
       // Decrement Stock
       for (const item of items) {
-        // We only decrement if inventory record exists.
-        // If no inventory record, we assume infinite stock or managed elsewhere?
-        // For now, let's assume if inventory exists we update it.
+        // We only decrement if inventory record exists AND tracking is enabled.
         const product = products.find((p: any) => p.id === item.productId);
-        if (product?.inventory) {
+        if ((product as any)?.trackInventory && product?.inventory) {
           await tx.inventory.update({
             where: { productId: item.productId },
             data: { stock: { decrement: item.quantity } },
@@ -105,10 +106,11 @@ export class OrdersService {
 
     // 5. Generate WhatsApp Link
     // We cast store to any because Typescript doesn't know about the new field yet until we regenerate client
+    const decryptedWhatsapp = (store as any).whatsappNumber ? decrypt((store as any).whatsappNumber) : null;
     const waLink = this.generateWhatsAppLink(
       store.name,
       order,
-      (store as any).whatsappNumber,
+      decryptedWhatsapp,
     );
 
     return { ...order, whatsappLink: waLink };
@@ -201,27 +203,36 @@ export class OrdersService {
       // 1. Logic to return stock if moving from [PENDING, COMPLETED] to CANCELLED
       if (newStatus === 'CANCELLED' && oldStatus !== 'CANCELLED') {
         for (const item of order.items) {
-          await tx.inventory.update({
-            where: { productId: item.productId },
-            data: { stock: { increment: item.quantity } },
+          // Check if product exists and has inventory tracking
+          const product = await tx.product.findUnique({
+            where: { id: item.productId },
+            include: { inventory: true }
           });
+
+          if ((product as any)?.trackInventory && (product as any)?.inventory) {
+            await tx.inventory.update({
+              where: { productId: item.productId },
+              data: { stock: { increment: item.quantity } },
+            });
+          }
         }
       }
 
       // 2. Logic to deduct stock if moving from CANCELLED to [PENDING, COMPLETED]
       if (oldStatus === 'CANCELLED' && newStatus !== 'CANCELLED') {
         for (const item of order.items) {
-          const inventory = await tx.inventory.findUnique({
-            where: { productId: item.productId },
+          const product = await tx.product.findUnique({
+            where: { id: item.productId },
+            include: { inventory: true }
           });
 
-          if (inventory && inventory.stock < item.quantity) {
-            throw new BadRequestException(
-              `No hay suficiente stock para restaurar el producto: ${item.productName}`,
-            );
-          }
+          if ((product as any)?.trackInventory && (product as any)?.inventory) {
+            if ((product as any).inventory.stock < item.quantity) {
+              throw new BadRequestException(
+                `No hay suficiente stock para restaurar el producto: ${item.productName}`,
+              );
+            }
 
-          if (inventory) {
             await tx.inventory.update({
               where: { productId: item.productId },
               data: { stock: { decrement: item.quantity } },

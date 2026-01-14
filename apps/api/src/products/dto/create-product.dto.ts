@@ -49,4 +49,8 @@ export class CreateProductDto {
   @IsInt()
   @IsOptional()
   stock?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  trackInventory?: boolean;
 }

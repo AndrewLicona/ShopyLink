@@ -4,6 +4,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Plus, Package, Search, MoreVertical, Edit2, Trash2, Loader2, Image as ImageIcon, X, DollarSign, Upload, AlertCircle } from 'lucide-react';
+import Image from 'next/image';
 import { api } from '@/lib/api';
 import { createClient } from '@/lib/supabase';
 import { storage } from '@/lib/storage';
@@ -42,6 +43,7 @@ function ProductsContent() {
     const [sku, setSku] = useState('');
     const [discountPrice, setDiscountPrice] = useState('');
     const [isActive, setIsActive] = useState(true);
+    const [trackInventory, setTrackInventory] = useState(true);
     const [confirmModal, setConfirmModal] = useState<{
         show: boolean,
         type: 'product' | 'category',
@@ -160,6 +162,7 @@ function ProductsContent() {
         setSku('');
         setDiscountPrice('');
         setIsActive(true);
+        setTrackInventory(true);
         setIsModalOpen(true);
     };
 
@@ -174,6 +177,7 @@ function ProductsContent() {
         setSku(product.sku || '');
         setDiscountPrice(product.discountPrice?.toString() || '');
         setIsActive(product.isActive ?? true);
+        setTrackInventory(product.trackInventory ?? true);
         setIsModalOpen(true);
     };
 
@@ -192,7 +196,8 @@ function ProductsContent() {
             categoryId: categoryId || null,
             sku: sku || null,
             discountPrice: discountPrice ? parseFloat(discountPrice) : null,
-            isActive
+            isActive,
+            trackInventory
         };
 
         try {
@@ -365,7 +370,13 @@ function ProductsContent() {
                             <div key={product.id} className="bg-[var(--surface)] rounded-[2rem] p-3 border border-[var(--border)] shadow-[var(--shadow)] hover:shadow-[var(--shadow-strong)] transition-all flex flex-col group relative">
                                 <div className="aspect-square bg-[var(--bg)] rounded-[1.5rem] flex items-center justify-center relative overflow-hidden">
                                     {product.images?.[0] ? (
-                                        <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                                        <Image
+                                            src={product.images[0]}
+                                            alt={product.name}
+                                            fill
+                                            className="object-cover transition-transform group-hover:scale-105"
+                                            sizes="(max-width: 768px) 50vw, 25vw"
+                                        />
                                     ) : (
                                         <ImageIcon className="w-8 h-8 text-[var(--text)]/10" />
                                     )}
@@ -416,11 +427,14 @@ function ProductsContent() {
                                     <div className="mt-3 flex items-center justify-between">
                                         <span className={cn(
                                             "text-[9px] font-black uppercase tracking-widest",
-                                            (product.inventory?.stock ?? 0) === 0 ? "text-red-500" :
-                                                (product.inventory?.stock ?? 0) <= 5 ? "text-orange-500" :
-                                                    "text-[var(--text)]/30"
+                                            !product.trackInventory ? "text-blue-500" :
+                                                (product.inventory?.stock ?? 0) === 0 ? "text-red-500" :
+                                                    (product.inventory?.stock ?? 0) <= 5 ? "text-orange-500" :
+                                                        "text-[var(--text)]/30"
                                         )}>
-                                            {(product.inventory?.stock ?? 0) === 0 ? 'Sin Stock' : `Stock: ${product.inventory?.stock}`}
+                                            {!product.trackInventory ? 'Bajo Pedido' :
+                                                (product.inventory?.stock ?? 0) === 0 ? 'Sin Stock' :
+                                                    `Stock: ${product.inventory?.stock}`}
                                         </span>
                                         <button onClick={() => handleToggleStatus(product)} className="w-4 h-4 rounded-full bg-[var(--secondary)] flex items-center justify-center hover:bg-[var(--primary)]/10 transition-colors">
                                             <div className={cn("w-1.5 h-1.5 rounded-full", product.isActive ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-gray-400")} />
@@ -520,8 +534,12 @@ function ProductsContent() {
                                             <label className="text-xs font-black uppercase tracking-wider text-[var(--text)]/40 px-1">Stock</label>
                                             <input
                                                 type="number" value={stock} onChange={(e) => setStock(e.target.value)}
-                                                className="w-full px-5 py-3 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] outline-none transition-all font-bold text-[var(--text)] bg-[var(--bg)]"
-                                                placeholder="Infinito"
+                                                disabled={!trackInventory}
+                                                className={cn(
+                                                    "w-full px-5 py-3 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] outline-none transition-all font-bold bg-[var(--bg)]",
+                                                    !trackInventory ? "opacity-30 grayscale cursor-not-allowed" : "text-[var(--text)]"
+                                                )}
+                                                placeholder={trackInventory ? "99" : "∞"}
                                             />
                                         </div>
                                     </div>
@@ -553,11 +571,17 @@ function ProductsContent() {
                                     <div className="grid grid-cols-3 gap-2">
                                         {imageUrls.map((url, i) => (
                                             <div key={i} className="aspect-square bg-[var(--bg)] rounded-xl relative group overflow-hidden border border-[var(--border)]">
-                                                <img src={url} className="w-full h-full object-cover" />
+                                                <Image
+                                                    src={url}
+                                                    alt={`Producto ${i}`}
+                                                    fill
+                                                    className="object-cover"
+                                                    sizes="100px"
+                                                />
                                                 <button
                                                     type="button"
                                                     onClick={() => removeImage(i)}
-                                                    className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                                                    className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity z-10"
                                                 >
                                                     <Trash2 className="w-5 h-5" />
                                                 </button>
@@ -577,6 +601,25 @@ function ProductsContent() {
                                             className="w-full px-5 py-3 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] outline-none font-medium min-h-[100px] text-sm text-[var(--text)] bg-[var(--bg)] resize-none"
                                             placeholder="Detalles..."
                                         />
+                                    </div>
+                                    <div className="pt-2 px-1 flex items-center justify-between bg-[var(--secondary)]/30 p-4 rounded-2xl border border-[var(--border)]">
+                                        <div className="space-y-0.5">
+                                            <p className="text-sm font-black text-[var(--text)]">Controlar Inventario</p>
+                                            <p className="text-[10px] text-[var(--text)]/40 font-medium">{trackInventory ? 'El stock se descuenta automáticamente' : 'Producto por encargo (sin stock)'}</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setTrackInventory(!trackInventory)}
+                                            className={cn(
+                                                "w-12 h-6 rounded-full transition-all relative",
+                                                trackInventory ? "bg-[var(--primary)]" : "bg-gray-400"
+                                            )}
+                                        >
+                                            <div className={cn(
+                                                "absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm",
+                                                trackInventory ? "left-7" : "left-1"
+                                            )} />
+                                        </button>
                                     </div>
                                     <div className="pt-2 px-1 flex items-center justify-between bg-[var(--secondary)]/30 p-4 rounded-2xl border border-[var(--border)]">
                                         <div className="space-y-0.5">

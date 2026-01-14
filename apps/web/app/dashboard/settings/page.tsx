@@ -21,7 +21,9 @@ import {
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { createClient } from '@/lib/supabase';
+import Image from 'next/image';
 import { storage } from '@/lib/storage';
+import { PhoneInput } from '@/components/PhoneInput';
 
 import { useStore } from '@/contexts/StoreContext';
 import { ConnectivityIcon } from '@/components/ConnectivityIcon';
@@ -33,6 +35,7 @@ export default function SettingsPage() {
     const [uploading, setUploading] = useState(false);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [suggestedSlug, setSuggestedSlug] = useState<string | null>(null);
 
     // Form state
     const [name, setName] = useState('');
@@ -75,6 +78,7 @@ export default function SettingsPage() {
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newName = e.target.value;
         setName(newName);
+        setSuggestedSlug(null);
 
         // Auto-slug if not touched
         if (!hasManuallyEditedSlug) {
@@ -91,6 +95,7 @@ export default function SettingsPage() {
 
     const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setHasManuallyEditedSlug(true);
+        setSuggestedSlug(null);
         setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'));
     };
 
@@ -141,6 +146,11 @@ export default function SettingsPage() {
         } catch (err: any) {
             console.error('Update Store Error:', err);
             setError(err.message || 'Error al actualizar la tienda');
+
+            if (err.message?.includes('uso') || err.message?.includes('already in use')) {
+                const suggestion = `${slug}-${Math.floor(Math.random() * 90) + 10}`;
+                setSuggestedSlug(suggestion);
+            }
         } finally {
             setSaving(false);
         }
@@ -251,16 +261,33 @@ export default function SettingsPage() {
                                                 onChange={handleSlugChange}
                                             />
                                         </div>
+                                        {suggestedSlug && (
+                                            <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-1">
+                                                <p className="text-xs font-bold text-blue-700">
+                                                    Sugerencia: <span className="underline">{suggestedSlug}</span>
+                                                </p>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSlug(suggestedSlug);
+                                                        setSuggestedSlug(null);
+                                                        setError(null);
+                                                    }}
+                                                    className="text-[10px] font-black bg-blue-600 text-white px-3 py-1.5 rounded-lg uppercase tracking-widest hover:bg-blue-700 transition-colors"
+                                                >
+                                                    Usar esta
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div>
-                                        <label className="text-sm font-bold text-[#25D366] mb-2 block px-1 opacity-80">WhatsApp para pedidos</label>
-                                        <input
-                                            type="tel"
-                                            className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-[#25D366] focus:ring-4 focus:ring-[#25D366]/10 outline-none transition-all font-bold text-[var(--text)] bg-[var(--bg)]"
-                                            placeholder="+57 300 000 000"
+                                        <PhoneInput
+                                            label="WhatsApp para pedidos"
                                             value={whatsapp}
-                                            onChange={(e) => setWhatsapp(e.target.value)}
+                                            onChange={setWhatsapp}
+                                            placeholder="300 123 4567"
+                                            className="font-bold"
                                         />
                                     </div>
                                 </div>
@@ -279,11 +306,17 @@ export default function SettingsPage() {
                                         <div className="w-32 h-32 md:w-40 md:h-40 bg-[var(--surface)] rounded-[2rem] shadow-[var(--shadow)] border border-[var(--border)] flex items-center justify-center text-6xl overflow-hidden relative">
                                             {logoUrl ? (
                                                 <>
-                                                    <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                                                    <Image
+                                                        src={logoUrl}
+                                                        alt="Logo"
+                                                        fill
+                                                        className="object-contain"
+                                                        sizes="(max-width: 768px) 128px, 160px"
+                                                    />
                                                     <button
                                                         type="button"
                                                         onClick={() => setLogoUrl('')}
-                                                        className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-xl opacity-0 group-hover/logo:opacity-100 transition-opacity shadow-lg"
+                                                        className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-xl opacity-0 group-hover/logo:opacity-100 transition-opacity shadow-lg z-10"
                                                     >
                                                         <X className="w-4 h-4" />
                                                     </button>

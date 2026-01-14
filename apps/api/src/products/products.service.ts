@@ -9,7 +9,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaClient) {}
+  constructor(private prisma: PrismaClient) { }
 
   async create(userId: string, createProductDto: CreateProductDto) {
     // Verify store ownership
@@ -21,17 +21,17 @@ export class ProductsService {
     if (store.userId !== userId)
       throw new ForbiddenException('You do not own this store');
 
-    const { stock, sku, ...rest } = createProductDto;
+    const { stock, sku, trackInventory, ...rest } = createProductDto;
     // Generate SKU if not provided
     const generatedSku =
       sku && sku.trim().length > 0
         ? sku.trim()
         : `SKU-${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
-    const productData = { ...rest, sku: generatedSku };
+    const productData = { ...rest, sku: generatedSku, trackInventory: trackInventory ?? true };
 
     return this.prisma.$transaction(async (tx: any) => {
       const product = await tx.product.create({
-        data: productData,
+        data: productData as any,
       });
 
       if (stock !== undefined) {
@@ -87,7 +87,7 @@ export class ProductsService {
     if (product.store.userId !== userId)
       throw new ForbiddenException('You do not own this product');
 
-    const { stock, sku, ...productData } = updateProductDto;
+    const { stock, sku, trackInventory, ...productData } = updateProductDto;
 
     // Si el producto no tiene SKU, generamos uno automáticamente
     let finalSku = product.sku;
@@ -106,7 +106,11 @@ export class ProductsService {
 
       return tx.product.update({
         where: { id },
-        data: { ...productData, sku: finalSku },
+        data: {
+          ...productData,
+          sku: finalSku,
+          trackInventory: trackInventory !== undefined ? trackInventory : undefined
+        } as any,
         include: { inventory: true },
       });
     });

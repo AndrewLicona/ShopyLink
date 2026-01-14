@@ -67,6 +67,7 @@ model Product {
     images        String[] // Array de URLs
     sku           String?
     isActive      Boolean  @default(true)
+    trackInventory Boolean @default(true)
     
     storeId       String
     store         Store    @relation(fields: [storeId], references: [id])
@@ -100,7 +101,7 @@ model Order {
     total       Decimal     @db.Decimal(10, 2)
     status      OrderStatus @default(PENDING)
     customerName  String
-    customerPhone String // WhatsApp number
+    customerPhone String? // WhatsApp number (Optional)
     
     storeId     String
     store       Store       @relation(fields: [storeId], references: [id])

@@ -15,6 +15,7 @@ import {
     PlusCircle,
     X as CloseIcon
 } from 'lucide-react';
+import Image from 'next/image';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useEffect, useState } from 'react';
@@ -49,6 +50,26 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         window.location.href = '/login';
     };
 
+    useEffect(() => {
+        const checkSession = async () => {
+            if (storeLoading) return;
+
+            const supabase = createClient();
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (!session) {
+                window.location.href = '/login';
+                return;
+            }
+
+            if (stores.length === 0 && !storeLoading) {
+                router.push('/setup');
+            }
+        };
+
+        checkSession();
+    }, [stores.length, storeLoading, router]);
+
     const menuItems = [
         { icon: LayoutDashboard, label: 'Panel', href: '/dashboard' },
         { icon: Package, label: 'Productos', href: '/dashboard/products' },
@@ -65,7 +86,6 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     }
 
     if (stores.length === 0) {
-        router.push('/setup');
         return null;
     }
 
@@ -82,9 +102,15 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                         onClick={() => setIsSwitcherOpen(!isSwitcherOpen)}
                         className="flex items-center gap-3 active:scale-95 transition-all text-left"
                     >
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden shadow-[var(--shadow)] border border-transparent bg-[var(--surface)]">
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden shadow-[var(--shadow)] border border-transparent bg-[var(--surface)] relative">
                             {activeStore?.logoUrl ? (
-                                <img src={activeStore.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                                <Image
+                                    src={activeStore.logoUrl}
+                                    alt="Logo"
+                                    fill
+                                    className="object-contain"
+                                    sizes="36px"
+                                />
                             ) : (
                                 <div className="w-full h-full bg-[var(--primary)] flex items-center justify-center">
                                     <ShoppingBag className="text-[var(--bg)] w-5 h-5" />
@@ -118,8 +144,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                                             activeStore?.id === s.id ? "bg-[var(--primary)]/10" : ""
                                         )}
                                     >
-                                        <div className="w-8 h-8 rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--bg)]">
-                                            {s.logoUrl ? <img src={s.logoUrl} className="w-full h-full object-contain" /> : <div className="w-full h-full bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] font-bold text-xs">{s.name[0]}</div>}
+                                        <div className="w-8 h-8 rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--bg)] relative">
+                                            {s.logoUrl ? (
+                                                <Image src={s.logoUrl} alt={s.name} fill className="object-contain" sizes="32px" />
+                                            ) : (
+                                                <div className="w-full h-full bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] font-bold text-xs">{s.name[0]}</div>
+                                            )}
                                         </div>
                                         <span className={cn("text-sm font-bold", activeStore?.id === s.id ? "text-[var(--primary)]" : "text-[var(--text)]")}>{s.name}</span>
                                     </button>
@@ -203,9 +233,15 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                             onClick={() => setIsSwitcherOpen(!isSwitcherOpen)}
                             className="w-full flex items-center gap-3 p-2 rounded-2xl hover:bg-[var(--secondary)] transition-all border border-transparent active:scale-95"
                         >
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden border border-transparent shadow-[var(--shadow)] bg-[var(--surface)]">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden border border-transparent shadow-[var(--shadow)] bg-[var(--surface)] relative">
                                 {activeStore?.logoUrl ? (
-                                    <img src={activeStore.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                                    <Image
+                                        src={activeStore.logoUrl}
+                                        alt="Logo"
+                                        fill
+                                        className="object-contain"
+                                        sizes="40px"
+                                    />
                                 ) : (
                                     <div className="w-full h-full bg-[var(--primary)] flex items-center justify-center">
                                         <ShoppingBag className="text-[var(--bg)] w-6 h-6" />
@@ -236,8 +272,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                                                 activeStore?.id === s.id ? "bg-[var(--primary)]/10" : ""
                                             )}
                                         >
-                                            <div className="w-8 h-8 rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--bg)]">
-                                                {s.logoUrl ? <img src={s.logoUrl} className="w-full h-full object-contain" /> : <div className="w-full h-full bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] font-bold text-xs">{s.name[0]}</div>}
+                                            <div className="w-8 h-8 rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--bg)] relative">
+                                                {s.logoUrl ? (
+                                                    <Image src={s.logoUrl} alt={s.name} fill className="object-contain" sizes="32px" />
+                                                ) : (
+                                                    <div className="w-full h-full bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] font-bold text-xs">{s.name[0]}</div>
+                                                )}
                                             </div>
                                             <span className={cn("text-sm font-bold", activeStore?.id === s.id ? "text-[var(--primary)]" : "text-[var(--text)]")}>{s.name}</span>
                                         </button>
