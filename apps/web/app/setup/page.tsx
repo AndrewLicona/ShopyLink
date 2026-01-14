@@ -3,9 +3,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShoppingBag, ArrowRight, Store, MessageCircle, Globe, Loader2, Image as ImageIcon, Plus as PlusIcon, Upload, X as CloseIcon } from 'lucide-react';
+import { ShoppingBag, ArrowRight, Store, Globe, Loader2, Image as ImageIcon, Plus as PlusIcon, Upload, X as CloseIcon } from 'lucide-react';
 import { api } from '@/lib/api';
 import { storage } from '@/lib/storage';
+import { PhoneInput } from '@/components/PhoneInput';
 
 export default function SetupPage() {
     const [name, setName] = useState('');
@@ -16,11 +17,13 @@ export default function SetupPage() {
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [suggestedSlug, setSuggestedSlug] = useState<string | null>(null);
     const router = useRouter();
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newName = e.target.value;
         setName(newName);
+        setSuggestedSlug(null);
 
         // Auto-slug if not touched
         if (!hasManuallyEditedSlug) {
@@ -37,6 +40,7 @@ export default function SetupPage() {
 
     const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setHasManuallyEditedSlug(true);
+        setSuggestedSlug(null);
         const value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-');
         setSlug(value);
     };
@@ -59,6 +63,13 @@ export default function SetupPage() {
 
     const handleCreateStore = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Final slug validation before sending
+        if (slug.length < 3) {
+            setError('El enlace de la tienda debe tener al menos 3 caracteres');
+            return;
+        }
+
         setLoading(true);
         setError(null);
 
@@ -71,7 +82,14 @@ export default function SetupPage() {
             });
             router.push('/dashboard');
         } catch (err: any) {
+            console.error('Setup Error:', err);
             setError(err.message || 'Error al crear la tienda');
+
+            if (err.message?.includes('uso') || err.message?.includes('already in use')) {
+                const suggestion = `${slug}-${Math.floor(Math.random() * 90) + 10}`;
+                setSuggestedSlug(suggestion);
+            }
+
             setLoading(false);
         }
     };
@@ -127,24 +145,39 @@ export default function SetupPage() {
                                         value={slug} onChange={handleSlugChange}
                                     />
                                 </div>
+                                {suggestedSlug && (
+                                    <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-1">
+                                        <p className="text-xs font-bold text-blue-700">
+                                            Sugerencia: <span className="underline">{suggestedSlug}</span>
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSlug(suggestedSlug);
+                                                setSuggestedSlug(null);
+                                                setError(null);
+                                            }}
+                                            className="text-[10px] font-black bg-blue-600 text-white px-3 py-1.5 rounded-lg uppercase tracking-widest hover:bg-blue-700 transition-colors"
+                                        >
+                                            Usar esta
+                                        </button>
+                                    </div>
+                                )}
                                 <p className="mt-2 text-[10px] text-gray-400 px-1 font-bold uppercase tracking-wider">Solo letras minúsculas, números y guiones.</p>
                             </div>
 
                             {/* WhatsApp */}
                             <div>
-                                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-3 px-1">
-                                    <MessageCircle className="w-4 h-4 text-[#25D366]" />
-                                    WhatsApp para pedidos
-                                </label>
-                                <input
-                                    type="tel"
+                                <PhoneInput
+                                    label="WhatsApp para pedidos"
                                     required
-                                    className="w-full px-5 py-4 rounded-2xl border-2 border-gray-200 bg-white focus:ring-4 focus:ring-[#25D366]/10 focus:border-[#25D366] transition-all outline-none text-lg font-bold text-gray-900 placeholder:text-gray-400"
-                                    placeholder="+57 300 000 000"
                                     value={whatsapp}
-                                    onChange={(e) => setWhatsapp(e.target.value)}
+                                    onChange={setWhatsapp}
+                                    placeholder="300 123 4567"
                                 />
-                                <p className="mt-2 text-[10px] text-gray-400 px-1 font-bold uppercase tracking-wider">Incluye el código de país (ej. +57, +34, +1).</p>
+                                <p className="mt-2 text-[10px] text-gray-400 px-1 font-bold uppercase tracking-wider">
+                                    Selecciona tu país e ingresa tu número sin el código de área.
+                                </p>
                             </div>
 
                             {/* Logo Upload */}

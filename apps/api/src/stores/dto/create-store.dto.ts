@@ -20,6 +20,9 @@ export class CreateStoreDto {
 
   @IsString()
   @IsOptional()
+  @Matches(/^\+[1-9]\d{1,14}$/, {
+    message: 'WhatsApp number must be in international format (e.g., +573001234567)',
+  })
   whatsappNumber?: string;
 
   @IsString()

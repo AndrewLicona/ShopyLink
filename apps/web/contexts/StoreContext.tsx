@@ -26,6 +26,7 @@ interface StoreContextType {
     activeStore: Store | null;
     setActiveStoreById: (id: string) => void;
     loading: boolean;
+    error: string | null;
     refreshStores: () => Promise<void>;
 }
 
@@ -35,9 +36,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const [stores, setStores] = useState<Store[]>([]);
     const [activeStore, setActiveStore] = useState<Store | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const refreshStores = async () => {
         try {
+            setError(null);
             const data = await api.getStores();
             setStores(data);
 
@@ -53,8 +56,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             } else if (data.length > 0) {
                 setActiveStore(data[0]);
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error fetching stores:', err);
+            setError(err.message || 'Error fetching stores');
         } finally {
             setLoading(false);
         }
@@ -73,7 +77,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <StoreContext.Provider value={{ stores, activeStore, setActiveStoreById, loading, refreshStores }}>
+        <StoreContext.Provider value={{ stores, activeStore, setActiveStoreById, loading, error, refreshStores }}>
             {children}
         </StoreContext.Provider>
     );

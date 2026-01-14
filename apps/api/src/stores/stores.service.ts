@@ -10,10 +10,11 @@ import { Injectable, ConflictException } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { CreateStoreDto } from './dto/create-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
+import { encrypt, decrypt } from '../common/encryption.util';
 
 @Injectable()
 export class StoresService {
-  constructor(private prisma: PrismaClient) {}
+  constructor(private prisma: PrismaClient) { }
 
   async create(
     userId: string,
@@ -25,7 +26,7 @@ export class StoresService {
       where: { slug: createStoreDto.slug },
     });
     if (existing) {
-      throw new ConflictException('Store identifier (slug) already exists');
+      throw new ConflictException('Este identificador de tienda (link) ya está en uso');
     }
 
     // Upsert User to ensure local DB record exists
@@ -39,42 +40,75 @@ export class StoresService {
       },
     });
 
-    return this.prisma.store.create({
-      data: {
-        ...createStoreDto,
-        userId: user.id,
-      },
+    const data = {
+      ...createStoreDto,
+      userId: user.id,
+    };
+
+    if (data.whatsappNumber) {
+      data.whatsappNumber = encrypt(data.whatsappNumber);
+    }
+
+    const store = await this.prisma.store.create({
+      data,
     });
+
+    return this.decryptStore(store);
+  }
+
+  private decryptStore(store: any) {
+    if (store && store.whatsappNumber) {
+      store.whatsappNumber = decrypt(store.whatsappNumber);
+    }
+    return store;
   }
 
   async findAllByUser(userId: string) {
-    return this.prisma.store.findMany({
+    const stores = await this.prisma.store.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
     });
+    return stores.map(store => this.decryptStore(store));
   }
 
   async findOneByUser(userId: string) {
-    return this.prisma.store.findFirst({
+    const store = await this.prisma.store.findFirst({
       where: { userId },
     });
+    return this.decryptStore(store);
   }
 
   async findOneBySlug(slug: string) {
-    return this.prisma.store.findUnique({
+    const store = await this.prisma.store.findUnique({
       where: { slug },
       include: {
         categories: true,
       },
     });
+    return this.decryptStore(store);
   }
 
   async update(id: string, userId: string, updateStoreDto: UpdateStoreDto) {
-    try {
-      return await this.prisma.store.update({
-        where: { id, userId }, // Ensure ownership
-        data: updateStoreDto,
+    if (updateStoreDto.slug) {
+      const existing = await this.prisma.store.findUnique({
+        where: { slug: updateStoreDto.slug },
       });
+      if (existing && existing.id !== id) {
+        throw new ConflictException('Este identificador de tienda (link) ya está en uso');
+      }
+    }
+
+    const data = { ...updateStoreDto };
+    if (data.whatsappNumber) {
+      data.whatsappNumber = encrypt(data.whatsappNumber);
+    }
+
+    try {
+      const store = await this.prisma.store.update({
+        where: { id, userId }, // Ensure ownership
+        data,
+      });
+      return this.decryptStore(store);
     } catch (error) {
       console.error('Prisma Update Error:', error);
       throw error;

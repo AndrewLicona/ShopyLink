@@ -6,6 +6,8 @@ import {
   IsUUID,
   IsInt,
   Min,
+  Matches,
+  IsOptional,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -24,8 +26,11 @@ export class CreateOrderDto {
   customerName: string;
 
   @IsString()
-  @IsNotEmpty()
-  customerPhone: string;
+  @IsOptional()
+  @Matches(/^\+[1-9]\d{1,14}$/, {
+    message: 'Phone number must be in international format (e.g., +573001234567)',
+  })
+  customerPhone?: string;
 
   @IsUUID()
   storeId: string;

@@ -19,8 +19,19 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
     });
 
     if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'An error occurred' }));
-        throw new Error(error.message || response.statusText);
+        const errorData = await response.json().catch(() => ({ message: 'An error occurred' }));
+        console.error('API Error Response:', errorData);
+
+        // NestJS often wraps the error message in an 'error' object or 'message' field
+        let errorMessage = 'An error occurred';
+
+        if (errorData.error && typeof errorData.error === 'object') {
+            errorMessage = errorData.error.message || errorData.message || errorMessage;
+        } else if (errorData.message) {
+            errorMessage = Array.isArray(errorData.message) ? errorData.message[0] : errorData.message;
+        }
+
+        throw new Error(errorMessage);
     }
 
     return response.json();
