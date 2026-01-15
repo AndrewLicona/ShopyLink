@@ -7,8 +7,13 @@ export class AuthController {
 
   @Get('resolve-username/:username')
   async resolveUsername(@Param('username') username: string) {
-    const user = await (this.prisma.user as any).findUnique({
-      where: { username },
+    const user = await (this.prisma.user as any).findFirst({
+      where: {
+        username: {
+          equals: username,
+          mode: 'insensitive',
+        },
+      },
       select: { email: true },
     });
 

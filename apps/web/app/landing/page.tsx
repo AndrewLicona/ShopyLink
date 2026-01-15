@@ -1,11 +1,11 @@
 'use client';
 
 import {
-    ShoppingBag,
     ArrowRight,
     ZapIcon
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function SimplifiedLanding() {
     return (
@@ -15,7 +15,7 @@ export default function SimplifiedLanding() {
                 <div className="max-w-7xl mx-auto h-full flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-2 group">
                         <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-50 group-hover:bg-blue-100 transition-colors">
-                            <img src="/favicon.svg" alt="ShopyLink Logo" className="w-7 h-7" />
+                            <Image src="/favicon.svg" alt="ShopyLink Logo" width={28} height={28} />
                         </div>
                         <span className="text-xl font-black tracking-tighter">Shopy<span className="text-blue-600">Link</span></span>
                     </Link>
@@ -36,7 +36,7 @@ export default function SimplifiedLanding() {
                 <div className="relative text-center max-w-lg mx-auto">
                     <div className="flex flex-col items-center justify-center gap-4 mb-8">
                         <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-500/10 border border-blue-50 ring-8 ring-blue-50/50">
-                            <img src="/favicon.svg" alt="ShopyLink" className="w-10 h-10" />
+                            <Image src="/favicon.svg" alt="ShopyLink" width={40} height={40} />
                         </div>
                     </div>
 

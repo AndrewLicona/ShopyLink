@@ -1,12 +1,9 @@
-
 generator client {
     provider = "prisma-client-js"
 }
 
 datasource db {
     provider = "postgresql"
-    url      = env("DATABASE_URL")
-    // directUrl = env("DIRECT_URL")
 }
 
 // Representa a un Owner de tienda (vinculado a Supabase Auth)
@@ -14,72 +11,77 @@ model User {
     id        String   @id @default(uuid())
     email     String   @unique
     name      String?
+    username  String?  @unique
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-    
-    stores    Store[]
+
+    stores Store[]
 }
 
 model Store {
-    id          String   @id @default(uuid())
-    name        String
-    slug        String   @unique // Para la URL pública: shopylink.com/mi-tienda
-    description String?
-    logoUrl     String?
-    whatsappNumber String? // Store owner's WhatsApp for receiving orders
-    instagramUrl   String?
-    facebookUrl    String?
-    tiktokUrl      String?
-    twitterUrl     String?
-    pinterestUrl   String?
-    youtubeUrl     String?
-    theme                  String   @default("classic")
-    mode                   String   @default("light")
-    applyThemeToDashboard  Boolean  @default(false)
-    createdAt              DateTime @default(now())
-    updatedAt      DateTime @updatedAt
-    
-    userId      String
-    user        User     @relation(fields: [userId], references: [id])
+    id                    String   @id @default(uuid())
+    name                  String
+    slug                  String   @unique // Para la URL pública: shopylink.com/mi-tienda
+    description           String?
+    logoUrl               String?
+    whatsappNumber        String? // Store owner's WhatsApp for receiving orders
+    instagramUrl          String?
+    facebookUrl           String?
+    tiktokUrl             String?
+    twitterUrl            String?
+    pinterestUrl          String?
+    youtubeUrl            String?
+    theme                 String   @default("classic")
+    mode                  String   @default("light")
+    applyThemeToDashboard Boolean  @default(false)
+    deliveryEnabled       Boolean  @default(false)
+    deliveryPrice         String?
+    createdAt             DateTime @default(now())
+    updatedAt             DateTime @updatedAt
 
-    categories  Category[]
-    products    Product[]
-    orders      Order[]
+    userId String
+    user   User   @relation(fields: [userId], references: [id])
+
+    categories Category[]
+    products   Product[]
+    orders     Order[]
 }
 
 model Category {
-    id        String    @id @default(uuid())
-    name      String
-    slug      String
-    storeId   String
-    store     Store     @relation(fields: [storeId], references: [id])
-    products  Product[]
+    id       String    @id @default(uuid())
+    name     String
+    slug     String
+    storeId  String
+    store    Store     @relation(fields: [storeId], references: [id])
+    products Product[]
 
     @@unique([storeId, slug]) // El slug es único por tienda
 }
 
 model Product {
-    id            String   @id @default(uuid())
-    name          String
-    description   String?
-    price         Decimal  @db.Decimal(10, 2)
-    discountPrice Decimal? @db.Decimal(10, 2)
-    images        String[] // Array de URLs
-    sku           String?
-    isActive      Boolean  @default(true)
-    trackInventory Boolean @default(true)
-    
-    storeId       String
-    store         Store    @relation(fields: [storeId], references: [id])
-    
-    categoryId    String?
-    category      Category? @relation(fields: [categoryId], references: [id])
+    id             String   @id @default(uuid())
+    name           String
+    description    String?
+    price          Decimal  @db.Decimal(10, 2)
+    discountPrice  Decimal? @db.Decimal(10, 2)
+    images         String[] // Array de URLs
+    sku            String?
+    isActive       Boolean  @default(true)
+    trackInventory Boolean  @default(true)
 
-    inventory     Inventory?
-    orderItems    OrderItem[]
+    storeId String
+    store   Store  @relation(fields: [storeId], references: [id])
 
-    createdAt     DateTime @default(now())
-    updatedAt     DateTime @updatedAt
+    categoryId String?
+    category   Category? @relation(fields: [categoryId], references: [id])
+
+    inventory  Inventory?
+    orderItems OrderItem[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    variants ProductVariant[]
 }
 
 model Inventory {
@@ -97,31 +99,56 @@ enum OrderStatus {
 }
 
 model Order {
-    id          String      @id @default(uuid())
-    total       Decimal     @db.Decimal(10, 2)
-    status      OrderStatus @default(PENDING)
+    id            String      @id @default(uuid())
+    total         Decimal     @db.Decimal(10, 2)
+    status        OrderStatus @default(PENDING)
     customerName  String
     customerPhone String? // WhatsApp number (Optional)
-    
-    storeId     String
-    store       Store       @relation(fields: [storeId], references: [id])
 
-    items       OrderItem[]
+    storeId String
+    store   Store  @relation(fields: [storeId], references: [id])
 
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
+    items OrderItem[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
 
 model OrderItem {
-    id        String  @id @default(uuid())
-    quantity  Int
-    price     Decimal @db.Decimal(10, 2) // Precio al momento de la compra
+    id          String  @id @default(uuid())
+    quantity    Int
+    price       Decimal @db.Decimal(10, 2) // Precio al momento de la compra
     productName String // Guardamos nombre por si cambia el original
     sku         String?
-    
-    orderId   String
-    order     Order   @relation(fields: [orderId], references: [id])
-    
+
+    orderId String
+    order   Order  @relation(fields: [orderId], references: [id])
+
     productId String?
     product   Product? @relation(fields: [productId], references: [id])
+
+    variantId      String?
+    productVariant ProductVariant? @relation(fields: [variantId], references: [id])
+    variantName    String?
+}
+
+model ProductVariant {
+    id    String   @id @default(uuid())
+    name  String
+    sku   String?
+    image String?
+    price Decimal? @db.Decimal(10, 2)
+    stock Int      @default(0)
+
+    useParentPrice Boolean  @default(false)
+    useParentStock Boolean  @default(false)
+    images         String[]
+
+    productId String
+    product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+    orderItems OrderItem[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }

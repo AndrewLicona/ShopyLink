@@ -44,6 +44,11 @@ export class CreateStoreDto {
     'lilac',
     'gray',
     'dark-gray',
+    'sunset',
+    'ocean',
+    'berry',
+    'forest',
+    'corporate',
   ])
   theme?: string;
 

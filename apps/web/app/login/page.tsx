@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase';
 import { Mail, Lock, Loader2, Eye, EyeOff, User } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -39,9 +40,9 @@ export default function LoginPage() {
         // Si no tiene @, asumimos que es un nombre de usuario
         if (!email.includes('@')) {
             try {
-                const response = await api.resolveUsername(email);
+                const response = await api.resolveUsername(email.toLowerCase().trim());
                 loginEmail = response.email;
-            } catch (err: any) {
+            } catch {
                 setError('Nombre de usuario no encontrado.');
                 setLoading(false);
                 return;
@@ -76,8 +77,9 @@ export default function LoginPage() {
             });
             if (error) throw error;
             setResendSuccess(true);
-        } catch (err: any) {
-            setError(err.message || 'Error al reenviar el enlace.');
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (_err: any) {
+            setError(_err?.message || 'Error al reenviar el enlace.');
         } finally {
             setResending(false);
         }
@@ -89,7 +91,13 @@ export default function LoginPage() {
                 <div className="space-y-2 text-center">
                     <div className="flex items-center justify-center gap-2 mb-6">
                         <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-blue-500/20 ring-4 ring-blue-50">
-                            <img src="/favicon.svg" alt="Logo" className="w-8 h-8 brightness-0 invert" />
+                            <Image
+                                src="/favicon.svg"
+                                alt="Logo"
+                                width={32}
+                                height={32}
+                                className="brightness-0 invert"
+                            />
                         </div>
                         <span className="text-2xl font-black tracking-tighter">Shopy<span className="text-blue-600">Link</span></span>
                     </div>
@@ -138,6 +146,9 @@ export default function LoginPage() {
                                     onChange={(e) => setEmail(e.target.value)}
                                 />
                             </div>
+                            <p className="mt-1.5 text-[10px] text-gray-400 font-medium ml-1">
+                                <span className="font-bold text-gray-500">Tip:</span> Tu usuario es la primera parte de tu correo electrónico.
+                            </p>
                         </div>
 
                         <div>
