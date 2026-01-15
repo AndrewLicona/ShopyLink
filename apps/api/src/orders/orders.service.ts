@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.module';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus } from '@repo/database';
 import { createHash } from 'crypto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
@@ -34,7 +34,8 @@ export class OrdersService {
   constructor(private prisma: PrismaService) { }
 
   async create(createOrderDto: CreateOrderDto) {
-    const { storeId, items, customerName, customerPhone } = createOrderDto;
+    const { storeId, items, customerName, customerPhone, customerAddress } =
+      createOrderDto;
 
     // 1. Verify Store exists
     const store = (await this.prisma.store.findUnique({
@@ -46,8 +47,8 @@ export class OrdersService {
     const productIds = items.map((i) => i.productId);
     const products = (await this.prisma.product.findMany({
       where: { id: { in: productIds }, storeId },
-      include: { inventory: true },
-    })) as ProductWithInventory[];
+      include: { inventory: true, variants: true } as any,
+    })) as any[]; // Using any to avoid type errors until client is regenerated
 
     if (products.length !== productIds.length) {
       throw new BadRequestException(
@@ -62,25 +63,58 @@ export class OrdersService {
       quantity: number;
       price: number;
       sku?: string;
+      variantId?: string;
+      variantName?: string;
     }[] = [];
 
     // 3. Calculate total and prepare items
     for (const itemDto of items) {
       const product = products.find((p) => p.id === itemDto.productId);
-      if (!product) continue; // Should not happen due to check above
+      if (!product) continue;
 
-      // Check stock if inventory exists AND tracking is enabled
-      if (
-        product.trackInventory &&
-        product.inventory &&
-        product.inventory.stock < itemDto.quantity
-      ) {
-        throw new BadRequestException(
-          `Insufficient stock for product: ${product.name}`,
+      let price = Number(product.discountPrice ?? product.price);
+      let sku = product.sku;
+      let variantName: string | undefined = undefined;
+
+      // Check Variant first
+      if (itemDto.variantId) {
+        const variant = product.variants.find(
+          (v: any) => v.id === itemDto.variantId,
         );
+        if (!variant)
+          throw new BadRequestException(
+            `Variant not found for product: ${product.name}`,
+          );
+
+        // Use variant price if defined (assuming variants can override price, or just add to it? Usually override)
+        // Schema says Variant has optional price. If null, use product price?
+        // Let's assume override if present.
+        if (variant.price) {
+          price = Number(variant.price);
+        }
+
+        // Check Variant Stock
+        if (variant.stock < itemDto.quantity) {
+          throw new BadRequestException(
+            `Insufficient stock for product variant: ${product.name} - ${variant.name}`,
+          );
+        }
+
+        sku = variant.sku || sku;
+        variantName = variant.name;
+      } else {
+        // Check Main Product Stock logic (Inventory model)
+        if (
+          product.trackInventory &&
+          product.inventory &&
+          product.inventory.stock < itemDto.quantity
+        ) {
+          throw new BadRequestException(
+            `Insufficient stock for product: ${product.name}`,
+          );
+        }
       }
 
-      const price = Number(product.discountPrice ?? product.price);
       total += price * itemDto.quantity;
 
       orderItemsData.push({
@@ -88,12 +122,14 @@ export class OrdersService {
         productName: product.name,
         quantity: itemDto.quantity,
         price: price,
-        sku: product.sku ?? undefined,
+        sku: sku ?? undefined,
+        variantId: itemDto.variantId,
+        variantName,
       });
     }
 
-    // 4. Transaction: Create Order, Items, and Update Inventory
-    const order = await this.prisma.$transaction(async (tx: PrismaService) => {
+    // 4. Create Order
+    const order = await this.prisma.$transaction(async (tx: any) => {
       const hashedPhone = customerPhone
         ? createHash('sha256').update(customerPhone).digest('hex')
         : null;
@@ -104,6 +140,7 @@ export class OrdersService {
           storeId,
           customerName,
           customerPhone: hashedPhone,
+          customerAddress,
           total,
           status: 'PENDING',
           items: {
@@ -113,18 +150,6 @@ export class OrdersService {
         include: { items: true },
       });
 
-      // Decrement Stock
-      for (const item of items) {
-        // We only decrement if inventory record exists AND tracking is enabled.
-        const product = products.find((p) => p.id === item.productId);
-        if (product?.trackInventory && product?.inventory) {
-          await tx.inventory.update({
-            where: { productId: item.productId },
-            data: { stock: { decrement: item.quantity } },
-          });
-        }
-      }
-
       return newOrder;
     });
 
@@ -132,12 +157,14 @@ export class OrdersService {
     const orderForWhatsApp = {
       id: order.id,
       customerName: order.customerName,
+      customerAddress: order.customerAddress,
       total: Number(order.total),
-      items: (order.items || []).map((i) => ({
+      items: (order.items || []).map((i: any) => ({
         quantity: i.quantity,
         productName: i.productName,
         sku: i.sku || null,
         price: Number(i.price),
+        variantName: i.variantName, // Ensure this is logged/used if needed in WA
       })),
     };
 
@@ -167,6 +194,7 @@ export class OrdersService {
     order: {
       id: string;
       customerName: string;
+      customerAddress?: string | null;
       total: number;
       items: {
         quantity: number;
@@ -188,11 +216,15 @@ export class OrdersService {
       )
       .join('\n');
 
-    const dashboardLink = `https://shopylink.andrewlamaquina.my/dashboard/orders?id=${order.id}`;
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const dashboardLink = `${frontendUrl}/dashboard/orders?id=${order.id}`;
 
     const text =
       `Hola *${storeName || 'Tienda'}*.\n\n` +
       `Mi nombre es *${order.customerName}*.\n` +
+      (order.customerAddress
+        ? `📍 *ENTREGA EN:* ${order.customerAddress}\n`
+        : '') +
       `Quiero confirmar mi pedido *#${order.id.slice(0, 8)}*\n\n` +
       `📦 *DETALLE:*\n${itemsList}\n\n` +
       `💰 *TOTAL: ${this.formatCurrency(order.total)}*\n\n` +
@@ -248,49 +280,72 @@ export class OrdersService {
     if (oldStatus === newStatus) return order;
 
     return this.prisma.$transaction(async (tx: PrismaService) => {
-      // 1. Logic to return stock if moving from [PENDING, COMPLETED] to CANCELLED
+      // 1. DEDUCT STOCK if moving to COMPLETED
       if (
-        newStatus === OrderStatus.CANCELLED &&
-        oldStatus !== OrderStatus.CANCELLED
+        newStatus === OrderStatus.COMPLETED &&
+        oldStatus !== OrderStatus.COMPLETED
       ) {
         for (const item of order.items) {
-          // Check if product exists and has inventory tracking
-          const product = await tx.product.findUnique({
-            where: { id: item.productId || undefined },
-            include: { inventory: true },
-          });
-
-          if (product?.trackInventory && product?.inventory) {
-            await tx.inventory.update({
-              where: { productId: product.id },
-              data: { stock: { increment: item.quantity } },
+          if (item.variantId) {
+            const variant = await tx.productVariant.findUnique({
+              where: { id: item.variantId },
             });
+
+            if (variant && variant.stock < item.quantity) {
+              throw new BadRequestException(
+                `No hay suficiente stock para la variante: ${item.productName} - ${variant.name}`,
+              );
+            }
+
+            await tx.productVariant.update({
+              where: { id: item.variantId },
+              data: { stock: { decrement: item.quantity } },
+            });
+          } else {
+            const product = await tx.product.findUnique({
+              where: { id: item.productId || undefined },
+              include: { inventory: true },
+            });
+
+            if (product?.trackInventory && product?.inventory) {
+              if (product.inventory.stock < item.quantity) {
+                throw new BadRequestException(
+                  `No hay suficiente stock para el producto: ${product.name}`,
+                );
+              }
+
+              await tx.inventory.update({
+                where: { productId: product.id },
+                data: { stock: { decrement: item.quantity } },
+              });
+            }
           }
         }
       }
 
-      // 2. Logic to deduct stock if moving from CANCELLED to [PENDING, COMPLETED]
+      // 2. RESTORE STOCK if moving AWAY from COMPLETED
       if (
-        oldStatus === OrderStatus.CANCELLED &&
-        newStatus !== OrderStatus.CANCELLED
+        oldStatus === OrderStatus.COMPLETED &&
+        newStatus !== OrderStatus.COMPLETED
       ) {
         for (const item of order.items) {
-          const product = await tx.product.findUnique({
-            where: { id: item.productId || undefined },
-            include: { inventory: true },
-          });
-
-          if (product?.trackInventory && product?.inventory) {
-            if (product.inventory.stock < item.quantity) {
-              throw new BadRequestException(
-                `No hay suficiente stock para restaurar el producto: ${item.productName}`,
-              );
-            }
-
-            await tx.inventory.update({
-              where: { productId: product.id },
-              data: { stock: { decrement: item.quantity } },
+          if (item.variantId) {
+            await tx.productVariant.update({
+              where: { id: item.variantId },
+              data: { stock: { increment: item.quantity } },
             });
+          } else {
+            const product = await tx.product.findUnique({
+              where: { id: item.productId || undefined },
+              include: { inventory: true },
+            });
+
+            if (product?.trackInventory && product?.inventory) {
+              await tx.inventory.update({
+                where: { productId: product.id },
+                data: { stock: { increment: item.quantity } },
+              });
+            }
           }
         }
       }

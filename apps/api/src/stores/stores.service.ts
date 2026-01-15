@@ -14,7 +14,7 @@ import { encrypt, decrypt } from '../common/encryption.util';
 
 @Injectable()
 export class StoresService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async create(
     userId: string,

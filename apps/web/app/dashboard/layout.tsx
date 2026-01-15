@@ -9,10 +9,15 @@ import {
     ShoppingCart,
     Settings,
     LogOut,
+    Menu,
     ShoppingBag,
     ExternalLink,
     ChevronDown,
     PlusCircle,
+    Copy,
+    Share2,
+    Check,
+    Link as LinkIcon,
     X as CloseIcon
 } from 'lucide-react';
 import Image from 'next/image';
@@ -22,6 +27,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { StoreProvider, useStore } from '@/contexts/StoreContext';
+import { copyToClipboard } from '@/lib/clipboard';
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -109,20 +115,20 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                                     src={activeStore.logoUrl}
                                     alt="Logo"
                                     fill
-                                    className="object-contain"
+                                    className="object-contain p-1.5"
                                     sizes="36px"
                                 />
                             ) : (
-                                <div className="w-full h-full bg-[var(--primary)] flex items-center justify-center">
-                                    <ShoppingBag className="text-[var(--bg)] w-5 h-5" />
+                                <div className="w-full h-full bg-[var(--primary)]/10 flex items-center justify-center">
+                                    <LinkIcon className="text-[var(--primary)] w-4 h-4" />
                                 </div>
                             )}
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-sm font-black text-[var(--text)] leading-none truncate max-w-[120px]">{activeStore?.name || 'ShopyLink'}</span>
+                            <span className="text-sm font-black text-[var(--text)] leading-none truncate max-w-[120px]">{activeStore?.name || 'Mi Tienda'}</span>
                             <div className="flex items-center gap-1 mt-0.5">
-                                <span className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-widest">Cambiar</span>
-                                <ChevronDown className="w-2.5 h-2.5 text-[var(--primary)]/60" />
+                                <span className="text-[10px] font-bold text-[var(--text)]/30 uppercase tracking-widest">Cambiar</span>
+                                <ChevronDown className="w-2.5 h-2.5 text-[var(--text)]/30" />
                             </div>
                         </div>
                     </button>
@@ -172,7 +178,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                     onClick={() => setIsMobileMenuOpen(true)}
                     className="w-10 h-10 flex items-center justify-center text-[var(--text)]/40 hover:bg-[var(--secondary)] rounded-xl transition-colors border border-[var(--border)]"
                 >
-                    <Settings className="w-5 h-5" />
+                    <Menu className="w-5 h-5" />
                 </button>
             </header>
 
@@ -214,9 +220,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                     {/* Drawer Header (Mobile) */}
                     <div className="md:hidden flex items-center justify-between mb-8">
                         <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-[var(--primary)] rounded-lg flex items-center justify-center">
-                                <ShoppingBag className="text-[var(--bg)] w-4 h-4" />
-                            </div>
+                            <img src="/favicon.svg" alt="ShopyLink" className="w-6 h-6 contrast-125" style={{ filter: 'var(--text-filter, none)' }} />
                             <span className="font-extrabold text-[var(--text)] tracking-tight">ShopyLink</span>
                         </div>
                         <button
@@ -240,20 +244,20 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                                         src={activeStore.logoUrl}
                                         alt="Logo"
                                         fill
-                                        className="object-contain"
+                                        className="object-contain p-1.5"
                                         sizes="40px"
                                     />
                                 ) : (
-                                    <div className="w-full h-full bg-[var(--primary)] flex items-center justify-center">
-                                        <ShoppingBag className="text-[var(--bg)] w-6 h-6" />
+                                    <div className="w-full h-full bg-[var(--primary)]/10 flex items-center justify-center">
+                                        <LinkIcon className="text-[var(--primary)] w-5 h-5" />
                                     </div>
                                 )}
                             </div>
                             <div className="flex-1 text-left min-w-0">
-                                <p className="text-sm font-black text-[var(--text)] leading-none truncate">{activeStore?.name || 'ShopyLink'}</p>
-                                <p className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-widest mt-1">Dashboard</p>
+                                <p className="text-sm font-black text-[var(--text)] leading-none truncate">{activeStore?.name || 'Mi Tienda'}</p>
+                                <p className="text-[10px] font-bold text-[var(--text)]/30 uppercase tracking-widest mt-1">Gestionar</p>
                             </div>
-                            <ChevronDown className="w-4 h-4 text-[var(--text)]/40" />
+                            <ChevronDown className="w-4 h-4 text-[var(--text)]/30" />
                         </button>
 
                         {isSwitcherOpen && (
@@ -297,6 +301,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                     </div>
 
                     <nav className="flex-1 space-y-1 overflow-y-auto custom-scrollbar pr-1">
+                        <div className="px-4 py-2 text-[10px] font-bold text-[var(--text)]/20 uppercase tracking-[0.2em] mb-2">Menú Principal</div>
                         {menuItems.map((item) => {
                             const Icon = item.icon;
                             const isActive = pathname === item.href;
@@ -318,19 +323,21 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                         })}
                     </nav>
 
-                    <div className="mt-auto space-y-1 pt-6 border-t border-[var(--border)]">
+                    <div className="mt-auto space-y-2 pt-6 border-t border-[var(--border)]">
+
                         <Link
                             href={activeStore?.slug ? `/${activeStore.slug}` : '#'}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-[var(--text)]/40 hover:bg-[var(--secondary)] hover:text-[var(--text)] transition-all border-none bg-transparent active:scale-95 text-left w-full"
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-black text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all w-full text-left"
                         >
-                            <ExternalLink className="w-5 h-5 text-[var(--text)]/30" />
+                            <ExternalLink className="w-5 h-5" />
                             <span>Ver mi tienda</span>
                         </Link>
+
                         <button
                             onClick={() => setIsLogoutModalOpen(true)}
-                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-500 hover:bg-red-500/10 transition-all active:scale-95"
+                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-black text-red-500/60 hover:bg-red-500/5 hover:text-red-500 transition-all active:scale-95"
                         >
                             <LogOut className="w-5 h-5" />
                             Cerrar Sesión

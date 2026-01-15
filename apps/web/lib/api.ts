@@ -42,6 +42,7 @@ export interface CreateOrderDto {
     storeId: string;
     customerName: string;
     customerPhone?: string | null;
+    customerAddress?: string;
     items: {
         productId: string;
         quantity: number;
@@ -99,4 +100,7 @@ export const api = {
         method: 'PATCH',
         body: JSON.stringify({ status }),
     }),
+
+    // Auth
+    resolveUsername: (username: string): Promise<{ email: string }> => fetchWithAuth(`/auth/resolve-username/${username}`),
 };

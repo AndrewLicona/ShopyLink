@@ -26,7 +26,8 @@ function ConfirmContent() {
                     console.error('Verify OTP error:', error);
                     window.location.href = `/login?error=${encodeURIComponent('El enlace ha expirado o no es válido')}`;
                 } else {
-                    window.location.href = '/dashboard';
+                    const redirectUrl = type === 'recovery' ? '/reset-password' : '/dashboard';
+                    window.location.href = redirectUrl;
                 }
             });
         } else if (code) {
@@ -35,21 +36,31 @@ function ConfirmContent() {
                     console.error('Exchange code error:', error);
                     window.location.href = `/login?error=${encodeURIComponent('Error al confirmar el código')}`;
                 } else {
-                    window.location.href = '/dashboard';
+                    const redirectUrl = type === 'recovery' ? '/reset-password' : '/dashboard';
+                    window.location.href = redirectUrl;
                 }
             });
         } else {
-            // Check if there are error fragments in hash (Client side only)
-            const hash = window.location.hash;
-            if (hash.includes('error=')) {
-                window.location.href = `/login?error=Invalid link or expired`;
-            } else {
-                // If nothing, just wait a bit or redirect to login
-                const timeout = setTimeout(() => {
-                    window.location.href = '/login';
-                }, 3000);
-                return () => clearTimeout(timeout);
-            }
+            // Si no hay parámetros, verificamos si ya hay una sesión activa
+            // (Supabase a veces hace la verificación y nos deja con la sesión lista)
+            supabase.auth.getSession().then(({ data: { session } }) => {
+                if (session) {
+                    const redirectUrl = type === 'recovery' ? '/reset-password' : '/dashboard';
+                    window.location.href = redirectUrl;
+                } else {
+                    // Check if there are error fragments in hash (Client side only)
+                    const hash = window.location.hash;
+                    if (hash.includes('error=')) {
+                        window.location.href = `/login?error=Invalid link or expired`;
+                    } else {
+                        // If nothing, just wait a bit or redirect to login
+                        const timeout = setTimeout(() => {
+                            window.location.href = '/login';
+                        }, 3000);
+                        return () => clearTimeout(timeout);
+                    }
+                }
+            });
         }
     }, [searchParams]);
 

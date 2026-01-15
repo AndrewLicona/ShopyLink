@@ -14,6 +14,8 @@ export interface Store {
     theme?: string | null;
     mode?: string | null;
     applyThemeToDashboard?: boolean;
+    deliveryEnabled: boolean;
+    deliveryPrice?: string | null;
     userId: string;
 }
 
@@ -29,6 +31,19 @@ export interface Inventory {
     stock: number;
 }
 
+export interface ProductVariant {
+    id: string;
+    name: string;
+    price: number | null;
+    stock: number;
+    sku?: string | null;
+    productId: string;
+    // Nuevos campos Phase 56
+    useParentPrice?: boolean;
+    useParentStock?: boolean;
+    images?: string[];  // max 2
+}
+
 export interface Product {
     id: string;
     name: string;
@@ -42,6 +57,7 @@ export interface Product {
     categoryId?: string | null;
     trackInventory: boolean;
     inventory?: Inventory | null;
+    variants?: ProductVariant[];
 }
 
 export interface OrderItem {

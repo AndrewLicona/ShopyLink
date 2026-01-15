@@ -1,10 +1,10 @@
-
 'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase';
-import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Loader2, Eye, EyeOff, User } from 'lucide-react';
+import { api } from '@/lib/api';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -34,9 +34,23 @@ export default function LoginPage() {
         setError(null);
         setResendSuccess(false);
 
+        let loginEmail = email;
+
+        // Si no tiene @, asumimos que es un nombre de usuario
+        if (!email.includes('@')) {
+            try {
+                const response = await api.resolveUsername(email);
+                loginEmail = response.email;
+            } catch (err: any) {
+                setError('Nombre de usuario no encontrado.');
+                setLoading(false);
+                return;
+            }
+        }
+
         const supabase = createClient();
         const { error } = await supabase.auth.signInWithPassword({
-            email,
+            email: loginEmail,
             password,
         });
 
@@ -60,37 +74,33 @@ export default function LoginPage() {
                     emailRedirectTo: `${window.location.origin}/dashboard`
                 }
             });
-
             if (error) throw error;
             setResendSuccess(true);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Error al reenviar el correo');
+        } catch (err: any) {
+            setError(err.message || 'Error al reenviar el enlace.');
         } finally {
             setResending(false);
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-            <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-3xl shadow-xl border border-gray-100">
-                <div className="text-center">
-                    <Link href="/" className="inline-flex items-center gap-2 mb-6 group">
-                        <div className="w-12 h-12 flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
+        <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
+            <div className="w-full max-w-sm space-y-8 bg-white p-8 rounded-3xl shadow-2xl shadow-gray-200/50 border border-gray-100">
+                <div className="space-y-2 text-center">
+                    <div className="flex items-center justify-center gap-2 mb-6">
+                        <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-blue-500/20 ring-4 ring-blue-50">
+                            <img src="/favicon.svg" alt="Logo" className="w-8 h-8 brightness-0 invert" />
                         </div>
-                        <span className="text-2xl font-black tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">ShopyLink</span>
-                    </Link>
-                    <h2 className="text-3xl font-extrabold text-gray-900">Bienvenido de nuevo</h2>
-                    <p className="mt-2 text-gray-500">Ingresa a tu cuenta para gestionar tu tienda</p>
+                        <span className="text-2xl font-black tracking-tighter">Shopy<span className="text-blue-600">Link</span></span>
+                    </div>
+                    <h1 className="text-3xl font-black text-gray-900 tracking-tight italic">¡Hola de nuevo!</h1>
+                    <p className="text-gray-500 font-medium">Inicia sesión en tu panel de control</p>
                 </div>
 
-                <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+                <form onSubmit={handleLogin} className="space-y-6">
                     <div className="space-y-4">
                         {error && (
-                            <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 italic space-y-3">
+                            <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 font-bold flex flex-col gap-3">
                                 <p>{error}</p>
                                 {error.includes('verificado') && (
                                     <button
@@ -112,14 +122,18 @@ export default function LoginPage() {
                         )}
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Correo o Usuario</label>
                             <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                {email.includes('@') ? (
+                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                ) : (
+                                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                )}
                                 <input
-                                    type="email"
+                                    type="text"
                                     required
                                     className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50/30 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-gray-900 placeholder:text-gray-400"
-                                    placeholder="tu@email.com"
+                                    placeholder="tu@email.com o usuario"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                 />
@@ -145,6 +159,11 @@ export default function LoginPage() {
                                 >
                                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                 </button>
+                            </div>
+                            <div className="flex justify-end mt-2">
+                                <Link href="/forgot-password" className="text-xs font-bold text-gray-400 hover:text-blue-600 transition-colors">
+                                    ¿Olvidaste tu contraseña?
+                                </Link>
                             </div>
                         </div>
                     </div>

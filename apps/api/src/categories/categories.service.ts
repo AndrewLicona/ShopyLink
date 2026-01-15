@@ -8,7 +8,7 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 
 @Injectable()
 export class CategoriesService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async create(userId: string, createCategoryDto: CreateCategoryDto) {
     // Verify store ownership

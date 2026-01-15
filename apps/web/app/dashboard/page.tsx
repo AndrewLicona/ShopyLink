@@ -5,21 +5,69 @@ import {
     Clock,
     Plus,
     ShoppingBag,
-    Loader2
+    Loader2,
+    Copy,
+    ExternalLink,
+    Share2,
+    Check
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { formatCurrency, cn } from '@/lib/utils';
 import { useStore } from '@/contexts/StoreContext';
+import { copyToClipboard } from '@/lib/clipboard';
 import type { Order, Product } from '@/lib/types';
-
 export default function DashboardPage() {
     const { activeStore } = useStore();
     const [stats, setStats] = useState<{ label: string, value: string, change: string, icon: React.ElementType, color: string, bg: string }[]>([]);
     const [recentOrders, setRecentOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
+    const [copied, setCopied] = useState(false);
     const storeName = activeStore?.name || 'Tu Tienda';
+
+    // Construir la URL completa de la tienda pública
+    const storeUrl = activeStore?.slug
+        ? `${typeof window !== 'undefined' ? window.location.origin : ''}/${activeStore.slug}`
+        : '';
+
+    const handleCopyLink = async () => {
+        if (!storeUrl) {
+            alert('Aún estamos cargando los datos de tu tienda. Por favor, espera un momento.');
+            return;
+        }
+        const success = await copyToClipboard(storeUrl);
+        if (success) {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } else {
+            alert('Enlace: ' + storeUrl);
+        }
+    };
+
+    const handleShare = async () => {
+        if (!storeUrl) {
+            alert('Aún estamos cargando los datos de tu tienda.');
+            return;
+        }
+
+        if (navigator.share && window.isSecureContext) {
+            try {
+                await navigator.share({
+                    title: storeName,
+                    text: `¡Mira mi tienda en ShopyLink!`,
+                    url: storeUrl,
+                });
+            } catch (err) {
+                if ((err as Error).name !== 'AbortError') {
+                    console.error('Error al compartir:', err);
+                    handleCopyLink();
+                }
+            }
+        } else {
+            handleCopyLink();
+        }
+    };
 
     useEffect(() => {
         const loadDashboardData = async () => {
@@ -82,21 +130,35 @@ export default function DashboardPage() {
 
     return (
         <div className="space-y-6 md:space-y-10">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2">
+            {/* Header with Title and Subtle Share Button */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 md:mb-12">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-black text-[var(--text)] leading-tight">
-                        Bienvenido, <span className="text-[var(--primary)]">{storeName}</span>
+                        Hola, <span className="text-[var(--primary)]">{storeName}</span>
                     </h1>
-                    <p className="text-[var(--text)]/40 mt-1 text-sm md:text-base">Resumen de actividad de hoy.</p>
+                    <p className="text-[var(--text)]/40 mt-1 text-sm md:text-base font-medium">Resumen de actividad de hoy.</p>
                 </div>
-                <Link
-                    href="/dashboard/products?action=new"
-                    className="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-[var(--primary)] text-[var(--primary-foreground)] px-6 py-4 md:py-3 rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg shadow-[var(--primary)]/10 active:scale-95"
-                >
-                    <Plus className="w-5 h-5" />
-                    Nuevo Producto
-                </Link>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleShare}
+                        className={cn(
+                            "flex-1 md:flex-none inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-black text-xs transition-all active:scale-95 border shadow-sm",
+                            copied
+                                ? "bg-green-500 text-white border-green-500"
+                                : "bg-[var(--surface)] text-[var(--text)] border-[var(--border)] hover:bg-[var(--secondary)]"
+                        )}
+                    >
+                        {copied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                        {copied ? 'Copiado' : 'Compartir Enlace'}
+                    </button>
+                    <Link
+                        href="/dashboard/products?action=new"
+                        className="p-3.5 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-[var(--primary)]/10"
+                        title="Nuevo Producto"
+                    >
+                        <Plus className="w-6 h-6" />
+                    </Link>
+                </div>
             </div>
 
             {/* Stats Grid */}
