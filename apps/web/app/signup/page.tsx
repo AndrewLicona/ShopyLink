@@ -13,6 +13,7 @@ export default function SignupPage() {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [name, setName] = useState('');
+    const [username, setUsername] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showSuccess, setShowSuccess] = useState(false);
@@ -60,7 +61,8 @@ export default function SignupPage() {
             password,
             options: {
                 data: {
-                    full_name: name
+                    full_name: name,
+                    username: username.toLowerCase().trim()
                 },
                 emailRedirectTo: `${window.location.origin}/auth/confirm`
             }
@@ -115,6 +117,8 @@ export default function SignupPage() {
                             </div>
                         </div>
 
+
+
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                             <div className="relative">
@@ -125,8 +129,16 @@ export default function SignupPage() {
                                     className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50/30 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-gray-900 placeholder:text-gray-400"
                                     placeholder="tu@email.com"
                                     value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    onChange={(e) => {
+                                        setEmail(e.target.value);
+                                        setUsername(e.target.value.split('@')[0] || '');
+                                    }}
                                 />
+                                {email && (
+                                    <p className="mt-1 text-[10px] text-gray-400 font-bold uppercase tracking-wider ml-1">
+                                        Tu nombre de usuario será: <span className="text-blue-500">@{email.split('@')[0]}</span>
+                                    </p>
+                                )}
                             </div>
                         </div>
 
@@ -154,6 +166,7 @@ export default function SignupPage() {
                                 </button>
                             </div>
                         </div>
+
 
                         {/* Password Strength Meter */}
                         {password.length > 0 && (
@@ -205,50 +218,52 @@ export default function SignupPage() {
                         Inicia sesión
                     </Link>
                 </p>
-            </div>
+            </div >
             {/* Success Modal */}
             <AnimatePresence>
-                {showSuccess && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-blue-900/40 backdrop-blur-sm"
-                            onClick={() => window.location.href = '/login'}
-                        />
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                            className="bg-white w-full max-w-sm rounded-[2.5rem] p-10 shadow-2xl relative border border-white/20 text-center space-y-6"
-                        >
-                            <div className="w-20 h-20 bg-green-100 text-green-600 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
-                                <CheckCircle2 className="w-10 h-10" />
-                            </div>
-
-                            <div className="space-y-2">
-                                <h3 className="text-2xl font-black text-gray-900">¡Casi listo!</h3>
-                                <p className="text-gray-500 font-medium leading-relaxed">
-                                    Hemos enviado un enlace de confirmación a <span className="text-blue-600 font-bold">{email}</span>.
-                                    Por favor, revísalo para activar tu cuenta.
-                                </p>
-                            </div>
-
-                            <button
+                {
+                    showSuccess && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 bg-blue-900/40 backdrop-blur-sm"
                                 onClick={() => window.location.href = '/login'}
-                                className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 active:scale-95"
+                            />
+                            <motion.div
+                                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                                className="bg-white w-full max-w-sm rounded-[2.5rem] p-10 shadow-2xl relative border border-white/20 text-center space-y-6"
                             >
-                                Ir al Login
-                            </button>
+                                <div className="w-20 h-20 bg-green-100 text-green-600 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
+                                    <CheckCircle2 className="w-10 h-10" />
+                                </div>
 
-                            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">
-                                ShopyLink Security • Supabase Auth
-                            </p>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-        </div>
+                                <div className="space-y-2">
+                                    <h3 className="text-2xl font-black text-gray-900">¡Casi listo!</h3>
+                                    <p className="text-gray-500 font-medium leading-relaxed">
+                                        Hemos enviado un enlace de confirmación a <span className="text-blue-600 font-bold">{email}</span>.
+                                        Por favor, revísalo para activar tu cuenta.
+                                    </p>
+                                </div>
+
+                                <button
+                                    onClick={() => window.location.href = '/login'}
+                                    className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 active:scale-95"
+                                >
+                                    Ir al Login
+                                </button>
+
+                                <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">
+                                    ShopyLink Security • Supabase Auth
+                                </p>
+                            </motion.div>
+                        </div>
+                    )
+                }
+            </AnimatePresence >
+        </div >
     );
 }

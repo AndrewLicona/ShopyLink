@@ -10,13 +10,9 @@ import {
     Settings,
     LogOut,
     Menu,
-    ShoppingBag,
-    ExternalLink,
     ChevronDown,
+    ExternalLink,
     PlusCircle,
-    Copy,
-    Share2,
-    Check,
     Link as LinkIcon,
     X as CloseIcon
 } from 'lucide-react';
@@ -27,7 +23,6 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { StoreProvider, useStore } from '@/contexts/StoreContext';
-import { copyToClipboard } from '@/lib/clipboard';
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -41,6 +36,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
+    const [userName, setUserName] = useState('');
+    const [userAvatar, setUserAvatar] = useState('');
 
     useEffect(() => {
         setMounted(true);
@@ -68,6 +65,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 window.location.href = '/login';
                 return;
             }
+
+            setUserName(session.user.user_metadata?.full_name || '');
+            setUserAvatar(session.user.user_metadata?.avatar_url || '');
 
             if (stores.length === 0 && !storeLoading) {
                 router.push('/setup');
@@ -104,40 +104,34 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         >
             {/* Mobile Header */}
             <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[var(--bg)] border-b border-[var(--border)] z-50 px-4 flex items-center justify-between transition-colors">
-                <div className="relative">
+                {/* Store Switcher */}
+                <div className="flex items-center gap-2 relative">
                     <button
                         onClick={() => setIsSwitcherOpen(!isSwitcherOpen)}
-                        className="flex items-center gap-3 active:scale-95 transition-all text-left"
+                        className="flex items-center gap-2 p-1.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] shadow-sm active:scale-95 transition-all"
                     >
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden shadow-[var(--shadow)] border border-transparent bg-[var(--surface)] relative">
+                        <div className="w-7 h-7 rounded-lg overflow-hidden relative border border-[var(--border)] bg-[var(--bg)]">
                             {activeStore?.logoUrl ? (
                                 <Image
                                     src={activeStore.logoUrl}
                                     alt="Logo"
                                     fill
-                                    className="object-contain p-1.5"
-                                    sizes="36px"
+                                    className="object-contain p-1"
+                                    sizes="28px"
                                 />
                             ) : (
-                                <div className="w-full h-full bg-[var(--primary)]/10 flex items-center justify-center">
-                                    <LinkIcon className="text-[var(--primary)] w-4 h-4" />
+                                <div className="w-full h-full bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] font-bold text-[10px]">
+                                    {activeStore?.name?.[0] || 'T'}
                                 </div>
                             )}
                         </div>
-                        <div className="flex flex-col">
-                            <span className="text-sm font-black text-[var(--text)] leading-none truncate max-w-[120px]">{activeStore?.name || 'Mi Tienda'}</span>
-                            <div className="flex items-center gap-1 mt-0.5">
-                                <span className="text-[10px] font-bold text-[var(--text)]/30 uppercase tracking-widest">Cambiar</span>
-                                <ChevronDown className="w-2.5 h-2.5 text-[var(--text)]/30" />
-                            </div>
-                        </div>
+                        <ChevronDown className="w-3 h-3 text-[var(--text)]/40" />
                     </button>
 
-                    {/* Mobile Switcher Dropdown */}
                     {isSwitcherOpen && (
                         <>
-                            <div className="fixed inset-0 z-40" onClick={() => setIsSwitcherOpen(false)} />
-                            <div className="absolute top-full left-0 mt-2 w-64 bg-[var(--bg)] rounded-2xl shadow-xl border border-[var(--border)] z-50 py-2 animate-in fade-in slide-in-from-top-2">
+                            <div className="fixed inset-0 z-[60]" onClick={() => setIsSwitcherOpen(false)} />
+                            <div className="absolute top-full left-0 mt-2 w-64 bg-[var(--bg)] rounded-2xl shadow-xl border border-[var(--border)] z-[70] py-2 animate-in fade-in slide-in-from-top-2">
                                 <div className="px-4 py-2 text-[10px] font-bold text-[var(--text)]/40 uppercase tracking-widest">Mis Tiendas</div>
                                 {stores.map(s => (
                                     <button
@@ -174,12 +168,28 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                     )}
                 </div>
 
-                <button
-                    onClick={() => setIsMobileMenuOpen(true)}
-                    className="w-10 h-10 flex items-center justify-center text-[var(--text)]/40 hover:bg-[var(--secondary)] rounded-xl transition-colors border border-[var(--border)]"
-                >
-                    <Menu className="w-5 h-5" />
-                </button>
+                {/* User Profile (Mobile Header) */}
+                <div className="flex items-center gap-3">
+                    <div className="flex flex-col items-end">
+                        <span className="text-[11px] font-black text-[var(--text)] truncate max-w-[100px] leading-tight">
+                            {userName.split(' ')[0] || 'Hola'}
+                        </span>
+                        <span className="text-[8px] font-bold text-[var(--text)]/30 uppercase tracking-tighter leading-tight">Pro Partner</span>
+                    </div>
+                    <div className="w-9 h-9 rounded-full bg-[var(--primary)] text-white flex items-center justify-center font-black text-xs uppercase shadow-md overflow-hidden ring-2 ring-[var(--surface)]">
+                        {userAvatar ? (
+                            <Image src={userAvatar} alt="Avatar" width={36} height={36} className="object-cover" />
+                        ) : (
+                            userName?.[0] || 'U'
+                        )}
+                    </div>
+                    <button
+                        onClick={() => setIsMobileMenuOpen(true)}
+                        className="w-10 h-10 flex items-center justify-center text-[var(--text)]/40 hover:bg-[var(--secondary)] rounded-xl transition-colors border border-[var(--border)] ml-1"
+                    >
+                        <Menu className="w-5 h-5" />
+                    </button>
+                </div>
             </header>
 
             {/* Bottom Navigation (Mobile) */}
@@ -220,7 +230,14 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                     {/* Drawer Header (Mobile) */}
                     <div className="md:hidden flex items-center justify-between mb-8">
                         <div className="flex items-center gap-2">
-                            <img src="/favicon.svg" alt="ShopyLink" className="w-6 h-6 contrast-125" style={{ filter: 'var(--text-filter, none)' }} />
+                            <Image
+                                src="/favicon.svg"
+                                alt="ShopyLink"
+                                width={24}
+                                height={24}
+                                className="contrast-125"
+                                style={{ filter: 'var(--text-filter, none)' }}
+                            />
                             <span className="font-extrabold text-[var(--text)] tracking-tight">ShopyLink</span>
                         </div>
                         <button
@@ -298,6 +315,21 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                                 </div>
                             </>
                         )}
+                    </div>
+
+                    {/* User Profile Info - Now common for Mobile and Desktop sidebars */}
+                    <div className="mb-6 px-2 py-3 flex items-center gap-3 bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-sm">
+                        <div className="w-8 h-8 rounded-full bg-[var(--primary)] text-white flex items-center justify-center font-black text-xs uppercase shadow-lg overflow-hidden">
+                            {userAvatar ? (
+                                <Image src={userAvatar} alt="Avatar" width={32} height={32} className="object-cover" />
+                            ) : (
+                                userName?.[0] || 'U'
+                            )}
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                            <span className="text-[10px] font-bold text-[var(--text)]/30 uppercase tracking-[0.2em]">Bienvenido</span>
+                            <span className="text-sm font-black text-[var(--text)] truncate">{userName || 'Usuario'}</span>
+                        </div>
                     </div>
 
                     <nav className="flex-1 space-y-1 overflow-y-auto custom-scrollbar pr-1">

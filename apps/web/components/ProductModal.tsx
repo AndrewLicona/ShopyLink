@@ -24,6 +24,7 @@ interface ProductModalProps {
     onAddToCart: (product: Product, quantity: number, variantId?: string | null) => void;
     categories: Category[];
     store: Store | null;
+    cartItems: { id: string, quantity: number, variantId?: string }[];
 }
 
 export function ProductModal({
@@ -32,26 +33,45 @@ export function ProductModal({
     onClose,
     onAddToCart,
     categories,
-    store
+    store,
+    cartItems
 }: ProductModalProps) {
     const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
-    const [modalQuantity, setModalQuantity] = useState(1);
+    const [localQuantities, setLocalQuantities] = useState<Record<string, number>>({});
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [isCopied, setIsCopied] = useState(false);
     const [showManualShare, setShowManualShare] = useState(false);
     const [stockAlert, setStockAlert] = useState<{ show: boolean, message: string }>({ show: false, message: '' });
     const touchStartX = useRef<number | null>(null);
 
-    // Reset state when product changes
+    // Get current quantity for the active selection
+    const currentQty = localQuantities[selectedVariantId || 'base'] || 1;
+
+    const setQty = (val: number) => {
+        setLocalQuantities(prev => ({
+            ...prev,
+            [selectedVariantId || 'base']: val
+        }));
+    };
+
+    // Reset local state when product changes (new modal view)
     useEffect(() => {
         if (selectedProduct) {
             setSelectedVariantId(null);
-            setModalQuantity(1);
             setCurrentImageIndex(0);
+            setLocalQuantities({});
         }
     }, [selectedProduct]);
 
     if (!selectedProduct || !isOpen) return null;
+
+    // Get count already in cart
+    const inCartQty = cartItems.find(
+        item => item.id === selectedProduct.id &&
+            (item.variantId === (selectedVariantId || undefined))
+    )?.quantity || 0;
+
+
 
     const showMessage = (msg: string) => {
         setStockAlert({ show: true, message: msg });
@@ -69,10 +89,42 @@ export function ProductModal({
         return price;
     };
 
+    const getFinalEntries = () => {
+        const entries = { ...localQuantities };
+        const currentKey = selectedVariantId || 'base';
+        if (entries[currentKey] === undefined) {
+            entries[currentKey] = 1;
+        }
+        return Object.entries(entries).filter(([, qty]) => qty > 0);
+    };
+
     const handleAddToCart = () => {
-        onAddToCart(selectedProduct, modalQuantity, selectedVariantId);
+        const entries = getFinalEntries();
+        entries.forEach(([key, qty]) => {
+            const vId = key === 'base' ? null : key;
+            onAddToCart(selectedProduct, qty, vId);
+        });
         onClose();
     };
+
+    // Calculate total session price
+    const getTotalSessionPrice = () => {
+        const entries = getFinalEntries();
+
+        return entries.reduce((total, [key, qty]) => {
+            const vId = key === 'base' ? null : key;
+            const v = selectedProduct.variants?.find(v => v.id === vId);
+            let price = Number(selectedProduct.discountPrice || selectedProduct.price);
+            if (v) {
+                price = v.useParentPrice
+                    ? Number(selectedProduct.discountPrice || selectedProduct.price)
+                    : Number(v.price);
+            }
+            return total + (price * qty);
+        }, 0);
+    };
+
+    const finalEntriesCount = getFinalEntries().length;
 
     const variant = selectedProduct.variants?.find(v => v.id === selectedVariantId);
     const displayImages = (variant?.images && variant.images.length > 0)
@@ -296,7 +348,6 @@ export function ProductModal({
                                         <button
                                             onClick={() => {
                                                 setSelectedVariantId(null);
-                                                setModalQuantity(1);
                                             }}
                                             className={cn(
                                                 "px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all duration-200",
@@ -312,7 +363,6 @@ export function ProductModal({
                                                 key={v.id}
                                                 onClick={() => {
                                                     setSelectedVariantId(v.id);
-                                                    setModalQuantity(1);
                                                 }}
                                                 className={cn(
                                                     "px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all duration-200",
@@ -358,27 +408,32 @@ export function ProductModal({
                                             })()}
                                         </p>
                                     </div>
+                                    {inCartQty > 0 && (
+                                        <p className="text-[9px] font-bold text-green-600 mt-1 uppercase tracking-tighter">
+                                            Ya tienes {inCartQty} en el carrito
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="flex items-center gap-5 bg-[var(--surface)] p-2 rounded-2xl shadow-sm border border-[var(--border)]">
                                     <button
-                                        onClick={() => setModalQuantity(Math.max(1, modalQuantity - 1))}
+                                        onClick={() => setQty(Math.max(1, currentQty - 1))}
                                         className="w-10 h-10 md:w-12 md:h-10 flex items-center justify-center rounded-xl bg-[var(--secondary)] hover:bg-[var(--border)] text-[var(--text)] transition-all active:scale-90 border border-[var(--border)]/50"
                                     >
                                         <Minus className="w-4 h-4 md:w-5 md:h-5" />
                                     </button>
-                                    <span className="w-6 md:w-8 text-center font-black text-xl md:text-2xl text-[var(--surface-text)]">{modalQuantity}</span>
+                                    <span className="w-6 md:w-8 text-center font-black text-xl md:text-2xl text-[var(--surface-text)]">{currentQty}</span>
                                     <button
                                         onClick={() => {
                                             if (!selectedProduct.trackInventory) {
-                                                setModalQuantity(modalQuantity + 1);
+                                                setQty(currentQty + 1);
                                                 return;
                                             }
                                             const v = selectedProduct.variants?.find(v => v.id === selectedVariantId);
                                             const available = (v && !v.useParentStock)
                                                 ? v.stock
                                                 : (selectedProduct.inventory?.stock ?? 0);
-                                            if (modalQuantity < available) {
-                                                setModalQuantity(modalQuantity + 1);
+                                            if (currentQty < available) {
+                                                setQty(currentQty + 1);
                                             } else {
                                                 showMessage(`Solo hay ${available} disponibles.`);
                                             }
@@ -397,7 +452,7 @@ export function ProductModal({
                                 className="w-full bg-[var(--primary)] text-[var(--primary-foreground)] py-4 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-lg md:text-xl flex items-center justify-center gap-3 hover:scale-[1.02] transition-all shadow-xl active:scale-[0.98]"
                             >
                                 <ShoppingCart className="w-5 h-5 md:w-6 md:h-6" />
-                                Añadir • {formatCurrency(getEffectivePrice() * modalQuantity)}
+                                Añadir {finalEntriesCount > 1 ? `(${finalEntriesCount} tipos)` : ''} • {formatCurrency(getTotalSessionPrice())}
                             </button>
                         </div>
                     </div>

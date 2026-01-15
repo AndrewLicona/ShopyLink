@@ -6,8 +6,6 @@ import {
     Plus,
     ShoppingBag,
     Loader2,
-    Copy,
-    ExternalLink,
     Share2,
     Check
 } from 'lucide-react';

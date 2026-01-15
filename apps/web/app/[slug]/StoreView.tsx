@@ -16,7 +16,7 @@ import { useSearchParams } from 'next/navigation';
 import { StoreFooter } from '@/components/StoreFooter';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { ProductModal } from '@/components/ProductModal';
@@ -128,6 +128,14 @@ export function StoreView({ store, products: initialProducts, categories }: Stor
 
     const addToCart = (product: Product) => {
         // Find if any variant of this product is already in the cart
+        // Try to find the base product first (null/undefined variant)
+        const baseItem = cart.find(item => item.id === product.id && !item.variantId);
+
+        if (baseItem) {
+            updateQuantity(product.id, 1, undefined);
+            return;
+        }
+
         const existingItem = cart.find(item => item.id === product.id);
 
         if (existingItem) {
@@ -145,7 +153,7 @@ export function StoreView({ store, products: initialProducts, categories }: Stor
             if (item.id === id && item.variantId === variantId) {
                 const product = products.find(p => p.id === id);
                 let availableStock = product?.inventory?.stock ?? 0;
-                let trackStock = product?.trackInventory;
+                const trackStock = product?.trackInventory;
 
                 if (product?.variants && variantId) {
                     const v = product.variants.find(v => v.id === variantId);
@@ -399,10 +407,12 @@ export function StoreView({ store, products: initialProducts, categories }: Stor
                                             >
                                                 <Plus className="w-5 h-5" />
                                                 {(() => {
-                                                    const quantity = cart.find(item => item.id === product.id)?.quantity;
-                                                    return quantity && quantity > 0 ? (
+                                                    const totalQty = cart
+                                                        .filter(item => item.id === product.id)
+                                                        .reduce((sum, item) => sum + item.quantity, 0);
+                                                    return totalQty > 0 ? (
                                                         <span className="absolute -top-2 -right-2 bg-[var(--text)] text-[var(--bg)] text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-[var(--bg)] animate-in zoom-in-50">
-                                                            {quantity}
+                                                            {totalQty}
                                                         </span>
                                                     ) : null;
                                                 })()}
@@ -526,11 +536,11 @@ export function StoreView({ store, products: initialProducts, categories }: Stor
                 </div>
             )}
 
-            {/* Floating Mobile Cart Button */}
+            {/* Floating Cart Button */}
             {cart.length > 0 && !isCartOpen && (
                 <button
                     onClick={() => setIsCartOpen(true)}
-                    className="md:hidden fixed bottom-10 left-1/2 -translate-x-1/2 bg-black text-white px-8 py-4 rounded-full font-black text-sm flex items-center gap-3 shadow-2xl shadow-black/20 animate-in slide-in-from-bottom-5 duration-300 active:scale-95"
+                    className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-[var(--primary)] text-[var(--bg)] px-8 py-4 rounded-full font-black text-sm flex items-center gap-3 shadow-2xl shadow-[var(--primary)]/30 animate-in slide-in-from-bottom-5 duration-300 active:scale-95 z-50 hover:scale-105 transition-all"
                 >
                     <ShoppingBag className="w-5 h-5" />
                     Ver Pedido ({cart.reduce((a, b) => a + b.quantity, 0)})
@@ -681,6 +691,7 @@ export function StoreView({ store, products: initialProducts, categories }: Stor
                 onAddToCart={handleAddToCart}
                 categories={categories}
                 store={store}
+                cartItems={cart}
             />
         </div>
     );

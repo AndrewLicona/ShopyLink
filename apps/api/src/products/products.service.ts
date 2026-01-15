@@ -10,7 +10,7 @@ import { Prisma } from '@repo/database';
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async create(userId: string, createProductDto: CreateProductDto) {
     // Verify store ownership

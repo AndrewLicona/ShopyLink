@@ -265,9 +265,9 @@ function ProductsContent() {
             price: v.useParentPrice ? null : (v.price ? parseFloat(v.price.toString()) : null),
             stock: v.useParentStock ? 0 : (v.stock ? parseInt(v.stock.toString()) : 0),
             sku: v.sku || (sku ? `${sku}-${idx + 1}` : null), // Auto-generate SKU
-            useParentPrice: v.useParentPrice ?? false,
             useParentStock: v.useParentStock ?? false,
             images: v.images || [],
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             image: (v as any).image || null // Legacy support
         })) : [];
 
@@ -288,8 +288,10 @@ function ProductsContent() {
 
         try {
             if (editingProduct) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 await api.updateProduct(editingProduct.id, productData as any);
             } else {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 await api.createProduct(productData as any);
             }
             setIsModalOpen(false);
@@ -836,7 +838,7 @@ function ProductsContent() {
                                                                 <div className="flex gap-2 items-center flex-1">
                                                                     {variant.images?.map((url, imgIdx) => (
                                                                         <div key={imgIdx} className="relative w-12 h-12 rounded-lg overflow-hidden border border-[var(--border)] group/img shadow-sm">
-                                                                            <img src={url} alt="Variant" className="w-full h-full object-cover" />
+                                                                            <Image src={url} alt="Variant" fill className="object-cover" />
                                                                             <button
                                                                                 type="button"
                                                                                 onClick={() => removeVariantImage(idx, imgIdx)}
@@ -984,7 +986,7 @@ function ProductsContent() {
                                                                 <div className="flex gap-2 items-center">
                                                                     {variant.images?.map((url, imgIdx) => (
                                                                         <div key={imgIdx} className="relative w-14 h-14 rounded-xl overflow-hidden border border-[var(--border)]">
-                                                                            <img src={url} alt="Variant" className="w-full h-full object-cover" />
+                                                                            <Image src={url} alt="Variant" fill className="object-cover" />
                                                                             <button
                                                                                 type="button"
                                                                                 onClick={() => removeVariantImage(idx, imgIdx)}

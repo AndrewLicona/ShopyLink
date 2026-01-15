@@ -1,96 +1,181 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
-
-import {
-    Store,
-    Globe,
-    Loader2,
-    Save,
-    CheckCircle2,
-    Upload,
-    X,
-    ArrowLeft,
-    Palette,
-    Moon,
-    Sun,
-    Trash2,
-    AlertTriangle,
-    Truck,
-    DollarSign
-} from 'lucide-react';
-import Link from 'next/link';
-import { api } from '@/lib/api';
-import Image from 'next/image';
-import { storage } from '@/lib/storage';
-import { PhoneInput } from '@/components/PhoneInput';
-
+import { createClient } from '@/lib/supabase';
+import { User, Loader2, CheckCircle2, AlertCircle, Store as StoreIcon } from 'lucide-react';
 import { useStore } from '@/contexts/StoreContext';
-import { ConnectivityIcon } from '@/components/ConnectivityIcon';
+import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// Modular Components
+import { ProfileTab } from './components/ProfileTab';
+import { StoreTab } from './components/StoreTab';
 
 export default function SettingsPage() {
     const { activeStore, refreshStores } = useStore();
+    const [activeTab, setActiveTab] = useState<'profile' | 'store'>('profile');
+
+    // Profile State
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [uploading, setUploading] = useState(false);
-    const [success, setSuccess] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [suggestedSlug, setSuggestedSlug] = useState<string | null>(null);
+    const [id, setId] = useState('');
+    const [fullName, setFullName] = useState('');
+    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
+    const [avatarUrl, setAvatarUrl] = useState('');
 
-    // Form state
-    const [name, setName] = useState('');
-    const [slug, setSlug] = useState('');
+    // Password State
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    // Store State
+    const [storeName, setStoreName] = useState('');
+    const [storeSlug, setStoreSlug] = useState('');
     const [hasManuallyEditedSlug, setHasManuallyEditedSlug] = useState(false);
+    const [suggestedSlug, setSuggestedSlug] = useState<string | null>(null);
+    const [storeLogo, setStoreLogo] = useState('');
     const [whatsapp, setWhatsapp] = useState('');
-    const [logoUrl, setLogoUrl] = useState('');
-    const [instagramUrl, setInstagramUrl] = useState('');
-    const [facebookUrl, setFacebookUrl] = useState('');
-    const [tiktokUrl, setTiktokUrl] = useState('');
-    const [twitterUrl, setTwitterUrl] = useState('');
-    const [pinterestUrl, setPinterestUrl] = useState('');
-    const [youtubeUrl, setYoutubeUrl] = useState('');
+
+
+    // Social Media States
+    const [instagram, setInstagram] = useState('');
+    const [facebook, setFacebook] = useState('');
+    const [tiktok, setTiktok] = useState('');
+    const [twitter, setTwitter] = useState('');
+    const [pinterest, setPinterest] = useState('');
+    const [youtube, setYoutube] = useState('');
+
+    // Delivery States
+    const [deliveryEnabled, setDeliveryEnabled] = useState(true);
+    const [deliveryPrice, setDeliveryPrice] = useState('0');
+
+    // Appearance
     const [theme, setTheme] = useState('classic');
     const [mode, setMode] = useState('light');
     const [applyToDashboard, setApplyToDashboard] = useState(false);
-    const [deliveryEnabled, setDeliveryEnabled] = useState(true);
-    const [deliveryPrice, setDeliveryPrice] = useState('Gratis');
-    const [activeTab, setActiveTab] = useState<'info' | 'social' | 'appearance'>('info');
 
-    // Deletion state
+    // Deletion State
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleteConfirmationName, setDeleteConfirmationName] = useState('');
     const [deleting, setDeleting] = useState(false);
 
-
+    const [uploading, setUploading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
 
     useEffect(() => {
-        if (activeStore) {
-            setName(activeStore.name);
-            setSlug(activeStore.slug);
-            setWhatsapp(activeStore.whatsappNumber || '');
-            setLogoUrl(activeStore.logoUrl || '');
-            setInstagramUrl(activeStore.instagramUrl || '');
-            setFacebookUrl(activeStore.facebookUrl || '');
-            setTiktokUrl(activeStore.tiktokUrl || '');
-            setTwitterUrl(activeStore.twitterUrl || '');
-            setPinterestUrl(activeStore.pinterestUrl || '');
-            setYoutubeUrl(activeStore.youtubeUrl || '');
-            setTheme(activeStore.theme || 'classic');
-            setMode(activeStore.mode || 'light');
-            setApplyToDashboard(activeStore.applyThemeToDashboard || false);
-            setDeliveryEnabled(activeStore.deliveryEnabled ?? true);
-            setDeliveryPrice(activeStore.deliveryPrice || 'Gratis');
+        const loadUser = async () => {
+            const supabase = createClient();
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                setId(session.user.id);
+                setEmail(session.user.email || '');
+                setFullName(session.user.user_metadata?.full_name || '');
+                setUsername(session.user.user_metadata?.username || '');
+                setAvatarUrl(session.user.user_metadata?.avatar_url || '');
+
+                if (!session.user.user_metadata?.username) {
+                    const { data: userData } = await supabase
+                        .from('User')
+                        .select('username')
+                        .eq('id', session.user.id)
+                        .single();
+                    if (userData?.username) setUsername(userData.username);
+                }
+            }
+
+            if (activeStore) {
+                setStoreName(activeStore.name || '');
+                setStoreSlug(activeStore.slug || '');
+                setStoreLogo(activeStore.logoUrl || '');
+                setWhatsapp(activeStore.whatsappNumber || '');
+
+                setInstagram(activeStore.instagramUrl || '');
+                setFacebook(activeStore.facebookUrl || '');
+                setTiktok(activeStore.tiktokUrl || '');
+                setTwitter(activeStore.twitterUrl || '');
+                setPinterest(activeStore.pinterestUrl || '');
+                setYoutube(activeStore.youtubeUrl || '');
+                setTheme(activeStore.theme || 'classic');
+                setMode(activeStore.mode || 'light');
+                setApplyToDashboard(activeStore.applyThemeToDashboard || false);
+                setDeliveryEnabled(activeStore.deliveryEnabled ?? true);
+                setDeliveryPrice(activeStore.deliveryPrice || 'Gratis');
+            }
+
             setLoading(false);
-        }
+        };
+        loadUser();
     }, [activeStore]);
 
-    const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newName = e.target.value;
-        setName(newName);
+    const handleUpdateProfile = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSaving(true);
+        setError(null);
+        setSuccess(null);
+
+        try {
+            const supabase = createClient();
+            const { error: updateError } = await supabase.auth.updateUser({
+                email: email !== (await supabase.auth.getUser()).data.user?.email ? email : undefined,
+                data: {
+                    full_name: fullName,
+                    avatar_url: avatarUrl
+                }
+            });
+
+            if (updateError) throw updateError;
+            setSuccess('Perfil actualizado con éxito.');
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Error al actualizar el perfil.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setUploading(true);
+        setError(null);
+
+        try {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('No se encontró el usuario');
+
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+            const filePath = `avatars/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('shopy-images')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('shopy-images')
+                .getPublicUrl(filePath);
+
+            setAvatarUrl(publicUrl);
+            await supabase.auth.updateUser({ data: { avatar_url: publicUrl } });
+            setSuccess('Avatar actualizado con éxito.');
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Error al subir el avatar.');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleNameChange = (newName: string) => {
+        setStoreName(newName);
         setSuggestedSlug(null);
 
-        // Auto-slug if not touched
         if (!hasManuallyEditedSlug) {
             const newSlug = newName
                 .toLowerCase()
@@ -99,30 +184,7 @@ export default function SettingsPage() {
                 .replace(/[^a-z0-9]/g, '-')
                 .replace(/-+/g, '-')
                 .replace(/^-|-$/g, '');
-            setSlug(newSlug);
-        }
-    };
-
-    const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setHasManuallyEditedSlug(true);
-        setSuggestedSlug(null);
-        setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'));
-    };
-
-    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setUploading(true);
-        setError(null);
-        try {
-            const url = await storage.uploadImage(file, 'logos');
-            setLogoUrl(url);
-        } catch (err) {
-            setError('Error al subir el logo. Asegúrate de que el bucket existe en Supabase.');
-            console.error(err);
-        } finally {
-            setUploading(false);
+            setStoreSlug(newSlug);
         }
     };
 
@@ -131,37 +193,34 @@ export default function SettingsPage() {
         if (!activeStore) return;
         setSaving(true);
         setError(null);
-        setSuccess(false);
+        setSuccess(null);
 
         try {
-            await api.updateStore(activeStore!.id, {
-                name,
-                slug,
+            await api.updateStore(activeStore.id, {
+                name: storeName,
+                slug: storeSlug,
+                logoUrl: storeLogo,
                 whatsappNumber: whatsapp,
-                logoUrl,
-                instagramUrl,
-                facebookUrl,
-                tiktokUrl,
-                twitterUrl,
-                pinterestUrl,
-                youtubeUrl,
-                theme,
-                mode,
+
+                instagramUrl: instagram,
+                facebookUrl: facebook,
+                tiktokUrl: tiktok,
+                twitterUrl: twitter,
+                pinterestUrl: pinterest,
+                youtubeUrl: youtube,
+                theme: theme,
+                mode: mode,
                 applyThemeToDashboard: applyToDashboard,
-                deliveryEnabled,
-                deliveryPrice
+                deliveryEnabled: deliveryEnabled,
+                deliveryPrice: deliveryPrice
             });
             await refreshStores();
-            setSuccess(true);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            setTimeout(() => setSuccess(false), 3000);
-        } catch (err) {
-            console.error('Update Store Error:', err);
-            const message = err instanceof Error ? err.message : 'Error al actualizar la tienda';
+            setSuccess('Tienda actualizada con éxito.');
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'Error al actualizar la tienda.';
             setError(message);
-
             if (message.includes('uso') || message.includes('already in use')) {
-                const suggestion = `${slug}-${Math.floor(Math.random() * 90) + 10}`;
+                const suggestion = `${storeSlug}-${Math.floor(Math.random() * 90) + 10}`;
                 setSuggestedSlug(suggestion);
             }
         } finally {
@@ -177,589 +236,187 @@ export default function SettingsPage() {
             await api.deleteStore(activeStore.id);
             await refreshStores();
             window.location.href = '/dashboard';
-        } catch (err) {
-            console.error('Delete Store Error:', err);
-            setError('Error al eliminar la tienda');
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Error al eliminar la tienda.');
             setIsDeleteModalOpen(false);
         } finally {
             setDeleting(false);
         }
     };
 
+    const handleStoreLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !activeStore) return;
+        setUploading(true);
+        setError(null);
+
+        try {
+            const supabase = createClient();
+            const fileExt = file.name.split('.').pop();
+            const fileName = `store-${activeStore.id}-${Math.random()}.${fileExt}`;
+            const filePath = `stores/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('shopy-images')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('shopy-images')
+                .getPublicUrl(filePath);
+
+            setStoreLogo(publicUrl);
+            setSuccess('Logo subido. No olvides guardar los cambios.');
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Error al subir el logo.');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleChangePassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (newPassword !== confirmPassword) {
+            setError('Las contraseñas no coinciden.');
+            return;
+        }
+        if (newPassword.length < 8) {
+            setError('La contraseña debe tener al menos 8 caracteres.');
+            return;
+        }
+
+        setSaving(true);
+        setError(null);
+        setSuccess(null);
+
+        try {
+            const supabase = createClient();
+            const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+            if (updateError) throw updateError;
+            setSuccess('Contraseña actualizada con éxito.');
+            setNewPassword('');
+            setConfirmPassword('');
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Error al cambiar la contraseña.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-                <Loader2 className="w-10 h-10 text-[var(--primary)] animate-spin" />
-                <p className="text-[var(--text)]/60 font-medium">Cargando configuración...</p>
+            <div className="flex items-center justify-center min-h-[400px]">
+                <Loader2 className="w-8 h-8 animate-spin text-[var(--primary)]" />
             </div>
         );
     }
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8 pb-20">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                    <Link
-                        href="/dashboard"
-                        className="p-3 bg-white rounded-2xl border border-gray-100 text-gray-400 hover:text-gray-900 hover:shadow-md transition-all active:scale-95"
-                    >
-                        <ArrowLeft className="w-5 h-5" />
-                    </Link>
-                    <div className="flex items-center gap-3">
-                        <ConnectivityIcon className="w-10 h-10" />
-                        <div>
-                            <h1 className="text-3xl font-black text-[var(--text)]">Configuración</h1>
-                            <p className="text-[var(--text)]/60 mt-1">Personaliza los detalles de tu tienda.</p>
-                        </div>
-                    </div>
+        <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Header Improved */}
+            <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-3">
+                    <h1 className="text-3xl font-black text-[var(--text)] tracking-tighter italic">Ajustes</h1>
+                    <div className="h-2 w-2 rounded-full bg-[var(--primary)] animate-pulse" />
                 </div>
-                {success && (
-                    <div className="hidden sm:flex items-center gap-2 bg-green-50 text-green-600 px-4 py-2 rounded-xl text-sm font-bold border border-green-100 animate-in fade-in slide-in-from-top-2">
-                        <CheckCircle2 className="w-4 h-4" />
-                        ¡Cambios guardados!
-                    </div>
+                <p className="text-[var(--text)]/40 font-bold uppercase tracking-[0.2em] text-[10px]">Configuración Global de tu Negocio</p>
+            </div>
+
+            {/* Premium Tabs */}
+            <div className="flex p-1.5 bg-[var(--surface)] border border-[var(--border)] rounded-[1.5rem] w-fit shadow-sm relative overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-r from-[var(--primary)]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                <button
+                    onClick={() => setActiveTab('profile')}
+                    className={cn(
+                        "flex items-center gap-2.5 px-8 py-3 rounded-[1.1rem] font-black text-sm transition-all relative z-10",
+                        activeTab === 'profile'
+                            ? "bg-[var(--bg)] text-[var(--primary)] shadow-sm border border-[var(--border)] scale-[1.02]"
+                            : "text-[var(--text)]/40 hover:text-[var(--text)]/60 hover:bg-[var(--bg)]/50"
+                    )}
+                >
+                    <User className={cn("w-4 h-4 transition-transform", activeTab === 'profile' && "scale-110")} />
+                    <span>Mi Perfil</span>
+                </button>
+                <button
+                    onClick={() => setActiveTab('store')}
+                    className={cn(
+                        "flex items-center gap-2.5 px-8 py-3 rounded-[1.1rem] font-black text-sm transition-all relative z-10",
+                        activeTab === 'store'
+                            ? "bg-[var(--bg)] text-[var(--primary)] shadow-sm border border-[var(--border)] scale-[1.02]"
+                            : "text-[var(--text)]/40 hover:text-[var(--text)]/60 hover:bg-[var(--bg)]/50"
+                    )}
+                >
+                    <StoreIcon className={cn("w-4 h-4 transition-transform", activeTab === 'store' && "scale-110")} />
+                    <span>Mi Tienda</span>
+                </button>
+            </div>
+
+            {/* Messages */}
+            <AnimatePresence mode="wait">
+                {error && (
+                    <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="p-5 bg-red-50 text-red-600 rounded-[2rem] border border-red-100 flex items-center gap-4 font-black text-sm shadow-xl shadow-red-500/5">
+                        <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center flex-shrink-0">
+                            <AlertCircle className="w-5 h-5" />
+                        </div>
+                        {error}
+                    </motion.div>
                 )}
-            </div>
-
-            {/* Tabs Selector */}
-            <div className="flex flex-col sm:flex-row sm:border-b sm:border-gray-200 mb-8 gap-2 sm:gap-0">
-                <button
-                    onClick={() => setActiveTab('info')}
-                    className={`px-6 py-4 text-sm font-black transition-all duration-300 flex items-center justify-center sm:justify-start gap-3 rounded-2xl sm:rounded-none sm:rounded-t-2xl sm:border-b-4 ${activeTab === 'info'
-                        ? "bg-[var(--primary)] text-[var(--primary-foreground)] shadow-lg shadow-[var(--primary)]/20 sm:shadow-none sm:bg-[var(--primary)]/5 sm:text-[var(--primary)] sm:border-[var(--primary)]"
-                        : "bg-[var(--surface)] text-[var(--text)]/60 border border-[var(--border)] sm:border-0 sm:border-transparent sm:bg-transparent hover:bg-[var(--secondary)] sm:hover:bg-[var(--primary)]/5 hover:text-[var(--text)]"
-                        }`}
-                >
-                    <Store className="w-5 h-5 sm:w-4 sm:h-4" />
-                    TIENDA & BRANDING
-                </button>
-                <button
-                    onClick={() => setActiveTab('social')}
-                    className={`px-6 py-4 text-sm font-black transition-all duration-300 flex items-center justify-center sm:justify-start gap-3 rounded-2xl sm:rounded-none sm:rounded-t-2xl sm:border-b-4 ${activeTab === 'social'
-                        ? "bg-pink-600 text-white shadow-lg shadow-pink-600/20 sm:shadow-none sm:bg-pink-50/50 sm:text-pink-600 sm:border-pink-600"
-                        : "bg-[var(--surface)] text-[var(--text)]/60 border border-[var(--border)] sm:border-0 sm:border-transparent sm:bg-transparent hover:bg-[var(--secondary)] sm:hover:bg-pink-50/50 hover:text-[var(--text)]"
-                        }`}
-                >
-                    <Globe className="w-5 h-5 sm:w-4 sm:h-4" />
-                    REDES SOCIALES
-                </button>
-                <button
-                    onClick={() => setActiveTab('appearance')}
-                    className={`px-6 py-4 text-sm font-black transition-all duration-300 flex items-center justify-center sm:justify-start gap-3 rounded-2xl sm:rounded-none sm:rounded-t-2xl sm:border-b-4 ${activeTab === 'appearance'
-                        ? "bg-yellow-500 text-white shadow-lg shadow-yellow-500/20 sm:shadow-none sm:bg-yellow-50/50 sm:text-yellow-500 sm:border-yellow-500"
-                        : "bg-[var(--surface)] text-[var(--text)]/60 border border-[var(--border)] sm:border-0 sm:border-transparent sm:bg-transparent hover:bg-[var(--secondary)] sm:hover:bg-yellow-50/50 hover:text-[var(--text)]"
-                        }`}
-                >
-                    <Palette className="w-5 h-5 sm:w-4 sm:h-4" />
-                    APARIENCIA
-                </button>
-            </div>
-
-            <div className="bg-[var(--surface)] rounded-[2.5rem] shadow-[var(--shadow)] border border-[var(--border)] overflow-hidden">
-                <form onSubmit={handleUpdateStore} className="p-8 md:p-12 space-y-10">
-                    {error && (
-                        <div className="p-4 bg-red-50 text-red-600 text-sm rounded-2xl border border-red-100 italic">
-                            {error}
+                {success && (
+                    <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="p-5 bg-green-50 text-green-600 rounded-[2rem] border border-green-100 flex items-center gap-4 font-black text-sm shadow-xl shadow-green-500/5">
+                        <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                            <CheckCircle2 className="w-5 h-5" />
                         </div>
-                    )}
+                        {success}
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
-                    {activeTab === 'info' ? (
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 animate-in fade-in slide-in-from-left-4 duration-500">
-                            {/* Basic Info */}
-                            <div className="lg:col-span-12 xl:col-span-7 space-y-8">
-                                <h3 className="text-sm font-black uppercase tracking-widest text-blue-600">Información Básica</h3>
-
-                                <div className="grid grid-cols-1 gap-6">
-                                    <div>
-                                        <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">Nombre de la tienda</label>
-                                        <input
-                                            type="text"
-                                            className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/10 outline-none transition-all font-bold text-[var(--text)] bg-[var(--bg)]"
-                                            value={name}
-                                            onChange={handleNameChange}
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">Enlace de tu tienda</label>
-                                        <div className="flex items-center w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus-within:border-[var(--primary)] focus-within:ring-4 focus-within:ring-[var(--primary)]/10 bg-[var(--bg)] transition-all overflow-hidden">
-                                            <span className="text-[var(--text)]/40 font-bold text-sm whitespace-nowrap shrink-0">shopylink.com/</span>
-                                            <input
-                                                type="text"
-                                                className="flex-1 ml-1 outline-none font-black text-[var(--text)] bg-transparent text-sm min-w-0"
-                                                value={slug}
-                                                onChange={handleSlugChange}
-                                            />
-                                        </div>
-                                        {suggestedSlug && (
-                                            <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-1">
-                                                <p className="text-xs font-bold text-blue-700">
-                                                    Sugerencia: <span className="underline">{suggestedSlug}</span>
-                                                </p>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setSlug(suggestedSlug);
-                                                        setSuggestedSlug(null);
-                                                        setError(null);
-                                                    }}
-                                                    className="text-[10px] font-black bg-blue-600 text-white px-3 py-1.5 rounded-lg uppercase tracking-widest hover:bg-blue-700 transition-colors"
-                                                >
-                                                    Usar esta
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <PhoneInput
-                                            label="WhatsApp para pedidos"
-                                            value={whatsapp}
-                                            onChange={setWhatsapp}
-                                            placeholder="300 123 4567"
-                                            className="font-bold"
-                                        />
-                                    </div>
-
-                                    {/* Delivery Options (Premium Card Toggle) */}
-                                    <div className="pt-4 border-t border-[var(--border)]">
-                                        <div
-                                            onClick={() => setDeliveryEnabled(!deliveryEnabled)}
-                                            className={cn(
-                                                "group cursor-pointer p-6 rounded-3xl border-2 transition-all duration-300 relative overflow-hidden",
-                                                deliveryEnabled
-                                                    ? "border-[var(--primary)] bg-[var(--primary)]/5 shadow-md shadow-[var(--primary)]/10"
-                                                    : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--text)]/10"
-                                            )}
-                                        >
-                                            {/* Accent background for active state */}
-                                            {deliveryEnabled && (
-                                                <div className="absolute top-0 right-0 p-3 opacity-10">
-                                                    <Truck className="w-24 h-24 text-[var(--primary)] rotate-12 translate-x-4 translate-y--4" />
-                                                </div>
-                                            )}
-
-                                            <div className="flex items-center justify-between relative z-10">
-                                                <div className="flex items-center gap-4">
-                                                    <div className={cn(
-                                                        "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500",
-                                                        deliveryEnabled ? "bg-[var(--primary)] text-white scale-110 shadow-lg" : "bg-[var(--secondary)] text-[var(--text)]/20"
-                                                    )}>
-                                                        <Truck className="w-6 h-6" />
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <p className={cn(
-                                                            "font-black text-base transition-colors",
-                                                            deliveryEnabled ? "text-[var(--text)]" : "text-[var(--text)]/40"
-                                                        )}>Activar Delivery</p>
-                                                        <p className="text-xs text-[var(--text)]/30 font-bold uppercase tracking-wider">Permitir envios a domicilio</p>
-                                                    </div>
-                                                </div>
-
-                                                <div className={cn(
-                                                    "w-14 h-8 rounded-full transition-all duration-500 flex items-center px-1",
-                                                    deliveryEnabled ? "bg-[var(--primary)] shadow-inner" : "bg-[var(--border)]"
-                                                )}>
-                                                    <div className={cn(
-                                                        "w-6 h-6 rounded-full bg-white shadow-xl transition-all duration-500 transform",
-                                                        deliveryEnabled ? "translate-x-6 scale-90" : "translate-x-0 scale-75"
-                                                    )} />
-                                                </div>
-                                            </div>
-
-                                            {/* Subtitle/Description line */}
-                                            <p className="mt-4 text-[10px] text-[var(--text)]/40 font-bold uppercase tracking-[0.15em] border-t border-[var(--border)] pt-4 group-hover:text-[var(--text)]/60 transition-colors">
-                                                {deliveryEnabled ? 'Los clientes podrán dejar su dirección y GPS' : 'Solo venta con retiro en local o acuerdo previo'}
-                                            </p>
-                                        </div>
-
-                                        {deliveryEnabled && (
-                                            <div className="mt-6 p-6 rounded-3xl bg-[var(--bg)] border-2 border-dashed border-[var(--border)] animate-in fade-in slide-in-from-top-4 duration-500">
-                                                <div className="flex items-center gap-2 mb-3">
-                                                    <div className="w-8 h-8 rounded-lg bg-[var(--primary)]/10 flex items-center justify-center">
-                                                        <DollarSign className="w-4 h-4 text-[var(--primary)]" />
-                                                    </div>
-                                                    <label className="text-sm font-black text-[var(--text)] uppercase tracking-widest">Costo de Envío</label>
-                                                </div>
-                                                <input
-                                                    type="text"
-                                                    className="w-full px-6 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] focus:ring-8 focus:ring-[var(--primary)]/5 outline-none transition-all font-black text-lg text-[var(--text)] bg-[var(--surface)] shadow-sm"
-                                                    placeholder="Ej: Gratis, Q 10.00, A convenir"
-                                                    value={deliveryPrice}
-                                                    onChange={(e) => setDeliveryPrice(e.target.value)}
-                                                />
-                                                <div className="mt-3 flex items-start gap-2 bg-blue-50/50 p-3 rounded-xl border border-blue-100/50">
-                                                    <AlertTriangle className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                                                    <p className="text-[10px] text-blue-600/70 font-bold uppercase tracking-widest leading-relaxed">
-                                                        Este texto aparecerá en el resumen de compra del cliente después de que elija su ubicación.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Branding */}
-                            <div className="lg:col-span-12 xl:col-span-5 space-y-8">
-                                <h3 className="text-sm font-black uppercase tracking-widest text-purple-600">Identidad Visual</h3>
-
-                                <div className="space-y-6">
-                                    <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">
-                                        Logo de la Tienda
-                                    </label>
-
-                                    <div className="p-8 border-2 border-dashed border-[var(--border)] rounded-[2.5rem] bg-[var(--secondary)]/30 flex flex-col items-center justify-center gap-6 relative group/logo transition-colors hover:border-[var(--primary)]/40">
-                                        <div className="w-32 h-32 md:w-40 md:h-40 bg-[var(--surface)] rounded-[2rem] shadow-[var(--shadow)] border border-[var(--border)] flex items-center justify-center text-6xl overflow-hidden relative">
-                                            {logoUrl ? (
-                                                <>
-                                                    <Image
-                                                        src={logoUrl}
-                                                        alt="Logo"
-                                                        fill
-                                                        className="object-contain"
-                                                        sizes="(max-width: 768px) 128px, 160px"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setLogoUrl('')}
-                                                        className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-xl opacity-0 group-hover/logo:opacity-100 transition-opacity shadow-lg z-10"
-                                                    >
-                                                        <X className="w-4 h-4" />
-                                                    </button>
-                                                </>
-                                            ) : (
-                                                <Store className="w-16 h-16 text-[var(--text)]/20" />
-                                            )}
-                                            {uploading && (
-                                                <div className="absolute inset-0 bg-[var(--surface)]/80 backdrop-blur-sm flex items-center justify-center">
-                                                    <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="w-full max-w-[200px]">
-                                            <label className="flex items-center justify-center gap-2 w-full py-4 bg-[var(--surface)] border-2 border-[var(--border)] rounded-2xl font-bold text-sm text-[var(--text)]/60 cursor-pointer hover:bg-[var(--secondary)] active:scale-95 transition-all shadow-[var(--shadow)]">
-                                                <Upload className="w-4 h-4" />
-                                                {logoUrl ? 'Cambiar Logo' : 'Subir Logo'}
-                                                <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} disabled={uploading} />
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ) : activeTab === 'social' ? (
-                        <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
-                            <h3 className="text-sm font-black uppercase tracking-widest text-pink-600">Redes Sociales</h3>
-                            <p className="text-[var(--text)]/60 text-sm">Conecta tus redes sociales para que aparezcan en el footer de tu tienda.</p>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">Instagram</label>
-                                    <input type="url" className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-pink-500 focus:ring-4 focus:ring-pink-500/10 outline-none transition-all font-medium text-[var(--text)] bg-[var(--bg)]" placeholder="https://instagram.com/tu_usuario" value={instagramUrl} onChange={(e) => setInstagramUrl(e.target.value)} />
-                                </div>
-                                <div>
-                                    <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">Facebook</label>
-                                    <input type="url" className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 outline-none transition-all font-medium text-[var(--text)] bg-[var(--bg)]" placeholder="https://facebook.com/tu_pagina" value={facebookUrl} onChange={(e) => setFacebookUrl(e.target.value)} />
-                                </div>
-                                <div>
-                                    <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">TikTok</label>
-                                    <input type="url" className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-gray-900 focus:ring-4 focus:ring-gray-900/10 outline-none transition-all font-medium text-[var(--text)] bg-[var(--bg)]" placeholder="https://tiktok.com/@tu_usuario" value={tiktokUrl} onChange={(e) => setTiktokUrl(e.target.value)} />
-                                </div>
-                                <div>
-                                    <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">Twitter / X</label>
-                                    <input type="url" className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-gray-900 focus:ring-4 focus:ring-gray-900/10 outline-none transition-all font-medium text-[var(--text)] bg-[var(--bg)]" placeholder="https://twitter.com/tu_usuario" value={twitterUrl} onChange={(e) => setTwitterUrl(e.target.value)} />
-                                </div>
-                                <div>
-                                    <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">Pinterest</label>
-                                    <input type="url" className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-red-600 focus:ring-4 focus:ring-red-600/10 outline-none transition-all font-medium text-[var(--text)] bg-[var(--bg)]" placeholder="https://pinterest.com/tu_usuario" value={pinterestUrl} onChange={(e) => setPinterestUrl(e.target.value)} />
-                                </div>
-                                <div>
-                                    <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">YouTube</label>
-                                    <input type="url" className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-red-600 focus:ring-4 focus:ring-red-600/10 outline-none transition-all font-medium text-[var(--text)] bg-[var(--bg)]" placeholder="https://youtube.com/@tu_canal" value={youtubeUrl} onChange={(e) => setYoutubeUrl(e.target.value)} />
-                                </div>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-right-4 duration-500">
-                            {/* Theme Selection */}
-                            <div className="space-y-8">
-                                <h3 className="text-sm font-black uppercase tracking-widest text-yellow-500">Diseño y Colores</h3>
-
-                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
-                                    {[
-                                        { id: 'classic', name: 'Classic', desc: 'Profesional & Azul', colors: ['#2563eb', '#ffffff'] },
-                                        { id: 'fresh', name: 'Fresh', desc: 'Natural & Verde', colors: ['#10b981', '#ffffff'] },
-                                        { id: 'modern', name: 'Modern', desc: 'Elegante & Indigo', colors: ['#6366f1', '#ffffff'] },
-                                        { id: 'minimal', name: 'Minimal', desc: 'Simple & Negro', colors: ['#27272a', '#ffffff'] },
-                                        { id: 'gold', name: 'Gold', desc: 'Premium & Oro', colors: ['#d4af37', '#111827'] },
-                                        { id: 'pastel', name: 'Pastel', desc: 'Suave & Rosa', colors: ['#f8bbd0', '#fdf2f8'] },
-                                        { id: 'lilac', name: 'Lilac', desc: 'Dulce & Lavanda', colors: ['#d1c4e9', '#f3e5f5'] },
-                                        { id: 'gray', name: 'Gris', desc: 'Neutro & Claro', colors: ['#9ca3af', '#f3f4f6'] },
-                                        { id: 'dark-gray', name: 'Antracita', desc: 'Profundo & Serio', colors: ['#4b5563', '#1f2937'] },
-                                    ].map((t) => (
-                                        <button
-                                            key={t.id}
-                                            type="button"
-                                            onClick={() => setTheme(t.id)}
-                                            className={`p-3 md:p-4 rounded-2xl md:rounded-3xl border-2 transition-all text-left flex flex-col gap-3 md:gap-4 ${theme === t.id
-                                                ? 'border-[var(--primary)] bg-[var(--primary)]/5 ring-4 ring-[var(--primary)]/5 shadow-[var(--shadow-strong)]'
-                                                : 'border-[var(--border)] hover:border-[var(--text)]/10 bg-[var(--surface)]'
-                                                }`}
-                                        >
-                                            <div className="flex gap-1">
-                                                {t.colors.map((c, i) => (
-                                                    <div key={i} className="w-5 h-5 md:w-6 md:h-6 rounded-full shadow-inner" style={{ backgroundColor: c }} />
-                                                ))}
-                                            </div>
-                                            <div>
-                                                <p className="font-black text-xs md:text-sm text-[var(--text)]">{t.name}</p>
-                                                <p className="text-[9px] md:text-[10px] text-[var(--text)]/40 font-bold uppercase leading-tight">{t.desc}</p>
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Mode Selection */}
-                            <div className="space-y-6">
-                                <h3 className="text-sm font-black uppercase tracking-widest text-[var(--text)]">Modo de Visualización</h3>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => setMode('light')}
-                                        className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${mode === 'light'
-                                            ? 'border-yellow-500 bg-yellow-50/10 text-yellow-600'
-                                            : 'border-[var(--border)] text-[var(--text)]/40 hover:border-[var(--border)]'
-                                            }`}
-                                    >
-                                        <Sun className="w-5 h-5 md:w-6 md:h-6" />
-                                        <span className="font-black text-[9px] md:text-[10px] tracking-widest">CLARO</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setMode('dark')}
-                                        className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${mode === 'dark'
-                                            ? 'border-gray-900 bg-gray-900 text-white'
-                                            : 'border-[var(--border)] text-[var(--text)]/40 hover:border-[var(--border)]'
-                                            }`}
-                                    >
-                                        <Moon className="w-5 h-5 md:w-6 md:h-6" />
-                                        <span className="font-black text-[9px] md:text-[10px] tracking-widest">OSCURO</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setMode('beige')}
-                                        className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${mode === 'beige'
-                                            ? 'border-[#d2b48c] bg-[#f5f5dc] text-[#4a3728]'
-                                            : 'border-[var(--border)] text-[var(--text)]/40 hover:border-[var(--border)]'
-                                            }`}
-                                    >
-                                        <div className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-[#f5f5dc] border border-[#d2b48c]" />
-                                        <span className="font-black text-[9px] md:text-[10px] tracking-widest">BEIGE</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setMode('gray')}
-                                        className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${mode === 'gray'
-                                            ? 'border-gray-400 bg-gray-100 text-gray-700'
-                                            : 'border-[var(--border)] text-[var(--text)]/40 hover:border-[var(--border)]'
-                                            }`}
-                                    >
-                                        <div className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-gray-100 border border-gray-300" />
-                                        <span className="font-black text-[9px] md:text-[10px] tracking-widest uppercase text-center leading-tight">Gris<br className="hidden sm:inline" /> Claro</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setMode('dark-gray')}
-                                        className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${mode === 'dark-gray'
-                                            ? 'border-gray-600 bg-gray-700 text-gray-100'
-                                            : 'border-[var(--border)] text-[var(--text)]/40 hover:border-[var(--border)]'
-                                            }`}
-                                    >
-                                        <div className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-gray-700 border border-gray-500" />
-                                        <span className="font-black text-[9px] md:text-[10px] tracking-widest uppercase text-center leading-tight">Gris<br />Oscuro</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Dashboard Sync */}
-                            <div className="space-y-6">
-                                <h3 className="text-sm font-black uppercase tracking-widest text-[var(--primary)]">Sincronización de Interfaz</h3>
-                                <div
-                                    onClick={() => setApplyToDashboard(!applyToDashboard)}
-                                    className={`p-6 rounded-[2rem] border-2 transition-all cursor-pointer flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between ${applyToDashboard ? 'border-[var(--primary)] bg-[var(--primary)]/10' : 'border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]'
-                                        }`}
-                                >
-                                    <div className="space-y-1">
-                                        <p className="font-black text-[var(--text)]">Aplicar tema a mi Dashboard</p>
-                                        <p className="text-xs text-[var(--text)]/40 font-medium italic">Si lo activas, tu panel de administración usará los mismos colores que tu tienda.</p>
-                                    </div>
-                                    <div className={`w-14 h-8 rounded-full transition-all flex items-center px-1 ${applyToDashboard ? 'bg-[var(--primary)]' : 'bg-[var(--secondary)]'}`}>
-                                        <div className={`w-6 h-6 rounded-full bg-[var(--bg)] shadow-sm transition-all transform ${applyToDashboard ? 'translate-x-6' : 'translate-x-0'}`} />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Live Preview */}
-                            <div className="p-8 bg-[var(--secondary)]/30 rounded-[2.5rem] border border-[var(--border)] space-y-6 shadow-inner">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text)]/40">Previsualización rápida</h3>
-                                    <div className="flex gap-1">
-                                        <div className="w-2 h-2 rounded-full bg-red-400" />
-                                        <div className="w-2 h-2 rounded-full bg-yellow-400" />
-                                        <div className="w-2 h-2 rounded-full bg-green-400" />
-                                    </div>
-                                </div>
-
-                                <div
-                                    data-theme={theme}
-                                    data-mode={mode}
-                                    className="rounded-[2rem] overflow-hidden border border-[var(--border)] shadow-[var(--shadow-strong)] bg-[var(--bg)] transition-all duration-300"
-                                >
-                                    <div className="p-6 border-b border-[var(--border)] flex items-center justify-between bg-[var(--bg)]">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded-lg bg-[var(--secondary)] border border-[var(--border)]" />
-                                            <div className="w-20 h-3 bg-[var(--text)]/20 rounded-full" />
-                                        </div>
-                                        <div className="w-10 h-10 rounded-xl bg-[var(--primary)]" />
-                                    </div>
-                                    <div className="p-6 space-y-4">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            {[1, 2].map(i => (
-                                                <div key={i} className="p-3 rounded-2xl border border-[var(--border)] space-y-2">
-                                                    <div className="aspect-square bg-[var(--secondary)] rounded-xl" />
-                                                    <div className="w-full h-2 bg-[var(--text)]/20 rounded-full" />
-                                                    <div className="w-1/2 h-2 bg-[var(--primary)]/40 rounded-full" />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                                <p className="text-center text-[10px] text-[var(--text)]/40 font-bold uppercase tracking-widest">
-                                    Esta es una vista previa de cómo se verá tu catálogo
-                                </p>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="pt-8 border-t border-[var(--border)] space-y-4">
-                        <div className="flex justify-end">
-                            <button
-                                type="submit"
-                                disabled={saving}
-                                className="w-full md:w-auto bg-[var(--primary)] text-[var(--bg)] px-10 py-5 rounded-[2rem] font-black text-xl hover:opacity-90 transition-all shadow-[var(--shadow-strong)] active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50"
-                            >
-                                {saving ? (
-                                    <Loader2 className="w-6 h-6 animate-spin" />
-                                ) : (
-                                    <>
-                                        <Save className="w-6 h-6" />
-                                        Guardar Cambios
-                                    </>
-                                )}
-                            </button>
-                        </div>
-
-                        {/* Mobile Success Message */}
-                        {success && (
-                            <div className="sm:hidden w-full flex items-center justify-center gap-2 bg-green-50 text-green-600 px-4 py-4 rounded-2xl text-sm font-bold border border-green-100 animate-in fade-in slide-in-from-bottom-2">
-                                <CheckCircle2 className="w-5 h-5 shrink-0" />
-                                ¡Cambios guardados con éxito!
-                            </div>
-                        )}
-                    </div>
-                </form>
-            </div>
-
-            {/* Danger Zone */}
-            {activeTab === 'info' && (
-                <div className="bg-red-50/50 rounded-[2.5rem] border border-red-100/50 overflow-hidden animate-in fade-in slide-in-from-bottom-4">
-                    <div className="p-8 md:p-12 space-y-8">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-red-500/10 text-red-600 rounded-2xl flex items-center justify-center">
-                                <AlertTriangle className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-black text-red-600 uppercase tracking-tight">Zona de Peligro</h2>
-                                <p className="text-red-500/60 font-medium text-sm">Acciones irreversibles para tu tienda.</p>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 rounded-3xl bg-white/50 border border-red-100">
-                            <div className="space-y-1">
-                                <p className="font-black text-gray-900">Eliminar esta tienda</p>
-                                <p className="text-xs text-red-500/60 font-bold uppercase tracking-tight">
-                                    Esta acción borrará todos los productos, categorías y pedidos permanentemente.
-                                </p>
-                            </div>
-                            <button
-                                onClick={() => setIsDeleteModalOpen(true)}
-                                className="bg-red-500 text-white px-8 py-3.5 rounded-2xl font-black text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-red-500/20"
-                            >
-                                Eliminar Tienda
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Delete Confirmation Modal */}
-            {isDeleteModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-[var(--surface)] w-full max-w-md rounded-[3rem] shadow-[var(--shadow-strong)] overflow-hidden animate-in zoom-in-95 duration-200 border border-[var(--border)]">
-                        <div className="p-10 space-y-8 text-center">
-                            <div className="flex flex-col items-center gap-4">
-                                <div className="w-20 h-20 bg-red-500/10 text-red-500 rounded-[2rem] flex items-center justify-center">
-                                    <Trash2 className="w-10 h-10" />
-                                </div>
-                                <div className="space-y-2">
-                                    <h2 className="text-2xl font-black text-[var(--text)] uppercase tracking-tight">¿Estás seguro?</h2>
-                                    <p className="text-[var(--text)]/40 font-bold text-sm">
-                                        Esta acción es irreversible. Se eliminarán todos los datos asociados a la tienda <span className="text-[var(--text)]">&quot;{activeStore?.name}&quot;</span>.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4 text-left">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text)]/40 px-1">
-                                    Escribe el nombre de la tienda para confirmar:
-                                </label>
-                                <input
-                                    type="text"
-                                    placeholder={activeStore?.name}
-                                    value={deleteConfirmationName}
-                                    onChange={(e) => setDeleteConfirmationName(e.target.value)}
-                                    className="w-full px-6 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all font-bold text-[var(--text)] bg-[var(--bg)]"
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <button
-                                    onClick={() => {
-                                        setIsDeleteModalOpen(false);
-                                        setDeleteConfirmationName('');
-                                    }}
-                                    className="py-4 px-6 rounded-2xl font-black text-sm transition-all active:scale-95 bg-[var(--bg)] text-[var(--text)]/40 border border-[var(--border)] hover:bg-[var(--secondary)]"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    onClick={handleDeleteStore}
-                                    disabled={deleteConfirmationName !== activeStore?.name || deleting}
-                                    className="py-4 px-6 rounded-2xl font-black text-sm transition-all active:scale-95 bg-red-500 text-white shadow-lg shadow-red-500/20 enabled:hover:scale-[1.02] disabled:opacity-30 disabled:grayscale"
-                                >
-                                    {deleting ? (
-                                        <Loader2 className="w-5 h-5 animate-spin mx-auto" />
-                                    ) : (
-                                        'Eliminar Tienda'
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <AnimatePresence mode="wait">
+                {activeTab === 'profile' ? (
+                    <ProfileTab
+                        fullName={fullName} setFullName={setFullName}
+                        email={email} setEmail={setEmail}
+                        username={username}
+                        avatarUrl={avatarUrl}
+                        uploading={uploading}
+                        saving={saving}
+                        handleAvatarUpload={handleAvatarUpload}
+                        handleUpdateProfile={handleUpdateProfile}
+                        newPassword={newPassword} setNewPassword={setNewPassword}
+                        confirmPassword={confirmPassword} setConfirmPassword={setConfirmPassword}
+                        showNewPassword={showNewPassword} setShowNewPassword={setShowNewPassword}
+                        showConfirmPassword={showConfirmPassword} setShowConfirmPassword={setShowConfirmPassword}
+                        handleChangePassword={handleChangePassword}
+                    />
+                ) : (
+                    <StoreTab
+                        storeName={storeName} setStoreName={handleNameChange}
+                        storeSlug={storeSlug} setStoreSlug={(val) => { setStoreSlug(val); setHasManuallyEditedSlug(true); }}
+                        suggestedSlug={suggestedSlug} setSuggestedSlug={setSuggestedSlug}
+                        storeLogo={storeLogo}
+                        whatsapp={whatsapp} setWhatsapp={setWhatsapp}
+                        instagram={instagram} setInstagram={setInstagram}
+                        facebook={facebook} setFacebook={setFacebook}
+                        tiktok={tiktok} setTiktok={setTiktok}
+                        twitter={twitter} setTwitter={setTwitter}
+                        pinterest={pinterest} setPinterest={setPinterest}
+                        youtube={youtube} setYoutube={setYoutube}
+                        theme={theme} setTheme={setTheme}
+                        mode={mode} setMode={setMode}
+                        applyToDashboard={applyToDashboard} setApplyToDashboard={setApplyToDashboard}
+                        deliveryEnabled={deliveryEnabled} setDeliveryEnabled={setDeliveryEnabled}
+                        deliveryPrice={deliveryPrice} setDeliveryPrice={setDeliveryPrice}
+                        saving={saving} uploading={uploading}
+                        handleUpdateStore={handleUpdateStore}
+                        handleStoreLogoUpload={handleStoreLogoUpload}
+                        isDeleteModalOpen={isDeleteModalOpen} setIsDeleteModalOpen={setIsDeleteModalOpen}
+                        deleteConfirmationName={deleteConfirmationName} setDeleteConfirmationName={setDeleteConfirmationName}
+                        deleting={deleting} handleDeleteStore={handleDeleteStore}
+                        activeStoreName={activeStore?.name || ''}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 }
