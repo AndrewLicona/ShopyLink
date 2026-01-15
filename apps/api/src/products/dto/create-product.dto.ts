@@ -6,7 +6,10 @@ import {
   IsArray,
   IsUUID,
   IsInt,
+  ValidateNested,
+  ArrayMaxSize,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateProductDto {
   @IsString()
@@ -52,4 +55,50 @@ export class CreateProductDto {
   @IsBoolean()
   @IsOptional()
   trackInventory?: boolean;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ProductVariantDto)
+  @IsOptional()
+  variants?: ProductVariantDto[];
+}
+
+export class ProductVariantDto {
+  @IsString()
+  @IsOptional()
+  id?: string;
+
+  @IsString()
+  name: string;
+
+  @IsNumber()
+  @IsOptional()
+  price?: number;
+
+  @IsInt()
+  stock: number;
+
+  @IsString()
+  @IsOptional()
+  sku?: string;
+
+  // DEPRECATED: usar images[] en su lugar
+  @IsString()
+  @IsOptional()
+  image?: string;
+
+  // Nuevos campos
+  @IsBoolean()
+  @IsOptional()
+  useParentPrice?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  useParentStock?: boolean;
+
+  @IsArray()
+  @IsString({ each: true })
+  @ArrayMaxSize(2)
+  @IsOptional()
+  images?: string[];
 }

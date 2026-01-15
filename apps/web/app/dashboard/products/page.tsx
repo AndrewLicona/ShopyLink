@@ -3,14 +3,14 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Plus, Package, Search, Edit2, Trash2, Loader2, Image as ImageIcon, X, DollarSign, AlertCircle } from 'lucide-react';
+import { Plus, Package, Search, Edit2, Trash2, Loader2, Image as ImageIcon, X, DollarSign, AlertCircle, LayoutGrid } from 'lucide-react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { storage } from '@/lib/storage';
 import { formatCurrency } from '@/lib/utils';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import type { Product, Category } from '@/lib/types';
+import type { Product, Category, ProductVariant } from '@/lib/types';
 import { useCallback } from 'react';
 
 function cn(...inputs: ClassValue[]) {
@@ -45,6 +45,11 @@ function ProductsContent() {
     const [discountPrice, setDiscountPrice] = useState('');
     const [isActive, setIsActive] = useState(true);
     const [trackInventory, setTrackInventory] = useState(true);
+
+    // Variant State
+    const [hasVariants, setHasVariants] = useState(false);
+    const [variants, setVariants] = useState<Partial<ProductVariant>[]>([]);
+
     const [confirmModal, setConfirmModal] = useState<{
         show: boolean,
         type: 'product' | 'category',
@@ -109,6 +114,55 @@ function ProductsContent() {
         setImageUrls(prev => prev.filter((_, i) => i !== index));
     };
 
+    const handleVariantImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, variantIdx: number) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        setUploading(true);
+        try {
+            const uploadPromises = files.map(file => storage.uploadImage(file, 'products'));
+            const urls = await Promise.all(uploadPromises);
+
+            setVariants(prev => {
+                const next = [...prev];
+                const v = next[variantIdx];
+                if (!v) return prev;
+
+                const currentImages = v.images || [];
+                next[variantIdx] = {
+                    ...v,
+                    images: [...currentImages, ...urls].slice(0, 2)
+                };
+                return next;
+            });
+        } catch (err: unknown) {
+            console.error('Variant upload error:', err);
+            setErrorAlert({
+                show: true,
+                title: 'Error de Carga',
+                message: 'No se pudieron subir las imágenes de la variante.'
+            });
+        } finally {
+            setUploading(false);
+            if (e.target) e.target.value = '';
+        }
+    };
+
+    const removeVariantImage = (variantIdx: number, imageIdx: number) => {
+        setVariants(prev => {
+            const next = [...prev];
+            const v = next[variantIdx];
+            if (!v) return prev;
+
+            const currentImages = v.images || [];
+            next[variantIdx] = {
+                ...v,
+                images: currentImages.filter((_, i) => i !== imageIdx)
+            };
+            return next;
+        });
+    };
+
     const handleCreateCategory = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!storeId || !newCatName) return;
@@ -160,6 +214,8 @@ function ProductsContent() {
         setDiscountPrice('');
         setIsActive(true);
         setTrackInventory(true);
+        setHasVariants(false);
+        setVariants([]);
         setIsModalOpen(true);
     }, []);
 
@@ -182,6 +238,15 @@ function ProductsContent() {
         setDiscountPrice(product.discountPrice?.toString() || '');
         setIsActive(product.isActive ?? true);
         setTrackInventory(product.trackInventory ?? true);
+
+        if (product.variants && product.variants.length > 0) {
+            setHasVariants(true);
+            setVariants(product.variants);
+        } else {
+            setHasVariants(false);
+            setVariants([]);
+        }
+
         setIsModalOpen(true);
     };
 
@@ -190,25 +255,42 @@ function ProductsContent() {
         if (!storeId) return;
         setCreating(true);
 
+        // Use explicit stock input for Global Stock or simple product stock
+        const finalStock = parseInt(stock) || 0;
+
+        // Sanitize and Prepare Variants
+        const processedVariants = hasVariants ? variants.map((v, idx) => ({
+            id: v.id, // Keep ID for updates
+            name: v.name,
+            price: v.useParentPrice ? null : (v.price ? parseFloat(v.price.toString()) : null),
+            stock: v.useParentStock ? 0 : (v.stock ? parseInt(v.stock.toString()) : 0),
+            sku: v.sku || (sku ? `${sku}-${idx + 1}` : null), // Auto-generate SKU
+            useParentPrice: v.useParentPrice ?? false,
+            useParentStock: v.useParentStock ?? false,
+            images: v.images || [],
+            image: (v as any).image || null // Legacy support
+        })) : [];
+
         const productData = {
             name,
             price: parseFloat(price),
             description,
-            stock: parseInt(stock) || 0,
+            stock: finalStock,
             storeId,
             images: imageUrls,
             categoryId: categoryId || null,
             sku: sku || null,
             discountPrice: discountPrice ? parseFloat(discountPrice) : null,
             isActive,
-            trackInventory
+            trackInventory,
+            variants: processedVariants
         };
 
         try {
             if (editingProduct) {
-                await api.updateProduct(editingProduct.id, productData);
+                await api.updateProduct(editingProduct.id, productData as any);
             } else {
-                await api.createProduct(productData);
+                await api.createProduct(productData as any);
             }
             setIsModalOpen(false);
             await loadData();
@@ -499,7 +581,7 @@ function ProductsContent() {
             {/* Create Product Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-                    <div className="bg-[var(--surface)] w-full max-w-xl rounded-[2.5rem] shadow-[var(--shadow-strong)] overflow-hidden animate-in zoom-in-95 duration-200">
+                    <div className="bg-[var(--surface)] w-full max-w-5xl rounded-[2.5rem] shadow-[var(--shadow-strong)] overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="p-8 border-b border-[var(--border)] flex items-center justify-between">
                             <h2 className="text-2xl font-black text-[var(--text)]">{editingProduct ? 'Editar' : 'Nuevo'} Producto</h2>
                             <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-[var(--secondary)] rounded-xl transition-colors">
@@ -518,58 +600,446 @@ function ProductsContent() {
                                             placeholder="Ej: Café Late"
                                         />
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-black uppercase tracking-wider text-[var(--text)]/40 px-1">Precio Normal</label>
-                                        <input
-                                            type="number" step="0.01" required value={price} onChange={(e) => setPrice(e.target.value)}
-                                            className="w-full px-5 py-3 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] outline-none transition-all font-bold text-[var(--text)] bg-[var(--bg)]"
-                                            placeholder="0.00"
-                                        />
+                                    <div className="space-y-4 pt-2">
+                                        <div className="flex items-center justify-between bg-[var(--secondary)]/30 p-4 rounded-2xl border-2 border-transparent hover:border-[var(--border)] transition-all">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-[var(--primary)]/10 rounded-xl">
+                                                    <LayoutGrid className="w-5 h-5 text-[var(--primary)]" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-[var(--text)]">Variantes de Producto</p>
+                                                    <p className="text-xs text-[var(--text)]/60">Tallas, colores, materiales, etc.</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setHasVariants(!hasVariants);
+                                                    if (!hasVariants && variants.length === 0) {
+                                                        setVariants([{ name: '', price: null, stock: 0 }]);
+                                                    }
+                                                }}
+                                                className={cn(
+                                                    "relative w-12 h-7 rounded-full transition-all duration-300",
+                                                    hasVariants ? "bg-[var(--primary)]" : "bg-[var(--border)]"
+                                                )}
+                                            >
+                                                <div className={cn(
+                                                    "absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow-sm transition-all duration-300",
+                                                    hasVariants ? "translate-x-5" : "translate-x-0"
+                                                )} />
+                                            </button>
+                                        </div>
+
                                     </div>
+
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <label className="text-xs font-black uppercase tracking-wider text-green-500 px-1 flex items-center gap-1">
-                                                <DollarSign className="w-3 h-3" /> Precio Oferta
-                                            </label>
-                                            <input
-                                                type="number" step="0.01" value={discountPrice} onChange={(e) => setDiscountPrice(e.target.value)}
-                                                className="w-full px-5 py-3 rounded-2xl border-2 border-green-500/20 focus:border-green-500 outline-none transition-all font-bold text-green-500 bg-green-500/5"
-                                                placeholder="Opcional"
-                                            />
+                                            <label className="text-xs font-black uppercase tracking-wider text-[var(--text)]/40 px-1">Precio Normal</label>
+                                            <div className="relative">
+                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text)]/40 font-bold">$</span>
+                                                <input
+                                                    type="number" required={!hasVariants} value={price} onChange={(e) => setPrice(e.target.value)}
+                                                    className="w-full pl-8 pr-5 py-3 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] outline-none transition-all font-bold text-[var(--text)] bg-[var(--bg)]"
+                                                    placeholder="0"
+                                                />
+                                            </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-xs font-black uppercase tracking-wider text-[var(--text)]/40 px-1">Stock</label>
+                                            <label className="text-xs font-black uppercase tracking-wider text-[var(--text)]/40 px-1">Stock Global</label>
                                             <input
                                                 type="number" value={stock} onChange={(e) => setStock(e.target.value)}
                                                 disabled={!trackInventory}
                                                 className={cn(
                                                     "w-full px-5 py-3 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] outline-none transition-all font-bold bg-[var(--bg)]",
-                                                    !trackInventory ? "opacity-30 grayscale cursor-not-allowed" : "text-[var(--text)]"
+                                                    !trackInventory ? "opacity-30 grayscale cursor-not-allowed text-[var(--text)]/40" : "text-[var(--text)]"
                                                 )}
                                                 placeholder={trackInventory ? "99" : "∞"}
                                             />
                                         </div>
                                     </div>
+
                                     <div className="space-y-2">
-                                        <label className="text-xs font-black uppercase tracking-wider text-[var(--text)]/40 px-1">Categoría</label>
-                                        <select
-                                            className="w-full px-5 py-3 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] outline-none text-[var(--text)] font-bold bg-[var(--bg)]"
-                                            value={categoryId}
-                                            onChange={(e) => setCategoryId(e.target.value)}
-                                        >
-                                            <option value="">Sin categoría</option>
-                                            {categories.map(c => (
-                                                <option key={c.id} value={c.id}>{c.name}</option>
-                                            ))}
-                                        </select>
+                                        <label className="text-xs font-black uppercase tracking-wider text-green-500 px-1 flex items-center gap-1">
+                                            <DollarSign className="w-3 h-3" /> Precio Oferta
+                                        </label>
+                                        <div className="relative">
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-green-500/40 font-bold">$</span>
+                                            <input
+                                                type="number" value={discountPrice} onChange={(e) => setDiscountPrice(e.target.value)}
+                                                className="w-full pl-8 pr-5 py-3 rounded-2xl border-2 border-green-500/20 focus:border-green-500 outline-none transition-all font-bold text-green-500 bg-green-500/5"
+                                                placeholder="0 (Opcional)"
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-black uppercase tracking-wider text-[var(--text)]/20 px-1">Código / SKU (Informativo)</label>
-                                        <input
-                                            type="text" value={sku} disabled
-                                            className="w-full px-5 py-3 rounded-2xl border-2 border-[var(--border)] bg-[var(--secondary)]/30 outline-none transition-all font-bold text-[var(--text)]/20 cursor-not-allowed"
-                                            placeholder="Automático"
-                                        />
+
+                                    {hasVariants && (
+                                        <div className="space-y-3 bg-[var(--secondary)]/20 p-4 rounded-2xl border-2 border-[var(--border)]/50">
+                                            <div className="flex justify-between items-center px-1">
+                                                <span className="text-xs font-black uppercase tracking-wider text-[var(--text)]/40">Lista de Variantes</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setVariants([...variants, { name: '', price: null, stock: 0, useParentPrice: true, useParentStock: false, images: [] }])}
+                                                    className="text-xs font-bold text-[var(--primary)] hover:underline flex items-center gap-1"
+                                                >
+                                                    <Plus className="w-3 h-3" /> Añadir
+                                                </button>
+                                            </div>
+
+                                            <div className="space-y-4 max-h-[300px] overflow-y-auto px-1 custom-scrollbar">
+                                                {variants.map((variant, idx) => (
+                                                    <div key={idx} className="group relative">
+                                                        {/* Desktop Layout - Inline Labels & Advanced Features */}
+                                                        <div className="hidden sm:block bg-[var(--surface)] p-4 rounded-xl border border-[var(--border)] hover:border-[var(--primary)]/30 transition-all group-hover:shadow-sm">
+                                                            <div className="grid sm:grid-cols-[2fr,1.2fr,1.2fr,1fr,40px] gap-4 items-start">
+                                                                {/* Nombre */}
+                                                                <div className="space-y-1.5">
+                                                                    <label className="text-[10px] font-black uppercase text-[var(--text)]/40 pl-1">Nombre</label>
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder="Ej: Rojo, XL"
+                                                                        value={variant.name || ''}
+                                                                        onChange={(e) => {
+                                                                            setVariants(prev => {
+                                                                                const next = [...prev];
+                                                                                if (next[idx]) next[idx] = { ...next[idx], name: e.target.value };
+                                                                                return next;
+                                                                            });
+                                                                        }}
+                                                                        className="w-full px-4 py-3 rounded-xl border border-[var(--border)] focus:border-[var(--primary)] outline-none text-sm font-bold bg-[var(--bg)]"
+                                                                    />
+                                                                </div>
+
+                                                                {/* Precio */}
+                                                                <div className="space-y-1.5">
+                                                                    <div className="flex justify-between items-center px-1">
+                                                                        <label className="text-[10px] font-black uppercase text-[var(--text)]/40">Precio</label>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                setVariants(prev => {
+                                                                                    const next = [...prev];
+                                                                                    if (next[idx]) next[idx] = { ...next[idx], useParentPrice: !next[idx].useParentPrice };
+                                                                                    return next;
+                                                                                });
+                                                                            }}
+                                                                            className={cn(
+                                                                                "text-[8px] font-bold px-1.5 py-0.5 rounded-full transition-colors",
+                                                                                !variant.useParentPrice ? "bg-[var(--primary)] text-white" : "bg-[var(--border)] text-[var(--text)]/40"
+                                                                            )}
+                                                                        >
+                                                                            {!variant.useParentPrice ? "PROPIO" : "GLOBAL"}
+                                                                        </button>
+                                                                    </div>
+                                                                    {!variant.useParentPrice ? (
+                                                                        <div className="relative animate-in fade-in slide-in-from-top-1 duration-200">
+                                                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text)]/40 font-bold text-xs">$</span>
+                                                                            <input
+                                                                                type="number"
+                                                                                placeholder="0.00"
+                                                                                value={variant.price || ''}
+                                                                                onChange={(e) => {
+                                                                                    setVariants(prev => {
+                                                                                        const next = [...prev];
+                                                                                        if (next[idx]) next[idx] = { ...next[idx], price: parseFloat(e.target.value) || null };
+                                                                                        return next;
+                                                                                    });
+                                                                                }}
+                                                                                className="w-full pl-6 pr-3 py-3 rounded-xl border border-[var(--border)] focus:border-[var(--primary)] outline-none text-sm font-bold bg-[var(--bg)]"
+                                                                            />
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="py-3 px-4 rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg)]/50 text-[var(--text)]/40 text-[10px] font-bold flex items-center gap-1.5 h-[46px]">
+                                                                            <DollarSign className="w-3 h-3 text-[var(--primary)]" /> {price || '0.00'}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Stock */}
+                                                                <div className="space-y-1.5">
+                                                                    <div className="flex justify-between items-center px-1">
+                                                                        <label className="text-[10px] font-black uppercase text-[var(--text)]/40">Stock</label>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                setVariants(prev => {
+                                                                                    const next = [...prev];
+                                                                                    if (next[idx]) next[idx] = { ...next[idx], useParentStock: !next[idx].useParentStock };
+                                                                                    return next;
+                                                                                });
+                                                                            }}
+                                                                            className={cn(
+                                                                                "text-[8px] font-bold px-1.5 py-0.5 rounded-full transition-colors",
+                                                                                !variant.useParentStock ? "bg-[var(--primary)] text-white" : "bg-[var(--border)] text-[var(--text)]/40"
+                                                                            )}
+                                                                        >
+                                                                            {!variant.useParentStock ? "PROPIO" : "GLOBAL"}
+                                                                        </button>
+                                                                    </div>
+                                                                    {!variant.useParentStock ? (
+                                                                        <input
+                                                                            type="number"
+                                                                            placeholder="0"
+                                                                            value={variant.stock || ''}
+                                                                            onChange={(e) => {
+                                                                                setVariants(prev => {
+                                                                                    const next = [...prev];
+                                                                                    if (next[idx]) next[idx] = { ...next[idx], stock: parseInt(e.target.value) || 0 };
+                                                                                    return next;
+                                                                                });
+                                                                            }}
+                                                                            className="w-full px-3 py-3 rounded-xl border border-[var(--border)] focus:border-[var(--primary)] outline-none text-sm font-bold bg-[var(--bg)] animate-in fade-in slide-in-from-top-1 duration-200"
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="py-3 px-4 rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg)]/50 text-[var(--text)]/40 text-[10px] font-bold flex items-center gap-1.5 h-[46px]">
+                                                                            <Package className="w-3 h-3 text-[var(--primary)]" /> {stock || '0'}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* SKU */}
+                                                                <div className="space-y-1.5">
+                                                                    <label className="text-[10px] font-black uppercase text-[var(--text)]/40 pl-1">SKU</label>
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder={sku ? `${sku}-${idx + 1}` : "AUTO"}
+                                                                        value={variant.sku || ''}
+                                                                        onChange={(e) => {
+                                                                            setVariants(prev => {
+                                                                                const next = [...prev];
+                                                                                if (next[idx]) next[idx] = { ...next[idx], sku: e.target.value };
+                                                                                return next;
+                                                                            });
+                                                                        }}
+                                                                        className="w-full px-3 py-3 rounded-xl border border-[var(--border)] focus:border-[var(--primary)] outline-none text-xs font-bold bg-[var(--bg)] text-[var(--text)]/70 placeholder:text-[var(--text)]/30 h-[46px]"
+                                                                    />
+                                                                </div>
+
+                                                                {/* Delete Button */}
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        if (variants.length > 1) {
+                                                                            const newVariants = variants.filter((_, i) => i !== idx);
+                                                                            setVariants(newVariants);
+                                                                        }
+                                                                    }}
+                                                                    className="mt-6 p-3 text-red-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-colors flex items-center justify-center bg-[var(--surface)] h-[46px]"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+
+                                                            {/* Variant Images Row */}
+                                                            <div className="mt-4 pt-4 border-t border-[var(--border)]/30 flex items-center gap-4">
+                                                                <label className="text-[10px] font-black uppercase text-[var(--text)]/40 min-w-[70px]">Imágenes <span className="block text-[8px] opacity-60">(Max 2)</span></label>
+                                                                <div className="flex gap-2 items-center flex-1">
+                                                                    {variant.images?.map((url, imgIdx) => (
+                                                                        <div key={imgIdx} className="relative w-12 h-12 rounded-lg overflow-hidden border border-[var(--border)] group/img shadow-sm">
+                                                                            <img src={url} alt="Variant" className="w-full h-full object-cover" />
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => removeVariantImage(idx, imgIdx)}
+                                                                                className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center"
+                                                                            >
+                                                                                <X className="w-3 h-3" />
+                                                                            </button>
+                                                                        </div>
+                                                                    ))}
+                                                                    {(variant.images?.length || 0) < 2 && (
+                                                                        <label className="w-12 h-12 rounded-lg border-2 border-dashed border-[var(--border)] hover:border-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all flex items-center justify-center cursor-pointer group/upload">
+                                                                            <Plus className="w-4 h-4 text-[var(--text)]/20 group-hover/upload:text-[var(--primary)]" />
+                                                                            <input
+                                                                                type="file"
+                                                                                className="hidden"
+                                                                                accept="image/*"
+                                                                                onChange={(e) => handleVariantImageUpload(e, idx)}
+                                                                            />
+                                                                        </label>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Mobile Layout (Card) */}
+                                                        <div className="sm:hidden bg-[var(--surface)] p-4 rounded-2xl border border-[var(--border)] space-y-4 shadow-sm relative">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    if (variants.length > 1) {
+                                                                        const newVariants = variants.filter((_, i) => i !== idx);
+                                                                        setVariants(newVariants);
+                                                                    }
+                                                                }}
+                                                                className="absolute top-2 right-2 p-2 text-red-400 hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+
+                                                            <div className="space-y-2">
+                                                                <label className="text-[10px] font-black uppercase text-[var(--text)]/40">Nombre variante</label>
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Ej: Rojo, XL, 500g"
+                                                                    value={variant.name || ''}
+                                                                    onChange={(e) => {
+                                                                        setVariants(prev => {
+                                                                            const next = [...prev];
+                                                                            if (next[idx]) next[idx] = { ...next[idx], name: e.target.value };
+                                                                            return next;
+                                                                        });
+                                                                    }}
+                                                                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] focus:border-[var(--primary)] outline-none text-base font-bold bg-[var(--bg)]"
+                                                                />
+                                                            </div>
+
+                                                            <div className="grid grid-cols-2 gap-4">
+                                                                <div className="space-y-2">
+                                                                    <div className="flex justify-between items-center">
+                                                                        <label className="text-[10px] font-black uppercase text-[var(--text)]/40">Precio</label>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                setVariants(prev => {
+                                                                                    const next = [...prev];
+                                                                                    if (next[idx]) next[idx] = { ...next[idx], useParentPrice: !next[idx].useParentPrice };
+                                                                                    return next;
+                                                                                });
+                                                                            }}
+                                                                            className={cn(
+                                                                                "text-[8px] font-bold px-1.5 py-0.5 rounded-full",
+                                                                                !variant.useParentPrice ? "bg-[var(--primary)] text-white" : "bg-[var(--border)] text-[var(--text)]/40"
+                                                                            )}
+                                                                        >
+                                                                            {!variant.useParentPrice ? "PROPIO" : "GLOBAL"}
+                                                                        </button>
+                                                                    </div>
+                                                                    {!variant.useParentPrice ? (
+                                                                        <div className="relative">
+                                                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text)]/40 font-bold text-xs">$</span>
+                                                                            <input
+                                                                                type="number"
+                                                                                placeholder="0.00"
+                                                                                value={variant.price || ''}
+                                                                                onChange={(e) => {
+                                                                                    setVariants(prev => {
+                                                                                        const next = [...prev];
+                                                                                        if (next[idx]) next[idx] = { ...next[idx], price: parseFloat(e.target.value) || null };
+                                                                                        return next;
+                                                                                    });
+                                                                                }}
+                                                                                className="w-full pl-6 pr-3 py-3 rounded-xl border border-[var(--border)] focus:border-[var(--primary)] outline-none text-base font-bold bg-[var(--bg)]"
+                                                                            />
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="py-3 px-3 rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg)]/50 text-[var(--text)]/40 text-[10px] font-bold flex items-center gap-1 h-[50px]">
+                                                                            <DollarSign className="w-3 h-3 text-[var(--primary)]" /> {price || '0.00'}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    <div className="flex justify-between items-center">
+                                                                        <label className="text-[10px] font-black uppercase text-[var(--text)]/40">Stock</label>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                setVariants(prev => {
+                                                                                    const next = [...prev];
+                                                                                    if (next[idx]) next[idx] = { ...next[idx], useParentStock: !next[idx].useParentStock };
+                                                                                    return next;
+                                                                                });
+                                                                            }}
+                                                                            className={cn(
+                                                                                "text-[8px] font-bold px-1.5 py-0.5 rounded-full",
+                                                                                !variant.useParentStock ? "bg-[var(--primary)] text-white" : "bg-[var(--border)] text-[var(--text)]/40"
+                                                                            )}
+                                                                        >
+                                                                            {!variant.useParentStock ? "PROPIO" : "GLOBAL"}
+                                                                        </button>
+                                                                    </div>
+                                                                    {!variant.useParentStock ? (
+                                                                        <input
+                                                                            type="number"
+                                                                            placeholder="0"
+                                                                            value={variant.stock || ''}
+                                                                            onChange={(e) => {
+                                                                                setVariants(prev => {
+                                                                                    const next = [...prev];
+                                                                                    if (next[idx]) next[idx] = { ...next[idx], stock: parseInt(e.target.value) || 0 };
+                                                                                    return next;
+                                                                                });
+                                                                            }}
+                                                                            className="w-full px-3 py-3 rounded-xl border border-[var(--border)] focus:border-[var(--primary)] outline-none text-base font-bold bg-[var(--bg)]"
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="py-3 px-3 rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg)]/50 text-[var(--text)]/40 text-[10px] font-bold flex items-center gap-1 h-[50px]">
+                                                                            <Package className="w-3 h-3 text-[var(--primary)]" /> {stock || '0'}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Mobile Images */}
+                                                            <div className="pt-2 border-t border-[var(--border)]/30">
+                                                                <div className="flex gap-2 items-center">
+                                                                    {variant.images?.map((url, imgIdx) => (
+                                                                        <div key={imgIdx} className="relative w-14 h-14 rounded-xl overflow-hidden border border-[var(--border)]">
+                                                                            <img src={url} alt="Variant" className="w-full h-full object-cover" />
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => removeVariantImage(idx, imgIdx)}
+                                                                                className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full shadow-lg"
+                                                                            >
+                                                                                <X className="w-3 h-3" />
+                                                                            </button>
+                                                                        </div>
+                                                                    ))}
+                                                                    {(variant.images?.length || 0) < 2 && (
+                                                                        <label className="w-14 h-14 rounded-xl border-2 border-dashed border-[var(--border)] flex items-center justify-center cursor-pointer active:bg-[var(--primary)]/10 transition-colors">
+                                                                            <Plus className="w-6 h-6 text-[var(--text)]/20" />
+                                                                            <input
+                                                                                type="file"
+                                                                                className="hidden"
+                                                                                accept="image/*"
+                                                                                onChange={(e) => handleVariantImageUpload(e, idx)}
+                                                                            />
+                                                                        </label>
+                                                                    )}
+                                                                    <span className="text-[10px] font-bold opacity-40 ml-2">Fotos (Máx 2)</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <p className="text-[10px] text-[var(--text)]/40 text-center pt-2">
+                                                El stock total se calculará automáticamente sumando las variantes.
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-black uppercase tracking-wider text-[var(--text)]/40 px-1">Categoría</label>
+                                            <select
+                                                className="w-full px-5 py-3 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] outline-none text-[var(--text)] font-bold bg-[var(--bg)]"
+                                                value={categoryId}
+                                                onChange={(e) => setCategoryId(e.target.value)}
+                                            >
+                                                <option value="">Sin categoría</option>
+                                                {categories.map(c => (
+                                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-black uppercase tracking-wider text-[var(--text)]/20 px-1">Código / SKU (Informativo)</label>
+                                            <input
+                                                type="text" value={sku} disabled
+                                                className="w-full px-5 py-3 rounded-2xl border-2 border-[var(--border)] bg-[var(--secondary)]/30 outline-none transition-all font-bold text-[var(--text)]/20 cursor-not-allowed"
+                                                placeholder="Automático"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
@@ -668,109 +1138,114 @@ function ProductsContent() {
                             </div>
                         </form>
                     </div>
-                </div>
-            )}
+                </div >
+            )
+            }
 
             {/* Premium Confirmation Modal */}
-            {confirmModal.show && (
-                <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 ring-1 ring-black/5">
-                        <div className="p-8 space-y-6">
-                            <div className="flex flex-col items-center text-center gap-4">
-                                <div className={cn(
-                                    "w-20 h-20 rounded-[2rem] flex items-center justify-center shadow-inner",
-                                    confirmModal.isPaused ? "bg-red-50 text-red-600" : "bg-orange-50 text-orange-600"
-                                )}>
-                                    {confirmModal.isPaused ? <Trash2 className="w-10 h-10" /> : <AlertCircle className="w-10 h-10" />}
-                                </div>
-                                <div className="space-y-2">
-                                    <h2 className="text-2xl font-black text-gray-900 leading-tight">
-                                        {confirmModal.isPaused ? '¿Eliminar definitivamente?' : '¿Pausar o eliminar?'}
-                                    </h2>
-                                    <div className="text-gray-500 font-bold text-sm px-4 leading-relaxed">
-                                        {confirmModal.type === 'category' ? (
-                                            `Vas a eliminar la categoría &quot;${confirmModal.name}&quot;. Los productos asociados quedarán sin categoría.`
-                                        ) : confirmModal.isPaused ? (
-                                            <>
-                                                Eliminar <span className="text-red-600">&quot;${confirmModal.name}&quot;</span> borrará su historial de ventas y métricas. Esta acción es <span className="text-red-600 uppercase">irreversible</span>.
-                                            </>
-                                        ) : (
-                                            <>
-                                                Recomendamos <span className="text-blue-600">Pausar</span> para mantener tus reportes y ventas históricas. Eliminar borrará todo el rastro del producto.
-                                            </>
-                                        )}
+            {
+                confirmModal.show && (
+                    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+                        <div className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 ring-1 ring-black/5">
+                            <div className="p-8 space-y-6">
+                                <div className="flex flex-col items-center text-center gap-4">
+                                    <div className={cn(
+                                        "w-20 h-20 rounded-[2rem] flex items-center justify-center shadow-inner",
+                                        confirmModal.isPaused ? "bg-red-50 text-red-600" : "bg-orange-50 text-orange-600"
+                                    )}>
+                                        {confirmModal.isPaused ? <Trash2 className="w-10 h-10" /> : <AlertCircle className="w-10 h-10" />}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <h2 className="text-2xl font-black text-gray-900 leading-tight">
+                                            {confirmModal.isPaused ? '¿Eliminar definitivamente?' : '¿Pausar o eliminar?'}
+                                        </h2>
+                                        <div className="text-gray-500 font-bold text-sm px-4 leading-relaxed">
+                                            {confirmModal.type === 'category' ? (
+                                                `Vas a eliminar la categoría &quot;${confirmModal.name}&quot;. Los productos asociados quedarán sin categoría.`
+                                            ) : confirmModal.isPaused ? (
+                                                <>
+                                                    Eliminar <span className="text-red-600">&quot;${confirmModal.name}&quot;</span> borrará su historial de ventas y métricas. Esta acción es <span className="text-red-600 uppercase">irreversible</span>.
+                                                </>
+                                            ) : (
+                                                <>
+                                                    Recomendamos <span className="text-blue-600">Pausar</span> para mantener tus reportes y ventas históricas. Eliminar borrará todo el rastro del producto.
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div className="flex flex-col gap-3">
-                                {confirmModal.type === 'product' && !confirmModal.isPaused && (
-                                    <button
-                                        onClick={async () => {
-                                            const product = products.find(p => p.id === confirmModal.id);
-                                            if (product) await handleToggleStatus(product);
-                                            setConfirmModal(prev => ({ ...prev, show: false }));
-                                        }}
-                                        className="w-full bg-blue-600 text-white py-4 rounded-[1.5rem] font-black text-lg hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-100"
-                                    >
-                                        Solo pausar (Recomendado)
-                                    </button>
-                                )}
-                                <button
-                                    onClick={confirmDeleteAction}
-                                    className={cn(
-                                        "w-full py-4 rounded-[1.5rem] font-black text-lg transition-all active:scale-95",
-                                        confirmModal.isPaused || confirmModal.type === 'category'
-                                            ? "bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-100"
-                                            : "bg-gray-100 text-red-600 hover:bg-red-50"
+                                <div className="flex flex-col gap-3">
+                                    {confirmModal.type === 'product' && !confirmModal.isPaused && (
+                                        <button
+                                            onClick={async () => {
+                                                const product = products.find(p => p.id === confirmModal.id);
+                                                if (product) await handleToggleStatus(product);
+                                                setConfirmModal(prev => ({ ...prev, show: false }));
+                                            }}
+                                            className="w-full bg-blue-600 text-white py-4 rounded-[1.5rem] font-black text-lg hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-100"
+                                        >
+                                            Solo pausar (Recomendado)
+                                        </button>
                                     )}
-                                >
-                                    {confirmModal.type === 'category'
-                                        ? 'Eliminar categoría'
-                                        : confirmModal.isPaused
-                                            ? 'Sí, eliminar historial'
-                                            : 'Eliminar de todos modos'}
-                                </button>
-                                <button
-                                    onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}
-                                    className="w-full bg-gray-50 text-gray-500 py-4 rounded-[1.5rem] font-bold text-lg hover:bg-gray-100 transition-all active:scale-95"
-                                >
-                                    Cancelar
-                                </button>
+                                    <button
+                                        onClick={confirmDeleteAction}
+                                        className={cn(
+                                            "w-full py-4 rounded-[1.5rem] font-black text-lg transition-all active:scale-95",
+                                            confirmModal.isPaused || confirmModal.type === 'category'
+                                                ? "bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-100"
+                                                : "bg-gray-100 text-red-600 hover:bg-red-50"
+                                        )}
+                                    >
+                                        {confirmModal.type === 'category'
+                                            ? 'Eliminar categoría'
+                                            : confirmModal.isPaused
+                                                ? 'Sí, eliminar historial'
+                                                : 'Eliminar de todos modos'}
+                                    </button>
+                                    <button
+                                        onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}
+                                        className="w-full bg-gray-50 text-gray-500 py-4 rounded-[1.5rem] font-bold text-lg hover:bg-gray-100 transition-all active:scale-95"
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Premium Error Alert Modal */}
-            {errorAlert.show && (
-                <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 ring-1 ring-black/5">
-                        <div className="p-8 space-y-6">
-                            <div className="flex flex-col items-center text-center gap-4">
-                                <div className="w-20 h-20 bg-orange-50 text-orange-600 rounded-[2rem] flex items-center justify-center shadow-inner">
-                                    <AlertCircle className="w-10 h-10" />
+            {
+                errorAlert.show && (
+                    <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+                        <div className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 ring-1 ring-black/5">
+                            <div className="p-8 space-y-6">
+                                <div className="flex flex-col items-center text-center gap-4">
+                                    <div className="w-20 h-20 bg-orange-50 text-orange-600 rounded-[2rem] flex items-center justify-center shadow-inner">
+                                        <AlertCircle className="w-10 h-10" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <h2 className="text-2xl font-black text-gray-900 leading-tight">{errorAlert.title}</h2>
+                                        <p className="text-gray-500 font-bold text-sm leading-relaxed">
+                                            {errorAlert.message}
+                                        </p>
+                                    </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <h2 className="text-2xl font-black text-gray-900 leading-tight">{errorAlert.title}</h2>
-                                    <p className="text-gray-500 font-bold text-sm leading-relaxed">
-                                        {errorAlert.message}
-                                    </p>
-                                </div>
-                            </div>
 
-                            <button
-                                onClick={() => setErrorAlert(prev => ({ ...prev, show: false }))}
-                                className="w-full bg-gray-900 text-white py-4 rounded-[1.5rem] font-black text-lg hover:bg-black transition-all active:scale-95"
-                            >
-                                Entendido
-                            </button>
+                                <button
+                                    onClick={() => setErrorAlert(prev => ({ ...prev, show: false }))}
+                                    className="w-full bg-gray-900 text-white py-4 rounded-[1.5rem] font-black text-lg hover:bg-black transition-all active:scale-95"
+                                >
+                                    Entendido
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }
 

@@ -18,6 +18,10 @@ class OrderItemDto {
   @IsInt()
   @Min(1)
   quantity: number;
+
+  @IsUUID()
+  @IsOptional()
+  variantId?: string;
 }
 
 export class CreateOrderDto {
@@ -35,6 +39,10 @@ export class CreateOrderDto {
 
   @IsUUID()
   storeId: string;
+
+  @IsString()
+  @IsOptional()
+  customerAddress?: string;
 
   @IsArray()
   @ValidateNested({ each: true })

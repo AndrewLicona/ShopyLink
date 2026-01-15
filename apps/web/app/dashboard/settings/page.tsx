@@ -15,7 +15,9 @@ import {
     Moon,
     Sun,
     Trash2,
-    AlertTriangle
+    AlertTriangle,
+    Truck,
+    DollarSign
 } from 'lucide-react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
@@ -25,6 +27,7 @@ import { PhoneInput } from '@/components/PhoneInput';
 
 import { useStore } from '@/contexts/StoreContext';
 import { ConnectivityIcon } from '@/components/ConnectivityIcon';
+import { cn } from '@/lib/utils';
 
 export default function SettingsPage() {
     const { activeStore, refreshStores } = useStore();
@@ -50,6 +53,8 @@ export default function SettingsPage() {
     const [theme, setTheme] = useState('classic');
     const [mode, setMode] = useState('light');
     const [applyToDashboard, setApplyToDashboard] = useState(false);
+    const [deliveryEnabled, setDeliveryEnabled] = useState(true);
+    const [deliveryPrice, setDeliveryPrice] = useState('Gratis');
     const [activeTab, setActiveTab] = useState<'info' | 'social' | 'appearance'>('info');
 
     // Deletion state
@@ -74,6 +79,8 @@ export default function SettingsPage() {
             setTheme(activeStore.theme || 'classic');
             setMode(activeStore.mode || 'light');
             setApplyToDashboard(activeStore.applyThemeToDashboard || false);
+            setDeliveryEnabled(activeStore.deliveryEnabled ?? true);
+            setDeliveryPrice(activeStore.deliveryPrice || 'Gratis');
             setLoading(false);
         }
     }, [activeStore]);
@@ -140,7 +147,9 @@ export default function SettingsPage() {
                 youtubeUrl,
                 theme,
                 mode,
-                applyThemeToDashboard: applyToDashboard
+                applyThemeToDashboard: applyToDashboard,
+                deliveryEnabled,
+                deliveryPrice
             });
             await refreshStores();
             setSuccess(true);
@@ -203,13 +212,13 @@ export default function SettingsPage() {
                             <p className="text-[var(--text)]/60 mt-1">Personaliza los detalles de tu tienda.</p>
                         </div>
                     </div>
-                    {success && (
-                        <div className="flex items-center gap-2 bg-green-50 text-green-600 px-4 py-2 rounded-xl text-sm font-bold border border-green-100 animate-in fade-in slide-in-from-top-2">
-                            <CheckCircle2 className="w-4 h-4" />
-                            ¡Cambios guardados!
-                        </div>
-                    )}
                 </div>
+                {success && (
+                    <div className="hidden sm:flex items-center gap-2 bg-green-50 text-green-600 px-4 py-2 rounded-xl text-sm font-bold border border-green-100 animate-in fade-in slide-in-from-top-2">
+                        <CheckCircle2 className="w-4 h-4" />
+                        ¡Cambios guardados!
+                    </div>
+                )}
             </div>
 
             {/* Tabs Selector */}
@@ -310,6 +319,83 @@ export default function SettingsPage() {
                                             placeholder="300 123 4567"
                                             className="font-bold"
                                         />
+                                    </div>
+
+                                    {/* Delivery Options (Premium Card Toggle) */}
+                                    <div className="pt-4 border-t border-[var(--border)]">
+                                        <div
+                                            onClick={() => setDeliveryEnabled(!deliveryEnabled)}
+                                            className={cn(
+                                                "group cursor-pointer p-6 rounded-3xl border-2 transition-all duration-300 relative overflow-hidden",
+                                                deliveryEnabled
+                                                    ? "border-[var(--primary)] bg-[var(--primary)]/5 shadow-md shadow-[var(--primary)]/10"
+                                                    : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--text)]/10"
+                                            )}
+                                        >
+                                            {/* Accent background for active state */}
+                                            {deliveryEnabled && (
+                                                <div className="absolute top-0 right-0 p-3 opacity-10">
+                                                    <Truck className="w-24 h-24 text-[var(--primary)] rotate-12 translate-x-4 translate-y--4" />
+                                                </div>
+                                            )}
+
+                                            <div className="flex items-center justify-between relative z-10">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={cn(
+                                                        "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500",
+                                                        deliveryEnabled ? "bg-[var(--primary)] text-white scale-110 shadow-lg" : "bg-[var(--secondary)] text-[var(--text)]/20"
+                                                    )}>
+                                                        <Truck className="w-6 h-6" />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <p className={cn(
+                                                            "font-black text-base transition-colors",
+                                                            deliveryEnabled ? "text-[var(--text)]" : "text-[var(--text)]/40"
+                                                        )}>Activar Delivery</p>
+                                                        <p className="text-xs text-[var(--text)]/30 font-bold uppercase tracking-wider">Permitir envios a domicilio</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className={cn(
+                                                    "w-14 h-8 rounded-full transition-all duration-500 flex items-center px-1",
+                                                    deliveryEnabled ? "bg-[var(--primary)] shadow-inner" : "bg-[var(--border)]"
+                                                )}>
+                                                    <div className={cn(
+                                                        "w-6 h-6 rounded-full bg-white shadow-xl transition-all duration-500 transform",
+                                                        deliveryEnabled ? "translate-x-6 scale-90" : "translate-x-0 scale-75"
+                                                    )} />
+                                                </div>
+                                            </div>
+
+                                            {/* Subtitle/Description line */}
+                                            <p className="mt-4 text-[10px] text-[var(--text)]/40 font-bold uppercase tracking-[0.15em] border-t border-[var(--border)] pt-4 group-hover:text-[var(--text)]/60 transition-colors">
+                                                {deliveryEnabled ? 'Los clientes podrán dejar su dirección y GPS' : 'Solo venta con retiro en local o acuerdo previo'}
+                                            </p>
+                                        </div>
+
+                                        {deliveryEnabled && (
+                                            <div className="mt-6 p-6 rounded-3xl bg-[var(--bg)] border-2 border-dashed border-[var(--border)] animate-in fade-in slide-in-from-top-4 duration-500">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-[var(--primary)]/10 flex items-center justify-center">
+                                                        <DollarSign className="w-4 h-4 text-[var(--primary)]" />
+                                                    </div>
+                                                    <label className="text-sm font-black text-[var(--text)] uppercase tracking-widest">Costo de Envío</label>
+                                                </div>
+                                                <input
+                                                    type="text"
+                                                    className="w-full px-6 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] focus:ring-8 focus:ring-[var(--primary)]/5 outline-none transition-all font-black text-lg text-[var(--text)] bg-[var(--surface)] shadow-sm"
+                                                    placeholder="Ej: Gratis, Q 10.00, A convenir"
+                                                    value={deliveryPrice}
+                                                    onChange={(e) => setDeliveryPrice(e.target.value)}
+                                                />
+                                                <div className="mt-3 flex items-start gap-2 bg-blue-50/50 p-3 rounded-xl border border-blue-100/50">
+                                                    <AlertTriangle className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                                                    <p className="text-[10px] text-blue-600/70 font-bold uppercase tracking-widest leading-relaxed">
+                                                        Este texto aparecerá en el resumen de compra del cliente después de que elija su ubicación.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -557,21 +643,31 @@ export default function SettingsPage() {
                         </div>
                     )}
 
-                    <div className="pt-8 border-t border-[var(--border)] flex justify-end">
-                        <button
-                            type="submit"
-                            disabled={saving}
-                            className="w-full md:w-auto bg-[var(--primary)] text-[var(--bg)] px-10 py-5 rounded-[2rem] font-black text-xl hover:opacity-90 transition-all shadow-[var(--shadow-strong)] active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50"
-                        >
-                            {saving ? (
-                                <Loader2 className="w-6 h-6 animate-spin" />
-                            ) : (
-                                <>
-                                    <Save className="w-6 h-6" />
-                                    Guardar Cambios
-                                </>
-                            )}
-                        </button>
+                    <div className="pt-8 border-t border-[var(--border)] space-y-4">
+                        <div className="flex justify-end">
+                            <button
+                                type="submit"
+                                disabled={saving}
+                                className="w-full md:w-auto bg-[var(--primary)] text-[var(--bg)] px-10 py-5 rounded-[2rem] font-black text-xl hover:opacity-90 transition-all shadow-[var(--shadow-strong)] active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50"
+                            >
+                                {saving ? (
+                                    <Loader2 className="w-6 h-6 animate-spin" />
+                                ) : (
+                                    <>
+                                        <Save className="w-6 h-6" />
+                                        Guardar Cambios
+                                    </>
+                                )}
+                            </button>
+                        </div>
+
+                        {/* Mobile Success Message */}
+                        {success && (
+                            <div className="sm:hidden w-full flex items-center justify-center gap-2 bg-green-50 text-green-600 px-4 py-4 rounded-2xl text-sm font-bold border border-green-100 animate-in fade-in slide-in-from-bottom-2">
+                                <CheckCircle2 className="w-5 h-5 shrink-0" />
+                                ¡Cambios guardados con éxito!
+                            </div>
+                        )}
                     </div>
                 </form>
             </div>

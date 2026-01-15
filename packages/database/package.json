@@ -9,10 +9,10 @@
     },
     "devDependencies": {
         "@repo/typescript-config": "*",
-        "prisma": "^6.19.1",
+        "prisma": "^7.2.0",
         "typescript": "5.9.2"
     },
     "dependencies": {
-        "@prisma/client": "^6.19.1"
+        "@prisma/client": "^7.2.0"
     }
 }

@@ -79,4 +79,12 @@ export class CreateStoreDto {
   @IsOptional()
   @IsString()
   youtubeUrl?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  deliveryEnabled?: boolean;
+
+  @IsString()
+  @IsOptional()
+  deliveryPrice?: string;
 }

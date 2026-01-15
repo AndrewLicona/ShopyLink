@@ -1,19 +1,15 @@
+// Update: Force Refresh Verification
 'use client';
 
 import {
     ShoppingBag,
     MessageCircle,
-    ShoppingCart,
     Plus,
     Minus,
     Search,
-    ChevronRight,
-    ChevronLeft,
     Loader2,
     X,
     AlertCircle,
-    Share2,
-    Check
 } from 'lucide-react';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
@@ -23,6 +19,7 @@ import { twMerge } from 'tailwind-merge';
 import { useState, useEffect, useRef } from 'react';
 import { api } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
+import { ProductModal } from '@/components/ProductModal';
 import type { Store, Product, Category } from '@/lib/types';
 
 function cn(...inputs: ClassValue[]) {
@@ -37,63 +34,83 @@ interface StoreViewProps {
 
 export function StoreView({ store, products: initialProducts, categories }: StoreViewProps) {
     const products = initialProducts;
-    const [cart, setCart] = useState<{ id: string, quantity: number, name: string, price: number, image?: string }[]>([]);
+    const [cart, setCart] = useState<{ id: string, quantity: number, name: string, price: number, image?: string, variantId?: string, variantName?: string }[]>([]);
+    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
-    const [isCopied, setIsCopied] = useState(false);
-    const [showManualShare, setShowManualShare] = useState(false);
     const searchParams = useSearchParams();
 
     const [isCreatingOrder, setIsCreatingOrder] = useState(false);
     const [showNameModal, setShowNameModal] = useState(false);
     const [customerName, setCustomerName] = useState('');
+    const [customerAddress, setCustomerAddress] = useState('');
+    const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
     const [stockAlert, setStockAlert] = useState<{ show: boolean, message: string }>({ show: false, message: '' });
-    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-    const [modalQuantity, setModalQuantity] = useState(1);
-    const [currentImageIndex, setCurrentImageIndex] = useState(0);
-    const touchStartX = useRef<number | null>(null);
 
     const showMessage = (msg: string) => {
         setStockAlert({ show: true, message: msg });
+        setTimeout(() => setStockAlert({ show: false, message: '' }), 3000);
     };
 
     const openProductModal = (product: Product) => {
         setSelectedProduct(product);
-        setModalQuantity(1);
-        setCurrentImageIndex(0);
     };
 
-    const handleAddToCartFromModal = () => {
-        if (!selectedProduct) return;
+    const handleAddToCart = (product: Product, quantity: number, variantId?: string | null) => {
+        let finalPrice = Number(product.discountPrice || product.price);
+        let finalStock = product.inventory?.stock ?? 0;
+        let variantName: string | undefined = undefined;
 
-        const availableStock = selectedProduct.inventory?.stock ?? 0;
-        const trackStock = selectedProduct.trackInventory;
+        if (product.variants && product.variants.length > 0) {
+            const variant = product.variants.find(v => v.id === variantId);
+            if (variant) {
+                finalPrice = variant.useParentPrice
+                    ? Number(product.discountPrice || product.price)
+                    : Number(variant.price);
+
+                finalStock = variant.useParentStock
+                    ? (product.inventory?.stock ?? 0)
+                    : variant.stock;
+
+                variantName = variant.name;
+            }
+        }
+
+        const trackStock = product.trackInventory;
 
         setCart(prev => {
-            const existing = prev.find(item => item.id === selectedProduct.id);
+            const existing = prev.find(item => item.id === product.id && item.variantId === variantId);
             const currentQty = existing ? existing.quantity : 0;
-            const newTotalQty = currentQty + modalQuantity;
+            const newTotalQty = currentQty + quantity;
 
-            if (trackStock && newTotalQty > availableStock) {
-                showMessage(`¡Lo sentimos! Solo hay ${availableStock} unidades disponibles en total.`);
+            if (trackStock && newTotalQty > finalStock) {
+                showMessage(`¡Lo sentimos! Solo hay ${finalStock} unidades disponibles.`);
                 return prev;
             }
 
             if (existing) {
-                return prev.map(item => item.id === selectedProduct.id ? { ...item, quantity: newTotalQty } : item);
+                return prev.map(item => (item.id === product.id && item.variantId === variantId)
+                    ? { ...item, quantity: newTotalQty }
+                    : item
+                );
             }
 
+            const variant = product.variants?.find(v => v.id === variantId);
+            const itemImage = (variant?.images && variant.images.length > 0)
+                ? variant.images[0]
+                : (product.images?.[0]);
+
             return [...prev, {
-                id: selectedProduct.id,
-                quantity: modalQuantity,
-                name: selectedProduct.name,
-                price: Number(selectedProduct.price),
-                image: selectedProduct.images?.[0]
+                id: product.id,
+                quantity: quantity,
+                name: product.name,
+                price: finalPrice,
+                image: itemImage,
+                variantId: variantId || undefined,
+                variantName
             }];
         });
-
-        setSelectedProduct(null);
     };
 
     // Auto-open product modal from URL ?p=productId
@@ -104,42 +121,39 @@ export function StoreView({ store, products: initialProducts, categories }: Stor
                 const product = products.find(p => p.id === productId);
                 if (product) {
                     setSelectedProduct(product);
-                    setModalQuantity(1);
-                    setCurrentImageIndex(0);
                 }
             }
         }
     }, [products, searchParams]);
 
     const addToCart = (product: Product) => {
-        setCart(prev => {
-            const existing = prev.find(item => item.id === product.id);
-            const availableStock = product.inventory?.stock ?? 0;
-            const trackStock = product.trackInventory;
+        // Find if any variant of this product is already in the cart
+        const existingItem = cart.find(item => item.id === product.id);
 
-            if (existing) {
-                if (trackStock && existing.quantity >= availableStock) {
-                    showMessage(`¡Lo sentimos! Solo hay ${availableStock} unidades disponibles.`);
-                    return prev;
-                }
-                return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
-            }
-            return [...prev, {
-                id: product.id,
-                quantity: 1,
-                name: product.name,
-                price: Number(product.price),
-                image: product.images?.[0]
-            }];
-        });
+        if (existingItem) {
+            updateQuantity(product.id, 1, existingItem.variantId);
+            return;
+        }
+
+        // If not in cart, add it immediately (the first variant if any, or base product)
+        const firstVariantId = product.variants?.[0]?.id;
+        handleAddToCart(product, 1, firstVariantId || null);
     };
 
-    const updateQuantity = (id: string, delta: number) => {
+    const updateQuantity = (id: string, delta: number, variantId?: string) => {
         setCart(prev => prev.map(item => {
-            if (item.id === id) {
+            if (item.id === id && item.variantId === variantId) {
                 const product = products.find(p => p.id === id);
-                const availableStock = product?.inventory?.stock ?? 0;
-                const trackStock = product?.trackInventory;
+                let availableStock = product?.inventory?.stock ?? 0;
+                let trackStock = product?.trackInventory;
+
+                if (product?.variants && variantId) {
+                    const v = product.variants.find(v => v.id === variantId);
+                    if (v) {
+                        availableStock = v.useParentStock ? (product.inventory?.stock ?? 0) : v.stock;
+                    }
+                }
+
                 const newQty = Math.max(0, item.quantity + delta);
 
                 if (product && trackStock && newQty > availableStock) {
@@ -172,19 +186,35 @@ export function StoreView({ store, products: initialProducts, categories }: Stor
         setShowNameModal(false);
         setIsCreatingOrder(true);
         try {
+            // Determine final address based on delivery method
+            let finalAddress: string | undefined = undefined;
+            if (store.deliveryEnabled && deliveryMethod === 'delivery') {
+                finalAddress = customerAddress.trim() || undefined;
+            }
+
             const orderData = {
                 storeId: store.id,
                 customerName,
+                customerAddress: finalAddress,
                 items: cart.map(item => ({
                     productId: item.id,
-                    quantity: item.quantity
+                    quantity: item.quantity,
+                    variantId: item.variantId
                 }))
             };
 
             const response = await api.createOrder(orderData);
 
             if (response.whatsappLink) {
-                window.location.href = response.whatsappLink;
+                // Detect if mobile device
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+                if (isMobile) {
+                    window.location.href = response.whatsappLink;
+                } else {
+                    window.open(response.whatsappLink, '_blank');
+                }
+
                 setCart([]);
                 setIsCartOpen(false);
                 // We'd ideally refresh products here, but since it's now a server component, 
@@ -210,6 +240,8 @@ export function StoreView({ store, products: initialProducts, categories }: Stor
         if (cart.length === 0) return;
         setShowNameModal(true);
     };
+
+
 
     return (
         <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col pb-20">
@@ -353,23 +385,29 @@ export function StoreView({ store, products: initialProducts, categories }: Stor
                                                 </span>
                                             )}
                                         </div>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                addToCart(product);
-                                            }}
-                                            className="w-9 h-9 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-xl flex items-center justify-center hover:scale-105 transition-all shadow-lg active:scale-90 flex-shrink-0 relative"
+                                        <div
+                                            className="relative z-[50]"
+                                            onClick={(e) => e.stopPropagation()}
                                         >
-                                            <Plus className="w-5 h-5" />
-                                            {(() => {
-                                                const quantity = cart.find(item => item.id === product.id)?.quantity;
-                                                return quantity && quantity > 0 ? (
-                                                    <span className="absolute -top-2 -right-2 bg-[var(--text)] text-[var(--bg)] text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-[var(--bg)] animate-in zoom-in-50">
-                                                        {quantity}
-                                                    </span>
-                                                ) : null;
-                                            })()}
-                                        </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    addToCart(product);
+                                                }}
+                                                className="w-10 h-10 bg-[var(--primary)] text-white rounded-xl flex items-center justify-center hover:scale-110 shadow-lg active:scale-90 transition-all cursor-pointer"
+                                            >
+                                                <Plus className="w-5 h-5" />
+                                                {(() => {
+                                                    const quantity = cart.find(item => item.id === product.id)?.quantity;
+                                                    return quantity && quantity > 0 ? (
+                                                        <span className="absolute -top-2 -right-2 bg-[var(--text)] text-[var(--bg)] text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-[var(--bg)] animate-in zoom-in-50">
+                                                            {quantity}
+                                                        </span>
+                                                    ) : null;
+                                                })()}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -418,7 +456,7 @@ export function StoreView({ store, products: initialProducts, categories }: Stor
                                 </div>
                             ) : (
                                 cart.map((item) => (
-                                    <div key={item.id} className="flex gap-4">
+                                    <div key={item.id + (item.variantId || '')} className="flex gap-4">
                                         <div className="w-16 h-16 bg-[var(--secondary)] rounded-2xl flex items-center justify-center overflow-hidden border border-[var(--border)] relative">
                                             {item.image ? (
                                                 <Image
@@ -434,17 +472,20 @@ export function StoreView({ store, products: initialProducts, categories }: Stor
                                         </div>
                                         <div className="flex-1">
                                             <h4 className="font-bold text-sm line-clamp-1">{item.name}</h4>
+                                            {item.variantName && (
+                                                <p className="text-[10px] text-[var(--text)]/40 font-bold uppercase tracking-widest">{item.variantName}</p>
+                                            )}
                                             <p className="text-[var(--primary)] font-black text-xs">{formatCurrency(item.price)}</p>
                                             <div className="flex items-center gap-3 mt-2">
                                                 <button
-                                                    onClick={() => updateQuantity(item.id, -1)}
+                                                    onClick={() => updateQuantity(item.id, -1, item.variantId)}
                                                     className="p-1 border border-[var(--border)] rounded-lg hover:bg-[var(--secondary)] text-[var(--text)]/50 active:scale-90 transition-all"
                                                 >
                                                     <Minus className="w-4 h-4" />
                                                 </button>
                                                 <span className="font-black text-xs w-4 text-center">{item.quantity}</span>
                                                 <button
-                                                    onClick={() => updateQuantity(item.id, 1)}
+                                                    onClick={() => updateQuantity(item.id, 1, item.variantId)}
                                                     className="p-1 border border-[var(--border)] rounded-lg hover:bg-[var(--secondary)] text-[var(--text)]/50 active:scale-90 transition-all"
                                                 >
                                                     <Plus className="w-4 h-4" />
@@ -523,6 +564,62 @@ export function StoreView({ store, products: initialProducts, categories }: Stor
                                     />
                                 </div>
 
+                                {store.deliveryEnabled && (
+                                    <div className="space-y-4">
+                                        {/* Delivery Method Toggle */}
+                                        <div className="flex p-1 bg-[var(--secondary)] rounded-[1.5rem] relative">
+                                            <button
+                                                type="button"
+                                                onClick={() => setDeliveryMethod('delivery')}
+                                                className={cn(
+                                                    "flex-1 py-3 px-4 rounded-[1.2rem] text-xs sm:text-sm font-black transition-all duration-300 z-10",
+                                                    deliveryMethod === 'delivery'
+                                                        ? "bg-[var(--primary)] text-[var(--primary-foreground)] shadow-lg scale-100"
+                                                        : "text-[var(--text)]/40 hover:text-[var(--text)]/60"
+                                                )}
+                                            >
+                                                Domicilio
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setDeliveryMethod('pickup')}
+                                                className={cn(
+                                                    "flex-1 py-3 px-4 rounded-[1.2rem] text-xs sm:text-sm font-black transition-all duration-300 z-10",
+                                                    deliveryMethod === 'pickup'
+                                                        ? "bg-[var(--primary)] text-[var(--primary-foreground)] shadow-lg scale-100"
+                                                        : "text-[var(--text)]/40 hover:text-[var(--text)]/60"
+                                                )}
+                                            >
+                                                Retirar en Tienda
+                                            </button>
+                                        </div>
+
+                                        {/* Address Input - Animated visibility */}
+                                        <div className={cn(
+                                            "space-y-4 transition-all duration-300 overflow-hidden",
+                                            deliveryMethod === 'delivery' ? "opacity-100 max-h-[200px]" : "opacity-0 max-h-0"
+                                        )}>
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Dirección de envío (Opcional)"
+                                                    value={customerAddress}
+                                                    onChange={(e) => setCustomerAddress(e.target.value)}
+                                                    className="w-full px-6 py-5 rounded-[1.5rem] bg-[var(--secondary)] border-2 border-transparent focus:border-[var(--primary)]/20 focus:bg-[var(--bg)] outline-none text-[var(--text)] font-bold transition-all text-center placeholder:text-[var(--text)]/30"
+                                                />
+                                            </div>
+
+                                            <div className="flex items-center justify-center gap-2 mt-1">
+                                                <div className="h-px bg-[var(--border)] flex-1" />
+                                                <span className="text-[10px] bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-black uppercase tracking-widest border border-blue-100 italic">
+                                                    Delivery: {store.deliveryPrice || 'Gratis'}
+                                                </span>
+                                                <div className="h-px bg-[var(--border)] flex-1" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <button
                                     onClick={handleConfirmOrder}
                                     disabled={!customerName.trim() || isCreatingOrder}
@@ -545,309 +642,46 @@ export function StoreView({ store, products: initialProducts, categories }: Stor
                         </div>
                     </div>
                 </div>
-            )}
+            )
+            }
 
             {/* Stock Alert Modal */}
-            {stockAlert.show && (
-                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-                    <div className="bg-[var(--surface)] w-full max-w-sm rounded-[3rem] shadow-[var(--shadow-strong)] overflow-hidden animate-in zoom-in-95 duration-300 ring-1 ring-black/5">
-                        <div className="p-8 space-y-6">
-                            <div className="flex flex-col items-center text-center gap-4">
-                                <div className="w-20 h-20 bg-orange-500/10 text-orange-500 rounded-[2rem] flex items-center justify-center shadow-inner">
-                                    <AlertCircle className="w-10 h-10" />
+            {
+                stockAlert.show && (
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+                        <div className="bg-[var(--surface)] w-full max-w-sm rounded-[3rem] shadow-[var(--shadow-strong)] overflow-hidden animate-in zoom-in-95 duration-300 ring-1 ring-black/5">
+                            <div className="p-8 space-y-6">
+                                <div className="flex flex-col items-center text-center gap-4">
+                                    <div className="w-20 h-20 bg-orange-500/10 text-orange-500 rounded-[2rem] flex items-center justify-center shadow-inner">
+                                        <AlertCircle className="w-10 h-10" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <h2 className="text-2xl font-black leading-tight">¡Lo sentimos!</h2>
+                                        <p className="text-[var(--text)]/60 font-bold text-sm">{stockAlert.message}</p>
+                                    </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <h2 className="text-2xl font-black leading-tight">¡Lo sentimos!</h2>
-                                    <p className="text-[var(--text)]/60 font-bold text-sm">{stockAlert.message}</p>
-                                </div>
-                            </div>
 
-                            <button
-                                onClick={() => setStockAlert({ show: false, message: '' })}
-                                className="w-full bg-[var(--text)] text-[var(--bg)] py-5 rounded-[2rem] font-black text-lg flex items-center justify-center gap-3 hover:scale-[1.02] transition-all active:scale-95"
-                            >
-                                Entendido
-                            </button>
+                                <button
+                                    onClick={() => setStockAlert({ show: false, message: '' })}
+                                    className="w-full bg-[var(--text)] text-[var(--bg)] py-5 rounded-[2rem] font-black text-lg flex items-center justify-center gap-3 hover:scale-[1.02] transition-all active:scale-95"
+                                >
+                                    Entendido
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Product Detail Modal */}
-            {selectedProduct && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-                    <div className="bg-[var(--bg)] w-full max-w-4xl rounded-[2.5rem] sm:rounded-[3.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col md:flex-row max-h-[90vh] border border-[var(--border)]">
-                        {/* Header for Mobile: Close */}
-                        <div className="md:hidden absolute top-4 right-4 z-50">
-                            <button
-                                onClick={() => setSelectedProduct(null)}
-                                className="w-10 h-10 bg-[var(--bg)]/80 backdrop-blur-xl rounded-full flex items-center justify-center shadow-xl text-[var(--text)] border border-[var(--border)] active:scale-90 transition-all"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        {/* Left Side: Images Gallery */}
-                        <div className="w-full md:w-[55%] bg-[var(--secondary)] flex items-center justify-center relative aspect-[4/5] md:aspect-auto overflow-hidden">
-                            {selectedProduct.images && selectedProduct.images.length > 0 ? (
-                                <div
-                                    className="w-full h-full relative group touch-pan-y"
-                                    onTouchStart={(e) => {
-                                        const touch = e.touches[0];
-                                        if (touch) touchStartX.current = touch.clientX;
-                                    }}
-                                    onTouchEnd={(e) => {
-                                        if (touchStartX.current === null) return;
-                                        const touchEndX = e.changedTouches[0]?.clientX;
-                                        if (touchEndX === undefined) return;
-                                        const diff = touchStartX.current - touchEndX;
-
-                                        if (Math.abs(diff) > 50) {
-                                            if (diff > 0) {
-                                                setCurrentImageIndex(prev => (prev === (selectedProduct.images?.length || 0) - 1 ? 0 : prev + 1));
-                                            } else {
-                                                setCurrentImageIndex(prev => (prev === 0 ? (selectedProduct.images?.length || 0) - 1 : prev - 1));
-                                            }
-                                        }
-                                        touchStartX.current = null;
-                                    }}
-                                >
-                                    <Image
-                                        src={selectedProduct.images?.[currentImageIndex] || ''}
-                                        alt={selectedProduct.name}
-                                        fill
-                                        className="object-contain md:object-cover"
-                                        priority
-                                        sizes="(max-width: 768px) 100vw, 55vw"
-                                    />
-
-                                    {selectedProduct.images && selectedProduct.images.length > 1 && (
-                                        <>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev === 0 ? (selectedProduct.images?.length || 0) - 1 : prev - 1)) }}
-                                                className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-[var(--bg)]/40 hover:bg-[var(--bg)]/90 backdrop-blur-sm rounded-full flex items-center justify-center text-[var(--text)] transition-all active:scale-90 border border-[var(--border)] opacity-0 md:opacity-100 group-hover:opacity-100 z-10"
-                                            >
-                                                <ChevronLeft className="w-5 h-5" />
-                                            </button>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev === (selectedProduct.images?.length || 0) - 1 ? 0 : prev + 1)) }}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-[var(--bg)]/40 hover:bg-[var(--bg)]/90 backdrop-blur-sm rounded-full flex items-center justify-center text-[var(--text)] transition-all active:scale-90 border border-[var(--border)] opacity-0 md:opacity-100 group-hover:opacity-100 z-10"
-                                            >
-                                                <ChevronRight className="w-5 h-5" />
-                                            </button>
-                                            <div className="absolute top-4 left-4 bg-black/20 backdrop-blur-md text-white px-3 py-1 rounded-full text-[9px] font-black tracking-widest uppercase border border-white/10 z-10">
-                                                {currentImageIndex + 1} / {selectedProduct.images?.length}
-                                            </div>
-                                        </>
-                                    )}
-
-                                    {selectedProduct.images && selectedProduct.images.length > 1 && (
-                                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1 z-10">
-                                            {selectedProduct.images.map((_: string, idx: number) => (
-                                                <button
-                                                    key={idx}
-                                                    onClick={() => setCurrentImageIndex(idx)}
-                                                    className={`h-1 rounded-full transition-all duration-300 ${idx === currentImageIndex ? 'bg-[var(--primary)] w-6' : 'bg-[var(--secondary)] w-1'}`}
-                                                />
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="h-full flex items-center justify-center text-gray-200">
-                                    <ShoppingBag className="w-20 h-20" />
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Right Side: Details */}
-                        <div className="w-full md:w-1/2 p-8 sm:p-12 flex flex-col h-full overflow-y-auto custom-scrollbar bg-[var(--bg)]">
-                            <div className="flex items-center justify-end gap-2 mb-4">
-                                <button
-                                    onClick={async () => {
-                                        const url = `${window.location.origin}${window.location.pathname}?p=${selectedProduct.id}`;
-                                        const shareData = {
-                                            title: selectedProduct.name,
-                                            text: `¡Mira este producto en ${store?.name || 'nuestra tienda'}!`,
-                                            url: url,
-                                        };
-
-                                        if (navigator.share && navigator.canShare?.(shareData)) {
-                                            try {
-                                                await navigator.share(shareData);
-                                                return;
-                                            } catch (err) {
-                                                console.debug('Native share failed', err);
-                                            }
-                                        }
-
-                                        try {
-                                            await navigator.clipboard.writeText(url);
-                                            setIsCopied(true);
-                                            setTimeout(() => setIsCopied(false), 2000);
-                                        } catch {
-                                            setShowManualShare(true);
-                                        }
-                                    }}
-                                    className={cn(
-                                        "flex items-center gap-2 px-4 py-2 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 relative",
-                                        isCopied ? "bg-green-500 text-white" : "bg-[var(--secondary)] text-[var(--text)]/40 hover:text-[var(--text)] border border-[var(--border)]"
-                                    )}
-                                >
-                                    {isCopied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
-                                    {isCopied ? 'Copiado' : 'Compartir'}
-
-                                    {showManualShare && !isCopied && (
-                                        <div className="absolute top-full right-0 mt-2 w-64 bg-[var(--bg)] rounded-2xl shadow-2xl border border-[var(--border)] p-4 z-50 animate-in fade-in zoom-in-95 duration-200">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <span className="text-[10px] font-black text-[var(--text)]/40 uppercase tracking-widest">Enlace</span>
-                                                <button onClick={(e) => { e.stopPropagation(); setShowManualShare(false); }} className="text-gray-400">
-                                                    <X className="w-3 h-3" />
-                                                </button>
-                                            </div>
-                                            <div className="flex flex-col gap-2">
-                                                <input
-                                                    readOnly
-                                                    value={`${window.location.origin}${window.location.pathname}?p=${selectedProduct.id}`}
-                                                    className="w-full bg-[var(--secondary)] border border-[var(--border)] rounded-xl px-3 py-2 text-[10px] font-mono text-[var(--text)] focus:outline-none mb-1"
-                                                    onClick={(e) => (e.target as HTMLInputElement).select()}
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-                                </button>
-                                <button
-                                    onClick={() => setSelectedProduct(null)}
-                                    className="hidden md:flex w-12 h-12 bg-[var(--secondary)] hover:bg-[var(--bg)] border border-[var(--border)] rounded-2xl items-center justify-center text-[var(--text)]/40 hover:text-[var(--text)] transition-all active:scale-95"
-                                >
-                                    <X className="w-6 h-6" />
-                                </button>
-                            </div>
-
-                            <div className="flex-1 space-y-6">
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                        {selectedProduct.sku && (
-                                            <span className="bg-[var(--primary)] text-[var(--primary-foreground)] px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest">
-                                                #{selectedProduct.sku}
-                                            </span>
-                                        )}
-                                        {selectedProduct.categoryId && (
-                                            <span className="text-[var(--primary)] font-black text-[10px] uppercase tracking-[0.2em]">
-                                                {categories.find(c => c.id === selectedProduct.categoryId)?.name}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="space-y-1">
-                                        <h2 className="text-3xl sm:text-5xl font-black text-[var(--text)] leading-tight tracking-tight">
-                                            {selectedProduct.name}
-                                        </h2>
-                                        <div className="flex items-center gap-4">
-                                            {selectedProduct.discountPrice ? (
-                                                <>
-                                                    <span className="text-4xl font-black text-green-600">
-                                                        {formatCurrency(selectedProduct.discountPrice)}
-                                                    </span>
-                                                    <span className="text-xl font-bold text-gray-400 line-through decoration-red-500/50">
-                                                        {formatCurrency(selectedProduct.price)}
-                                                    </span>
-                                                </>
-                                            ) : (
-                                                <p className="text-4xl font-black text-[var(--primary)]">
-                                                    {formatCurrency(selectedProduct.price)}
-                                                </p>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-1 h-4 bg-[var(--primary)] rounded-full"></div>
-                                        <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text)]">Descripción</h3>
-                                    </div>
-                                    <p className="text-[var(--text)]/60 font-medium leading-relaxed text-base sm:text-lg italic text-[var(--text)]">
-                                        {selectedProduct.description || 'Este producto no tiene una descripción detallada.'}
-                                    </p>
-                                </div>
-
-                                {selectedProduct.trackInventory && (
-                                    <div className="flex items-center justify-between p-6 bg-[var(--secondary)] rounded-[2.5rem] border border-[var(--border)]">
-                                        <div className="space-y-1">
-                                            <p className="text-[10px] font-black text-[var(--text)]/40 uppercase tracking-widest">Disponibilidad</p>
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                                                <p className="font-black text-[var(--text)]">
-                                                    {selectedProduct.inventory?.stock ?? '0'} unidades
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-5 bg-[var(--surface)] p-2 rounded-2xl shadow-sm border border-[var(--border)]">
-                                            <button
-                                                onClick={() => setModalQuantity(Math.max(1, modalQuantity - 1))}
-                                                className="w-10 h-10 md:w-12 md:h-10 flex items-center justify-center rounded-xl bg-[var(--secondary)] hover:bg-[var(--border)] text-[var(--text)] transition-all active:scale-90 border border-[var(--border)]/50"
-                                            >
-                                                <Minus className="w-4 h-4 md:w-5 md:h-5" />
-                                            </button>
-                                            <span className="w-6 md:w-8 text-center font-black text-xl md:text-2xl text-[var(--surface-text)]">{modalQuantity}</span>
-                                            <button
-                                                onClick={() => {
-                                                    const available = selectedProduct.inventory?.stock ?? 0;
-                                                    if (modalQuantity < available) {
-                                                        setModalQuantity(modalQuantity + 1);
-                                                    } else {
-                                                        showMessage(`Solo hay ${available} disponibles.`);
-                                                    }
-                                                }}
-                                                className="w-10 h-10 md:w-12 md:h-10 flex items-center justify-center rounded-xl bg-[var(--secondary)] hover:bg-[var(--border)] text-[var(--text)] transition-all active:scale-90 border border-[var(--border)]/50"
-                                            >
-                                                <Plus className="w-4 h-4 md:w-5 md:h-5" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {!selectedProduct.trackInventory && (
-                                    <div className="flex items-center justify-between p-6 bg-[var(--secondary)] rounded-[2.5rem] border border-[var(--border)]">
-                                        <div className="space-y-1">
-                                            <p className="text-[10px] font-black text-[var(--text)]/40 uppercase tracking-widest">Status</p>
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-                                                <p className="font-black text-[var(--text)]">Disponible por pedido</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-5 bg-[var(--surface)] p-2 rounded-2xl shadow-sm border border-[var(--border)]">
-                                            <button
-                                                onClick={() => setModalQuantity(Math.max(1, modalQuantity - 1))}
-                                                className="w-10 h-10 md:w-12 md:h-10 flex items-center justify-center rounded-xl bg-[var(--secondary)] hover:bg-[var(--border)] text-[var(--text)] transition-all active:scale-90 border border-[var(--border)]/50"
-                                            >
-                                                <Minus className="w-4 h-4 md:w-5 md:h-5" />
-                                            </button>
-                                            <span className="w-6 md:w-8 text-center font-black text-xl md:text-2xl text-[var(--surface-text)]">{modalQuantity}</span>
-                                            <button
-                                                onClick={() => setModalQuantity(modalQuantity + 1)}
-                                                className="w-10 h-10 md:w-12 md:h-10 flex items-center justify-center rounded-xl bg-[var(--secondary)] hover:bg-[var(--border)] text-[var(--text)] transition-all active:scale-90 border border-[var(--border)]/50"
-                                            >
-                                                <Plus className="w-4 h-4 md:w-5 md:h-5" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="pt-6 mt-auto">
-                                <button
-                                    onClick={handleAddToCartFromModal}
-                                    className="w-full bg-[var(--primary)] text-[var(--primary-foreground)] py-4 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-lg md:text-xl flex items-center justify-center gap-3 hover:scale-[1.02] transition-all shadow-xl active:scale-[0.98]"
-                                >
-                                    <ShoppingCart className="w-5 h-5 md:w-6 md:h-6" />
-                                    Añadir • {formatCurrency((Number(selectedProduct.discountPrice || selectedProduct.price)) * modalQuantity)}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ProductModal
+                product={selectedProduct}
+                isOpen={!!selectedProduct}
+                onClose={() => setSelectedProduct(null)}
+                onAddToCart={handleAddToCart}
+                categories={categories}
+                store={store}
+            />
         </div>
     );
 }

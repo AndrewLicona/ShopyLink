@@ -5,9 +5,7 @@ generator client {
 }
 
 datasource db {
-    provider  = "postgresql"
-    url       = env("DATABASE_URL")
-    directUrl = env("DIRECT_URL")
+    provider = "postgresql"
 }
 
 // Representa a un Owner de tienda (vinculado a Supabase Auth)
@@ -22,23 +20,25 @@ model User {
 }
 
 model Store {
-    id          String   @id @default(uuid())
-    name        String
-    slug        String   @unique // Para la URL pública: shopylink.com/mi-tienda
-    description String?
-    logoUrl     String?
-    whatsappNumber String?
-    instagramUrl   String?
-    facebookUrl    String?
-    tiktokUrl      String?
-    twitterUrl     String?
-    pinterestUrl   String?
-    youtubeUrl     String?
-    theme          String?  @default("classic")
-    mode           String?  @default("light")
+    id                    String   @id @default(uuid())
+    name                  String
+    slug                  String   @unique
+    description           String?
+    logoUrl               String?
+    whatsappNumber        String?
+    instagramUrl          String?
+    facebookUrl           String?
+    tiktokUrl             String?
+    twitterUrl            String?
+    pinterestUrl          String?
+    youtubeUrl            String?
+    theme                 String?  @default("classic")
+    mode                  String?  @default("light")
     applyThemeToDashboard Boolean? @default(false)
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
+    deliveryEnabled       Boolean  @default(true)
+    deliveryPrice         String?  @default("Gratis")
+    createdAt             DateTime @default(now())
+    updatedAt             DateTime @updatedAt
 
     userId String
     user   User   @relation(fields: [userId], references: [id])
@@ -56,19 +56,19 @@ model Category {
     store    Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
     products Product[]
 
-    @@unique([storeId, slug]) // El slug es único por tienda
+    @@unique([storeId, slug])
 }
 
 model Product {
-    id            String   @id @default(uuid())
-    name          String
-    sku           String?
-    description   String?
-    price         Decimal  @db.Decimal(10, 2)
-    discountPrice Decimal? @db.Decimal(10, 2)
-    images        String[] // Array de URLs
-    isActive      Boolean  @default(true)
-    trackInventory Boolean @default(true)
+    id             String   @id @default(uuid())
+    name           String
+    sku            String?
+    description    String?
+    price          Decimal  @db.Decimal(10, 2)
+    discountPrice  Decimal? @db.Decimal(10, 2)
+    images         String[]
+    isActive       Boolean  @default(true)
+    trackInventory Boolean  @default(true)
 
     storeId String
     store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
@@ -77,6 +77,37 @@ model Product {
     category   Category? @relation(fields: [categoryId], references: [id])
 
     inventory  Inventory?
+    orderItems OrderItem[]
+
+    variants ProductVariant[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model ProductVariant {
+    id   String @id @default(uuid())
+    name String
+
+    // Precio y stock opcionales
+    price Decimal? @db.Decimal(10, 2)
+    stock Int      @default(0)
+
+    // Flags para heredar del producto padre
+    useParentPrice Boolean @default(false)
+    useParentStock Boolean @default(false)
+
+    sku String?
+
+    // DEPRECATED: se reemplaza por images[]
+    image String?
+
+    // Imágenes específicas de la variante (máximo 2)
+    images String[] @default([])
+
+    productId String
+    product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
     orderItems OrderItem[]
 
     createdAt DateTime @default(now())
@@ -98,11 +129,12 @@ enum OrderStatus {
 }
 
 model Order {
-    id            String      @id @default(uuid())
-    total         Decimal     @db.Decimal(10, 2)
-    status        OrderStatus @default(PENDING)
-    customerName  String
-    customerPhone String? // WhatsApp number
+    id              String      @id @default(uuid())
+    total           Decimal     @db.Decimal(10, 2)
+    status          OrderStatus @default(PENDING)
+    customerName    String
+    customerPhone   String?
+    customerAddress String?
 
     storeId String
     store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
@@ -116,13 +148,17 @@ model Order {
 model OrderItem {
     id          String  @id @default(uuid())
     quantity    Int
-    price       Decimal @db.Decimal(10, 2) // Precio al momento de la compra
-    productName String // Guardamos nombre por si cambia el original
-    sku         String? // Guardamos SKU por si cambia el original
+    price       Decimal @db.Decimal(10, 2)
+    productName String
+    sku         String?
 
     orderId String
     order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
     productId String?
     product   Product? @relation(fields: [productId], references: [id])
+
+    variantId   String?
+    variant     ProductVariant? @relation(fields: [variantId], references: [id])
+    variantName String?
 }
