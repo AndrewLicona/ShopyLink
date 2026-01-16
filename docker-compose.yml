@@ -26,6 +26,7 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - JWT_SECRET=${JWT_SECRET}
       - SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - FRONTEND_URL=${FRONTEND_URL}
       - PORT=3001
       # Agrega aquí otras variables de entorno necesarias para la API
     networks:
