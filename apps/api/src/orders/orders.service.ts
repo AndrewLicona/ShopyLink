@@ -31,7 +31,7 @@ interface StoreWithDetails {
 
 @Injectable()
 export class OrdersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(createOrderDto: CreateOrderDto) {
     const { storeId, items, customerName, customerPhone, customerAddress } =
@@ -218,14 +218,14 @@ export class OrdersService {
       )
       .join('\n');
 
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const frontendUrl = process.env.FRONTEND_URL || 'https://shopylink.andrewlamaquina.my';
     const dashboardLink = `${frontendUrl}/dashboard/orders?id=${order.id}`;
 
     const text =
       `Hola *${storeName || 'Tienda'}*.\n\n` +
       `Mi nombre es *${order.customerName}*.\n` +
       (order.customerAddress
-        ? `📍 *ENTREGA EN:* ${order.customerAddress}\n`
+        ? `📍 *\nENTREGA EN:* ${order.customerAddress}\n\n`
         : '') +
       `Quiero confirmar mi pedido *#${order.id.slice(0, 8)}*\n\n` +
       `📦 *DETALLE:*\n${itemsList}\n\n` +
