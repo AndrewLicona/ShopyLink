@@ -4,11 +4,10 @@ import { useState } from 'react';
 import Image from 'next/image';
 import {
     Store as StoreIcon, Camera, Globe, Palette, Instagram, Facebook as FacebookIcon,
-    Smartphone, MessageCircle, Loader2, Save, CheckCircle2, X, Twitter,
-    Youtube, Trash2, AlertTriangle, Truck, DollarSign, Sun, Moon,
-    LayoutTemplate
+    Smartphone, Loader2, Save, Twitter,
+    Youtube, Trash2, AlertTriangle, Truck, DollarSign, Sun, Moon
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { PhoneInput } from '@/components/PhoneInput';
 

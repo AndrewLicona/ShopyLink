@@ -29,7 +29,7 @@ export class ProductsService {
         ? sku.trim()
         : `SKU-${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
 
-    return this.prisma.$transaction(async (tx: any) => {
+    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const product = await tx.product.create({
         data: {
           name: rest.name,
@@ -80,7 +80,7 @@ export class ProductsService {
 
       return tx.product.findUnique({
         where: { id: product.id },
-        include: { inventory: true, variants: true } as any,
+        include: { inventory: true, variants: true },
       });
     });
   }
@@ -204,7 +204,7 @@ export class ProductsService {
             trackInventory !== undefined ? trackInventory : undefined,
           categoryId: productData.categoryId,
         },
-        include: { inventory: true, variants: true } as any,
+        include: { inventory: true, variants: true },
       });
     });
   }
