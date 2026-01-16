@@ -16,6 +16,8 @@ interface StoreTabProps {
     setStoreName: (val: string) => void;
     storeSlug: string;
     setStoreSlug: (val: string) => void;
+    autoGenerateSlug: boolean;
+    setAutoGenerateSlug: (val: boolean) => void;
     suggestedSlug: string | null;
     setSuggestedSlug: (val: string | null) => void;
     storeLogo: string;
@@ -59,6 +61,7 @@ interface StoreTabProps {
 export function StoreTab({
     storeName, setStoreName,
     storeSlug, setStoreSlug,
+    autoGenerateSlug, setAutoGenerateSlug,
     suggestedSlug, setSuggestedSlug,
     storeLogo,
     whatsapp, setWhatsapp,
@@ -157,6 +160,7 @@ export function StoreTab({
                                                 className="flex-1 ml-1 outline-none font-black text-[var(--text)] bg-transparent text-sm min-w-0"
                                                 value={storeSlug}
                                                 onChange={(e) => setStoreSlug(e.target.value)}
+                                                disabled={autoGenerateSlug}
                                             />
                                         </div>
                                         {suggestedSlug && (
@@ -173,6 +177,47 @@ export function StoreTab({
                                                 </button>
                                             </div>
                                         )}
+
+                                        {/* Auto-Generate Slug Toggle */}
+                                        <div
+                                            onClick={() => setAutoGenerateSlug(!autoGenerateSlug)}
+                                            className={cn(
+                                                "mt-3 cursor-pointer p-4 rounded-2xl border-2 transition-all duration-300",
+                                                autoGenerateSlug
+                                                    ? "border-[var(--primary)] bg-[var(--primary)]/5"
+                                                    : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--text)]/10"
+                                            )}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={cn(
+                                                        "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300",
+                                                        autoGenerateSlug ? "bg-[var(--primary)] text-white" : "bg-[var(--secondary)] text-[var(--text)]/20"
+                                                    )}>
+                                                        <Globe className="w-5 h-5" />
+                                                    </div>
+                                                    <div>
+                                                        <p className={cn(
+                                                            "font-black text-sm transition-colors",
+                                                            autoGenerateSlug ? "text-[var(--text)]" : "text-[var(--text)]/40"
+                                                        )}>Auto-generar enlace</p>
+                                                        <p className="text-xs text-[var(--text)]/30 font-bold">
+                                                            {autoGenerateSlug ? 'El enlace se crea automáticamente del nombre' : 'Edita el enlace manualmente'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className={cn(
+                                                    "w-12 h-7 rounded-full transition-all duration-300 flex items-center px-1",
+                                                    autoGenerateSlug ? "bg-[var(--primary)]" : "bg-[var(--border)]"
+                                                )}>
+                                                    <div className={cn(
+                                                        "w-5 h-5 rounded-full bg-white shadow-sm transition-all duration-300 transform",
+                                                        autoGenerateSlug ? "translate-x-5" : "translate-x-0"
+                                                    )} />
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div>

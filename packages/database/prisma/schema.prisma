@@ -24,6 +24,7 @@ model Store {
     id                    String   @id @default(uuid())
     name                  String
     slug                  String   @unique
+    autoGenerateSlug      Boolean  @default(true)
     description           String?
     logoUrl               String?
     whatsappNumber        String?
