@@ -56,4 +56,4 @@ COPY --from=builder /app/packages/database/prisma/schema.prisma ./prisma/schema.
 
 EXPOSE 3001
 
-CMD ["node", "dist/main"]
+CMD ["node", "dist/src/main"]
