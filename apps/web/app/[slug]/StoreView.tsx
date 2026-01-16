@@ -378,7 +378,11 @@ export function StoreView({ store, products: initialProducts, categories }: Stor
                                     <h3 className="text-sm font-black text-[var(--text)] line-clamp-1">{product.name}</h3>
                                     <div className="mt-auto pt-3 flex items-center justify-between gap-2">
                                         <div className="flex flex-col">
-                                            {product.discountPrice ? (
+                                            {product.price === null || product.price === undefined ? (
+                                                <span className="text-sm font-black text-blue-500 uppercase tracking-wide">
+                                                    Consultar Precio
+                                                </span>
+                                            ) : product.discountPrice ? (
                                                 <>
                                                     <span className="text-[10px] font-bold text-[var(--text)]/40 line-through decoration-red-500/50">
                                                         {formatCurrency(product.price)}
@@ -393,31 +397,33 @@ export function StoreView({ store, products: initialProducts, categories }: Stor
                                                 </span>
                                             )}
                                         </div>
-                                        <div
-                                            className="relative z-[50]"
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                            <button
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    addToCart(product);
-                                                }}
-                                                className="w-10 h-10 bg-[var(--primary)] text-white rounded-xl flex items-center justify-center hover:scale-110 shadow-lg active:scale-90 transition-all cursor-pointer"
+                                        {(product.price !== null && product.price !== undefined) && (
+                                            <div
+                                                className="relative z-[50]"
+                                                onClick={(e) => e.stopPropagation()}
                                             >
-                                                <Plus className="w-5 h-5" />
-                                                {(() => {
-                                                    const totalQty = cart
-                                                        .filter(item => item.id === product.id)
-                                                        .reduce((sum, item) => sum + item.quantity, 0);
-                                                    return totalQty > 0 ? (
-                                                        <span className="absolute -top-2 -right-2 bg-[var(--text)] text-[var(--bg)] text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-[var(--bg)] animate-in zoom-in-50">
-                                                            {totalQty}
-                                                        </span>
-                                                    ) : null;
-                                                })()}
-                                            </button>
-                                        </div>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        addToCart(product);
+                                                    }}
+                                                    className="w-10 h-10 bg-[var(--primary)] text-white rounded-xl flex items-center justify-center hover:scale-110 shadow-lg active:scale-90 transition-all cursor-pointer"
+                                                >
+                                                    <Plus className="w-5 h-5" />
+                                                    {(() => {
+                                                        const totalQty = cart
+                                                            .filter(item => item.id === product.id)
+                                                            .reduce((sum, item) => sum + item.quantity, 0);
+                                                        return totalQty > 0 ? (
+                                                            <span className="absolute -top-2 -right-2 bg-[var(--text)] text-[var(--bg)] text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-[var(--bg)] animate-in zoom-in-50">
+                                                                {totalQty}
+                                                            </span>
+                                                        ) : null;
+                                                    })()}
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

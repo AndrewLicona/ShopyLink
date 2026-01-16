@@ -8,8 +8,10 @@ import {
   IsInt,
   ValidateNested,
   ArrayMaxSize,
+  Min,
+  ValidateIf,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 
 export class CreateProductDto {
   @IsString()
@@ -20,11 +22,13 @@ export class CreateProductDto {
   description?: string;
 
   @IsNumber()
+  @Min(0)
   price: number; // Decimal in DB, but JSON passes number/string. Prisma handles mapping if we use Decimal.js or string. simple number is fine for basics.
   // Actually class-validator IsDecimal checks strings usually.
   // Let's stick to number for simplicity, or handle string transformation.
 
   @IsNumber()
+  @Min(0)
   @IsOptional()
   discountPrice?: number;
 
@@ -44,7 +48,8 @@ export class CreateProductDto {
   @IsUUID()
   storeId: string;
 
-  @IsUUID()
+  @ValidateIf((o) => o.categoryId !== '' && o.categoryId !== null && o.categoryId !== undefined)
+  // @IsUUID()
   @IsOptional()
   categoryId?: string;
 
@@ -72,6 +77,7 @@ export class ProductVariantDto {
   name: string;
 
   @IsNumber()
+  @Min(0)
   @IsOptional()
   price?: number;
 

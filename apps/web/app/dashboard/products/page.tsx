@@ -45,6 +45,7 @@ function ProductsContent() {
     const [discountPrice, setDiscountPrice] = useState('');
     const [isActive, setIsActive] = useState(true);
     const [trackInventory, setTrackInventory] = useState(true);
+    const [hasPrice, setHasPrice] = useState(true);
 
     // Variant State
     const [hasVariants, setHasVariants] = useState(false);
@@ -229,7 +230,9 @@ function ProductsContent() {
     const openEditModal = (product: Product) => {
         setEditingProduct(product);
         setName(product.name);
-        setPrice(product.price.toString());
+        const productHasPrice = product.price != null;
+        setHasPrice(productHasPrice);
+        setPrice(product.price?.toString() ?? '');
         setDescription(product.description || '');
         setStock(product.inventory?.stock?.toString() || '');
         setImageUrls(product.images || []);
@@ -273,14 +276,14 @@ function ProductsContent() {
 
         const productData = {
             name,
-            price: parseFloat(price),
+            price: hasPrice ? parseFloat(price) : null,
             description,
             stock: finalStock,
             storeId,
             images: imageUrls,
-            categoryId: categoryId || null,
+            categoryId: categoryId && categoryId.trim() !== '' ? categoryId : undefined,
             sku: sku || null,
-            discountPrice: discountPrice ? parseFloat(discountPrice) : null,
+            discountPrice: (hasPrice && discountPrice) ? parseFloat(discountPrice) : null,
             isActive,
             trackInventory,
             variants: processedVariants
@@ -512,7 +515,9 @@ function ProductsContent() {
                                 <div className="mt-4 flex-1 flex flex-col px-1">
                                     <div className="flex flex-col">
                                         <h3 className="text-sm font-black text-[var(--text)] truncate">{product.name}</h3>
-                                        <span className="text-base font-black text-[var(--primary)] mt-1">{formatCurrency(product.price)}</span>
+                                        <span className="text-base font-black text-[var(--primary)] mt-1">
+                                            {product.price != null ? formatCurrency(product.price) : 'Consultar'}
+                                        </span>
                                     </div>
 
                                     <div className="mt-3 flex items-center justify-between">
@@ -641,8 +646,15 @@ function ProductsContent() {
                                             <div className="relative">
                                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text)]/40 font-bold">$</span>
                                                 <input
-                                                    type="number" required={!hasVariants} value={price} onChange={(e) => setPrice(e.target.value)}
-                                                    className="w-full pl-8 pr-5 py-3 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] outline-none transition-all font-bold text-[var(--text)] bg-[var(--bg)]"
+                                                    type="number"
+                                                    required={!hasVariants && hasPrice}
+                                                    value={price}
+                                                    onChange={(e) => setPrice(e.target.value)}
+                                                    disabled={!hasPrice}
+                                                    className={cn(
+                                                        "w-full pl-8 pr-5 py-3 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] outline-none transition-all font-bold bg-[var(--bg)]",
+                                                        !hasPrice ? "opacity-30 grayscale cursor-not-allowed text-[var(--text)]/40" : "text-[var(--text)]"
+                                                    )}
                                                     placeholder="0"
                                                 />
                                             </div>
@@ -668,10 +680,57 @@ function ProductsContent() {
                                         <div className="relative">
                                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-green-500/40 font-bold">$</span>
                                             <input
-                                                type="number" value={discountPrice} onChange={(e) => setDiscountPrice(e.target.value)}
-                                                className="w-full pl-8 pr-5 py-3 rounded-2xl border-2 border-green-500/20 focus:border-green-500 outline-none transition-all font-bold text-green-500 bg-green-500/5"
+                                                type="number"
+                                                value={discountPrice}
+                                                onChange={(e) => setDiscountPrice(e.target.value)}
+                                                disabled={!hasPrice}
+                                                className={cn(
+                                                    "w-full pl-8 pr-5 py-3 rounded-2xl border-2 border-green-500/20 focus:border-green-500 outline-none transition-all font-bold bg-green-500/5",
+                                                    !hasPrice ? "opacity-30 grayscale cursor-not-allowed text-green-500/40" : "text-green-500"
+                                                )}
                                                 placeholder="0 (Opcional)"
                                             />
+                                        </div>
+                                    </div>
+
+                                    {/* Toggle: Este producto tiene precio */}
+                                    <div
+                                        onClick={() => setHasPrice(!hasPrice)}
+                                        className={cn(
+                                            "cursor-pointer p-4 rounded-2xl border-2 transition-all duration-300",
+                                            hasPrice
+                                                ? "border-[var(--primary)] bg-[var(--primary)]/5"
+                                                : "border-orange-500/30 bg-orange-500/5"
+                                        )}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className={cn(
+                                                    "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300",
+                                                    hasPrice ? "bg-[var(--primary)] text-white" : "bg-orange-500 text-white"
+                                                )}>
+                                                    <DollarSign className="w-5 h-5" />
+                                                </div>
+                                                <div>
+                                                    <p className={cn(
+                                                        "font-black text-sm transition-colors",
+                                                        hasPrice ? "text-[var(--text)]" : "text-orange-600"
+                                                    )}>{hasPrice ? 'Producto con precio fijo' : 'Precio a consultar'}</p>
+                                                    <p className="text-xs text-[var(--text)]/30 font-bold">
+                                                        {hasPrice ? 'Se mostrará el precio en la tienda' : 'El cliente debe consultar por WhatsApp'}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className={cn(
+                                                "w-12 h-7 rounded-full transition-all duration-300 flex items-center px-1",
+                                                hasPrice ? "bg-[var(--primary)]" : "bg-orange-500"
+                                            )}>
+                                                <div className={cn(
+                                                    "w-5 h-5 rounded-full bg-white shadow-sm transition-all duration-300 transform",
+                                                    hasPrice ? "translate-x-5" : "translate-x-0"
+                                                )} />
+                                            </div>
                                         </div>
                                     </div>
 
@@ -716,24 +775,62 @@ function ProductsContent() {
                                                                 <div className="space-y-1.5">
                                                                     <div className="flex justify-between items-center px-1">
                                                                         <label className="text-[10px] font-black uppercase text-[var(--text)]/40">Precio</label>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => {
-                                                                                setVariants(prev => {
-                                                                                    const next = [...prev];
-                                                                                    if (next[idx]) next[idx] = { ...next[idx], useParentPrice: !next[idx].useParentPrice };
-                                                                                    return next;
-                                                                                });
-                                                                            }}
-                                                                            className={cn(
-                                                                                "text-[8px] font-bold px-1.5 py-0.5 rounded-full transition-colors",
-                                                                                !variant.useParentPrice ? "bg-[var(--primary)] text-white" : "bg-[var(--border)] text-[var(--text)]/40"
-                                                                            )}
-                                                                        >
-                                                                            {!variant.useParentPrice ? "PROPIO" : "GLOBAL"}
-                                                                        </button>
+                                                                        <div className="flex gap-1">
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    setVariants(prev => {
+                                                                                        const next = [...prev];
+                                                                                        if (next[idx]) next[idx] = { ...next[idx], useParentPrice: true, price: null };
+                                                                                        return next;
+                                                                                    });
+                                                                                }}
+                                                                                className={cn(
+                                                                                    "text-[8px] font-bold px-1.5 py-0.5 rounded-full transition-colors",
+                                                                                    variant.useParentPrice ? "bg-blue-500 text-white" : "bg-[var(--border)] text-[var(--text)]/40"
+                                                                                )}
+                                                                            >
+                                                                                GLOBAL
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    setVariants(prev => {
+                                                                                        const next = [...prev];
+                                                                                        if (next[idx]) next[idx] = { ...next[idx], useParentPrice: false, price: 0 };
+                                                                                        return next;
+                                                                                    });
+                                                                                }}
+                                                                                className={cn(
+                                                                                    "text-[8px] font-bold px-1.5 py-0.5 rounded-full transition-colors",
+                                                                                    (!variant.useParentPrice && variant.price != null) ? "bg-[var(--primary)] text-white" : "bg-[var(--border)] text-[var(--text)]/40"
+                                                                                )}
+                                                                            >
+                                                                                PROPIO
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    setVariants(prev => {
+                                                                                        const next = [...prev];
+                                                                                        if (next[idx]) next[idx] = { ...next[idx], useParentPrice: false, price: null };
+                                                                                        return next;
+                                                                                    });
+                                                                                }}
+                                                                                className={cn(
+                                                                                    "text-[8px] font-bold px-1.5 py-0.5 rounded-full transition-colors",
+                                                                                    (!variant.useParentPrice && variant.price == null) ? "bg-orange-500 text-white" : "bg-[var(--border)] text-[var(--text)]/40"
+                                                                                )}
+                                                                            >
+                                                                                CONSULTAR
+                                                                            </button>
+                                                                        </div>
                                                                     </div>
-                                                                    {!variant.useParentPrice ? (
+                                                                    {variant.useParentPrice ? (
+                                                                        <div className="py-3 px-4 rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg)]/50 text-[var(--text)]/40 text-[10px] font-bold flex items-center gap-1.5 h-[46px]">
+                                                                            <DollarSign className="w-3 h-3 text-blue-500" /> {price || '0.00'}
+                                                                        </div>
+                                                                    ) : variant.price != null ? (
                                                                         <div className="relative animate-in fade-in slide-in-from-top-1 duration-200">
                                                                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text)]/40 font-bold text-xs">$</span>
                                                                             <input
@@ -743,7 +840,7 @@ function ProductsContent() {
                                                                                 onChange={(e) => {
                                                                                     setVariants(prev => {
                                                                                         const next = [...prev];
-                                                                                        if (next[idx]) next[idx] = { ...next[idx], price: parseFloat(e.target.value) || null };
+                                                                                        if (next[idx]) next[idx] = { ...next[idx], price: parseFloat(e.target.value) || 0 };
                                                                                         return next;
                                                                                     });
                                                                                 }}
@@ -751,8 +848,8 @@ function ProductsContent() {
                                                                             />
                                                                         </div>
                                                                     ) : (
-                                                                        <div className="py-3 px-4 rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg)]/50 text-[var(--text)]/40 text-[10px] font-bold flex items-center gap-1.5 h-[46px]">
-                                                                            <DollarSign className="w-3 h-3 text-[var(--primary)]" /> {price || '0.00'}
+                                                                        <div className="py-3 px-4 rounded-xl border border-dashed border-orange-500/30 bg-orange-500/5 text-orange-600 text-[10px] font-bold flex items-center gap-1.5 h-[46px]">
+                                                                            💬 Consultar precio
                                                                         </div>
                                                                     )}
                                                                 </div>
@@ -899,24 +996,62 @@ function ProductsContent() {
                                                                 <div className="space-y-2">
                                                                     <div className="flex justify-between items-center">
                                                                         <label className="text-[10px] font-black uppercase text-[var(--text)]/40">Precio</label>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => {
-                                                                                setVariants(prev => {
-                                                                                    const next = [...prev];
-                                                                                    if (next[idx]) next[idx] = { ...next[idx], useParentPrice: !next[idx].useParentPrice };
-                                                                                    return next;
-                                                                                });
-                                                                            }}
-                                                                            className={cn(
-                                                                                "text-[8px] font-bold px-1.5 py-0.5 rounded-full",
-                                                                                !variant.useParentPrice ? "bg-[var(--primary)] text-white" : "bg-[var(--border)] text-[var(--text)]/40"
-                                                                            )}
-                                                                        >
-                                                                            {!variant.useParentPrice ? "PROPIO" : "GLOBAL"}
-                                                                        </button>
+                                                                        <div className="flex gap-1">
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    setVariants(prev => {
+                                                                                        const next = [...prev];
+                                                                                        if (next[idx]) next[idx] = { ...next[idx], useParentPrice: true, price: null };
+                                                                                        return next;
+                                                                                    });
+                                                                                }}
+                                                                                className={cn(
+                                                                                    "text-[8px] font-bold px-1.5 py-0.5 rounded-full",
+                                                                                    variant.useParentPrice ? "bg-blue-500 text-white" : "bg-[var(--border)] text-[var(--text)]/40"
+                                                                                )}
+                                                                            >
+                                                                                GLOBAL
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    setVariants(prev => {
+                                                                                        const next = [...prev];
+                                                                                        if (next[idx]) next[idx] = { ...next[idx], useParentPrice: false, price: 0 };
+                                                                                        return next;
+                                                                                    });
+                                                                                }}
+                                                                                className={cn(
+                                                                                    "text-[8px] font-bold px-1.5 py-0.5 rounded-full",
+                                                                                    (!variant.useParentPrice && variant.price != null) ? "bg-[var(--primary)] text-white" : "bg-[var(--border)] text-[var(--text)]/40"
+                                                                                )}
+                                                                            >
+                                                                                PROPIO
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    setVariants(prev => {
+                                                                                        const next = [...prev];
+                                                                                        if (next[idx]) next[idx] = { ...next[idx], useParentPrice: false, price: null };
+                                                                                        return next;
+                                                                                    });
+                                                                                }}
+                                                                                className={cn(
+                                                                                    "text-[8px] font-bold px-1.5 py-0.5 rounded-full",
+                                                                                    (!variant.useParentPrice && variant.price == null) ? "bg-orange-500 text-white" : "bg-[var(--border)] text-[var(--text)]/40"
+                                                                                )}
+                                                                            >
+                                                                                CONSULTAR
+                                                                            </button>
+                                                                        </div>
                                                                     </div>
-                                                                    {!variant.useParentPrice ? (
+                                                                    {variant.useParentPrice ? (
+                                                                        <div className="py-3 px-3 rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg)]/50 text-[var(--text)]/40 text-[10px] font-bold flex items-center gap-1 h-[50px]">
+                                                                            <DollarSign className="w-3 h-3 text-blue-500" /> {price || '0.00'}
+                                                                        </div>
+                                                                    ) : variant.price != null ? (
                                                                         <div className="relative">
                                                                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text)]/40 font-bold text-xs">$</span>
                                                                             <input
@@ -926,7 +1061,7 @@ function ProductsContent() {
                                                                                 onChange={(e) => {
                                                                                     setVariants(prev => {
                                                                                         const next = [...prev];
-                                                                                        if (next[idx]) next[idx] = { ...next[idx], price: parseFloat(e.target.value) || null };
+                                                                                        if (next[idx]) next[idx] = { ...next[idx], price: parseFloat(e.target.value) || 0 };
                                                                                         return next;
                                                                                     });
                                                                                 }}
@@ -934,8 +1069,8 @@ function ProductsContent() {
                                                                             />
                                                                         </div>
                                                                     ) : (
-                                                                        <div className="py-3 px-3 rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg)]/50 text-[var(--text)]/40 text-[10px] font-bold flex items-center gap-1 h-[50px]">
-                                                                            <DollarSign className="w-3 h-3 text-[var(--primary)]" /> {price || '0.00'}
+                                                                        <div className="py-3 px-3 rounded-xl border border-dashed border-orange-500/30 bg-orange-500/5 text-orange-600 text-[10px] font-bold flex items-center gap-1 h-[50px]">
+                                                                            💬 Consultar precio
                                                                         </div>
                                                                     )}
                                                                 </div>

@@ -49,7 +49,7 @@ export interface Product {
     id: string;
     name: string;
     description?: string | null;
-    price: number;
+    price?: number | null;
     discountPrice?: number | null;
     images?: string[];
     isActive: boolean;
