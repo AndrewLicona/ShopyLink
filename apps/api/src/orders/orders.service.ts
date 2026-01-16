@@ -9,24 +9,24 @@ import { createHash } from 'crypto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { decrypt } from '../common/encryption.util';
+import {
+  Prisma,
+  Product,
+  Inventory,
+  ProductVariant,
+  OrderItem,
+} from '@repo/database';
+
+type ProductWithDetails = Product & {
+  inventory: Inventory | null;
+  variants: ProductVariant[];
+};
 
 interface StoreWithDetails {
   id: string;
   name: string | null;
   whatsappNumber?: string | null;
   slug?: string;
-}
-
-interface ProductWithInventory {
-  id: string;
-  name: string;
-  price: any;
-  discountPrice?: any;
-  sku?: string | null;
-  trackInventory: boolean;
-  inventory?: {
-    stock: number;
-  } | null;
 }
 
 @Injectable()
@@ -47,8 +47,8 @@ export class OrdersService {
     const productIds = items.map((i) => i.productId);
     const products = (await this.prisma.product.findMany({
       where: { id: { in: productIds }, storeId },
-      include: { inventory: true, variants: true } as any,
-    })) as any[]; // Using any to avoid type errors until client is regenerated
+      include: { inventory: true, variants: true },
+    })) as ProductWithDetails[];
 
     if (products.length !== productIds.length) {
       throw new BadRequestException(
@@ -79,7 +79,7 @@ export class OrdersService {
       // Check Variant first
       if (itemDto.variantId) {
         const variant = product.variants.find(
-          (v: any) => v.id === itemDto.variantId,
+          (v) => v.id === itemDto.variantId,
         );
         if (!variant)
           throw new BadRequestException(
@@ -129,29 +129,31 @@ export class OrdersService {
     }
 
     // 4. Create Order
-    const order = await this.prisma.$transaction(async (tx: any) => {
-      const hashedPhone = customerPhone
-        ? createHash('sha256').update(customerPhone).digest('hex')
-        : null;
+    const order = await this.prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        const hashedPhone = customerPhone
+          ? createHash('sha256').update(customerPhone).digest('hex')
+          : null;
 
-      // Create Order
-      const newOrder = await tx.order.create({
-        data: {
-          storeId,
-          customerName,
-          customerPhone: hashedPhone,
-          customerAddress,
-          total,
-          status: 'PENDING',
-          items: {
-            create: orderItemsData,
+        // Create Order
+        const newOrder = await tx.order.create({
+          data: {
+            storeId,
+            customerName,
+            customerPhone: hashedPhone,
+            customerAddress,
+            total,
+            status: 'PENDING',
+            items: {
+              create: orderItemsData,
+            },
           },
-        },
-        include: { items: true },
-      });
+          include: { items: true },
+        });
 
-      return newOrder;
-    });
+        return newOrder as typeof newOrder & { items: OrderItem[] };
+      },
+    );
 
     // 5. Generate WhatsApp Link
     const orderForWhatsApp = {
@@ -159,7 +161,7 @@ export class OrdersService {
       customerName: order.customerName,
       customerAddress: order.customerAddress,
       total: Number(order.total),
-      items: (order.items || []).map((i: any) => ({
+      items: (order.items || []).map((i) => ({
         quantity: i.quantity,
         productName: i.productName,
         sku: i.sku || null,

@@ -20,7 +20,6 @@ export default function SettingsPage() {
     // Profile State
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [id, setId] = useState('');
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [username, setUsername] = useState('');
@@ -72,7 +71,6 @@ export default function SettingsPage() {
             const supabase = createClient();
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
-                setId(session.user.id);
                 setEmail(session.user.email || '');
                 setFullName(session.user.user_metadata?.full_name || '');
                 setUsername(session.user.user_metadata?.username || '');
