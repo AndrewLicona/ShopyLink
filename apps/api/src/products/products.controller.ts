@@ -19,7 +19,7 @@ import { RequestWithUser } from '../auth/interfaces/user.interface';
 
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(private readonly productsService: ProductsService) { }
 
   @UseGuards(JwtAuthGuard)
   @Post()
@@ -48,6 +48,7 @@ export class ProductsController {
     @Param('id') id: string,
     @Body() updateProductDto: UpdateProductDto,
   ) {
+    console.log('Update Payload:', JSON.stringify(updateProductDto, null, 2));
     const userId = req.user.sub;
     return this.productsService.update(id, userId, updateProductDto);
   }

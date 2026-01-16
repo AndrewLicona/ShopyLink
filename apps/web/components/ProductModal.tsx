@@ -12,7 +12,8 @@ import {
     ShoppingBag,
     Share2,
     Check,
-    AlertCircle
+    AlertCircle,
+    MessageCircle
 } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 import type { Product, Category, Store } from '@/lib/types';
@@ -78,14 +79,20 @@ export function ProductModal({
         setTimeout(() => setStockAlert({ show: false, message: '' }), 3000);
     };
 
-    const getEffectivePrice = () => {
+    const getEffectivePrice = (): number | null => {
         const variant = selectedProduct.variants?.find(v => v.id === selectedVariantId);
-        let price = Number(selectedProduct.discountPrice || selectedProduct.price);
+
+        // Caso base: Precio del producto padre (puede ser null)
+        let price: number | null = selectedProduct.discountPrice ?? selectedProduct.price ?? null;
+
         if (variant) {
-            price = variant.useParentPrice
-                ? Number(selectedProduct.discountPrice || selectedProduct.price)
-                : Number(variant.price);
+            // Si usa precio padre, mantenemos el precio base calculado arriba
+            // Si NO usa precio padre, usamos el precio de la variante (que puede ser null -> Consultar)
+            if (!variant.useParentPrice) {
+                price = variant.price !== null ? Number(variant.price) : null;
+            }
         }
+
         return price;
     };
 
@@ -114,13 +121,21 @@ export function ProductModal({
         return entries.reduce((total, [key, qty]) => {
             const vId = key === 'base' ? null : key;
             const v = selectedProduct.variants?.find(v => v.id === vId);
-            let price = Number(selectedProduct.discountPrice || selectedProduct.price);
+
+            // Precio base (puede ser null)
+            let price = selectedProduct.discountPrice ?? selectedProduct.price ?? null;
+
             if (v) {
-                price = v.useParentPrice
-                    ? Number(selectedProduct.discountPrice || selectedProduct.price)
-                    : Number(v.price);
+                // Si la variante tiene precio propio
+                if (!v.useParentPrice) {
+                    price = v.price; // puede ser null
+                }
+                // Si useParentPrice es true, se mantiene el precio base calculado arriba
             }
-            return total + (price * qty);
+
+            // Si el precio final es null, asumimos 0 para no romper el cálculo, 
+            // aunque idealmente esta función no se usaría visualmente si es "Consultar"
+            return total + ((price ?? 0) * qty);
         }, 0);
     };
 
@@ -143,7 +158,8 @@ export function ProductModal({
                 </div>
             )}
 
-            <div className="bg-[var(--bg)] w-full md:max-w-4xl h-auto max-h-[90vh] rounded-[2rem] md:rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col md:grid md:grid-cols-2 md:border border-[var(--border)] relative">
+            {/* Modal Container: Fixed height to force internal scrolling */}
+            <div className="bg-[var(--bg)] w-full md:max-w-4xl h-[90vh] md:h-[85vh] rounded-[2rem] md:rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col md:grid md:grid-cols-2 md:border border-[var(--border)] relative">
                 {/* Header for Mobile: Close */}
                 <div className="md:hidden absolute top-4 right-4 z-50">
                     <button
@@ -155,7 +171,7 @@ export function ProductModal({
                 </div>
 
                 {/* Left Side: Images Gallery */}
-                <div className="w-full h-auto md:h-full bg-white flex items-center justify-center relative aspect-square md:aspect-[4/5] overflow-hidden">
+                <div className="w-full h-64 md:h-full shrink-0 bg-white flex items-center justify-center relative md:aspect-[4/5] overflow-hidden">
                     {displayImages.length === 0 ? (
                         <div className="h-full flex items-center justify-center text-gray-200">
                             <ShoppingBag className="w-20 h-20" />
@@ -182,13 +198,22 @@ export function ProductModal({
                                 touchStartX.current = null;
                             }}
                         >
+                            {/* Ambient Blur Background (Fills whitespace) */}
+                            <Image
+                                src={displayImages[currentImageIndex] || displayImages[0] || ''}
+                                alt="Ambient Background"
+                                fill
+                                className="object-cover scale-10"
+                                priority
+                            />
+
+                            {/* Main Image */}
                             <Image
                                 src={displayImages[currentImageIndex] || displayImages[0] || ''}
                                 alt={selectedProduct.name}
                                 fill
-                                className="object-cover"
+                                className="object-cover relative z-10"
                                 priority
-                                sizes="(max-width: 768px) 100vw, 40vw"
                             />
 
                             {displayImages.length > 1 && (
@@ -227,8 +252,9 @@ export function ProductModal({
                 </div>
 
                 {/* Right Side: Details */}
-                <div className="w-full p-6 sm:p-8 flex flex-col h-full overflow-y-auto custom-scrollbar bg-[var(--bg)] border-t md:border-t-0 md:border-l border-[var(--border)]">
-                    <div className="flex items-center justify-end gap-2 mb-4">
+                <div className="w-full flex flex-col flex-1 md:h-full min-h-0 bg-[var(--bg)] border-t md:border-t-0 md:border-l border-[var(--border)]">
+                    {/* Header: Share & Close (Fixed at top of details) */}
+                    <div className="flex items-center justify-end gap-2 p-4 sm:p-6 pb-2 shrink-0">
                         <button
                             onClick={async () => {
                                 const url = `${window.location.origin}${window.location.pathname}?p=${selectedProduct.id}`;
@@ -290,163 +316,195 @@ export function ProductModal({
                         </button>
                     </div>
 
-                    <div className="flex-1 space-y-6">
-                        <div className="space-y-6">
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-2">
-                                    {selectedProduct.sku && (
-                                        <span className="bg-[var(--primary)] text-[var(--primary-foreground)] px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest">
-                                            #{selectedProduct.sku}
-                                        </span>
-                                    )}
-                                    {selectedProduct.categoryId && (
-                                        <span className="text-[var(--primary)] font-black text-[10px] uppercase tracking-[0.2em]">
-                                            {categories.find(c => c.id === selectedProduct.categoryId)?.name}
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="space-y-1">
-                                    <h2 className="text-2xl sm:text-3xl font-black text-[var(--text)] leading-tight tracking-tight">
-                                        {selectedProduct.name}
-                                    </h2>
-                                    <div className="flex items-center gap-4">
-                                        {(() => {
-                                            const price = selectedProduct.price;
-                                            const discountPrice = selectedProduct.discountPrice;
-                                            const effectivePrice = getEffectivePrice();
+                    {/* Scrollable Content */}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-8 pt-0 space-y-6">
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2">
+                                {selectedProduct.sku && (
+                                    <span className="bg-[var(--primary)] text-[var(--primary-foreground)] px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest">
+                                        #{selectedProduct.sku}
+                                    </span>
+                                )}
+                                {selectedProduct.categoryId && (
+                                    <span className="text-[var(--primary)] font-black text-[10px] uppercase tracking-[0.2em]">
+                                        {categories.find(c => c.id === selectedProduct.categoryId)?.name}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="space-y-1">
+                                <h2 className="text-2xl sm:text-3xl font-black text-[var(--text)] leading-tight tracking-tight break-words">
+                                    {selectedProduct.name}
+                                </h2>
+                                <div className="flex items-center gap-4">
+                                    {(() => {
+                                        const price = selectedProduct.price;
+                                        const discountPrice = selectedProduct.discountPrice;
+                                        const effectivePrice = getEffectivePrice();
 
-                                            if (discountPrice && !selectedVariantId) {
-                                                return (
-                                                    <>
-                                                        <span className="text-2xl font-black text-green-600">
-                                                            {formatCurrency(discountPrice)}
-                                                        </span>
-                                                        <span className="text-xl font-bold text-gray-400 line-through decoration-red-500/50">
-                                                            {formatCurrency(price)}
-                                                        </span>
-                                                    </>
-                                                );
-                                            }
+                                        // Si no hay precio efectivo (es null) -> Mostrar "Consultar Precio" en azul
+                                        if (effectivePrice === null) {
                                             return (
-                                                <p className="text-2xl font-black text-[var(--primary)]">
-                                                    {formatCurrency(effectivePrice)}
+                                                <p className="text-2xl font-black text-blue-600">
+                                                    Consultar Precio
                                                 </p>
                                             );
-                                        })()}
-                                    </div>
-                                </div>
-                            </div>
+                                        }
 
-                            {/* Variant Selector */}
-                            {selectedProduct.variants && selectedProduct.variants.length > 0 && (
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-1 h-4 bg-[var(--primary)] rounded-full"></div>
-                                        <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text)]">Opciones</h3>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        <button
-                                            onClick={() => {
-                                                setSelectedVariantId(null);
-                                            }}
-                                            className={cn(
-                                                "px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all duration-200",
-                                                !selectedVariantId
-                                                    ? "bg-[var(--primary)] border-[var(--primary)] text-[var(--primary-foreground)] shadow-lg shadow-[var(--primary)]/20 scale-105"
-                                                    : "bg-[var(--secondary)] border-transparent text-[var(--text)] hover:border-[var(--border)]"
-                                            )}
-                                        >
-                                            Principal
-                                        </button>
-                                        {selectedProduct.variants.map((v) => (
-                                            <button
-                                                key={v.id}
-                                                onClick={() => {
-                                                    setSelectedVariantId(v.id);
-                                                }}
-                                                className={cn(
-                                                    "px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all duration-200",
-                                                    selectedVariantId === v.id
-                                                        ? "bg-[var(--primary)] border-[var(--primary)] text-[var(--primary-foreground)] shadow-lg shadow-[var(--primary)]/20 scale-105"
-                                                        : "bg-[var(--secondary)] border-transparent text-[var(--text)] hover:border-[var(--border)]"
-                                                )}
-                                            >
-                                                {v.name}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                                        // Si hay descuento y no hay variante seleccionada (caso simple)
+                                        // TODO: Podríamos refinar esto para variantes también si tienen descuento propio (futura mejora)
+                                        if (discountPrice && !selectedVariantId) {
+                                            return (
+                                                <>
+                                                    <span className="text-2xl font-black text-green-600">
+                                                        {formatCurrency(discountPrice)}
+                                                    </span>
+                                                    <span className="text-xl font-bold text-gray-400 line-through decoration-red-500/50">
+                                                        {formatCurrency(price ?? 0)}
+                                                    </span>
+                                                </>
+                                            );
+                                        }
 
-                            {selectedProduct.description && (
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-1 h-4 bg-[var(--primary)] rounded-full"></div>
-                                        <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text)]">Descripción</h3>
-                                    </div>
-                                    <p className="text-[var(--text)]/60 font-medium leading-relaxed text-base sm:text-lg italic">
-                                        {selectedProduct.description}
-                                    </p>
-                                </div>
-                            )}
-
-                            <div className="flex items-center justify-between p-6 bg-[var(--secondary)] rounded-[2.5rem] border border-[var(--border)]">
-                                <div className="space-y-1">
-                                    <p className="text-[10px] font-black text-[var(--text)]/40 uppercase tracking-widest">
-                                        {selectedProduct.trackInventory ? 'Disponibilidad' : 'Status'}
-                                    </p>
-                                    <div className="flex items-center gap-2">
-                                        <div className={cn("w-2 h-2 rounded-full animate-pulse", selectedProduct.trackInventory ? "bg-green-500" : "bg-blue-500")}></div>
-                                        <p className="font-black text-[var(--text)]">
-                                            {(() => {
-                                                if (!selectedProduct.trackInventory) return "Disponible por pedido";
-                                                const variantStock = selectedProduct.variants?.find(v => v.id === selectedVariantId);
-                                                if (variantStock && !variantStock.useParentStock) {
-                                                    return `${variantStock.stock} unidades`;
-                                                }
-                                                return `${selectedProduct.inventory?.stock ?? '0'} unidades`;
-                                            })()}
-                                        </p>
-                                    </div>
-                                    {inCartQty > 0 && (
-                                        <p className="text-[9px] font-bold text-green-600 mt-1 uppercase tracking-tighter">
-                                            Ya tienes {inCartQty} en el carrito
-                                        </p>
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-5 bg-[var(--surface)] p-2 rounded-2xl shadow-sm border border-[var(--border)]">
-                                    <button
-                                        onClick={() => setQty(Math.max(1, currentQty - 1))}
-                                        className="w-10 h-10 md:w-12 md:h-10 flex items-center justify-center rounded-xl bg-[var(--secondary)] hover:bg-[var(--border)] text-[var(--text)] transition-all active:scale-90 border border-[var(--border)]/50"
-                                    >
-                                        <Minus className="w-4 h-4 md:w-5 md:h-5" />
-                                    </button>
-                                    <span className="w-6 md:w-8 text-center font-black text-xl md:text-2xl text-[var(--surface-text)]">{currentQty}</span>
-                                    <button
-                                        onClick={() => {
-                                            if (!selectedProduct.trackInventory) {
-                                                setQty(currentQty + 1);
-                                                return;
-                                            }
-                                            const v = selectedProduct.variants?.find(v => v.id === selectedVariantId);
-                                            const available = (v && !v.useParentStock)
-                                                ? v.stock
-                                                : (selectedProduct.inventory?.stock ?? 0);
-                                            if (currentQty < available) {
-                                                setQty(currentQty + 1);
-                                            } else {
-                                                showMessage(`Solo hay ${available} disponibles.`);
-                                            }
-                                        }}
-                                        className="w-10 h-10 md:w-12 md:h-10 flex items-center justify-center rounded-xl bg-[var(--secondary)] hover:bg-[var(--border)] text-[var(--text)] transition-all active:scale-90 border border-[var(--border)]/50"
-                                    >
-                                        <Plus className="w-4 h-4 md:w-5 md:h-5" />
-                                    </button>
+                                        return (
+                                            <p className="text-2xl font-black text-[var(--primary)]">
+                                                {formatCurrency(effectivePrice)}
+                                            </p>
+                                        );
+                                    })()}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="pt-6 mt-auto">
+                        {/* Variant Selector */}
+                        {selectedProduct.variants && selectedProduct.variants.length > 0 && (
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1 h-4 bg-[var(--primary)] rounded-full"></div>
+                                    <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text)]">Opciones</h3>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        onClick={() => {
+                                            setSelectedVariantId(null);
+                                        }}
+                                        className={cn(
+                                            "px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all duration-200",
+                                            !selectedVariantId
+                                                ? "bg-[var(--primary)] border-[var(--primary)] text-[var(--primary-foreground)] shadow-lg shadow-[var(--primary)]/20 scale-105"
+                                                : "bg-[var(--secondary)] border-transparent text-[var(--text)] hover:border-[var(--border)]"
+                                        )}
+                                    >
+                                        Principal
+                                    </button>
+                                    {selectedProduct.variants.map((v) => (
+                                        <button
+                                            key={v.id}
+                                            onClick={() => {
+                                                setSelectedVariantId(v.id);
+                                            }}
+                                            className={cn(
+                                                "px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all duration-200",
+                                                selectedVariantId === v.id
+                                                    ? "bg-[var(--primary)] border-[var(--primary)] text-[var(--primary-foreground)] shadow-lg shadow-[var(--primary)]/20 scale-105"
+                                                    : "bg-[var(--secondary)] border-transparent text-[var(--text)] hover:border-[var(--border)]"
+                                            )}
+                                        >
+                                            {v.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Minimalist Stock & Quantity Selector (Moved Up) */}
+                        <div className="bg-[var(--secondary)]/50 p-4 rounded-[2rem] flex items-center justify-between border border-[var(--border)]/50">
+                            <div className="pl-2">
+                                <p className="text-[9px] font-black text-[var(--text)]/30 uppercase tracking-[0.2em] mb-1">
+                                    {selectedProduct.trackInventory ? 'Disponibilidad' : 'Estado'}
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <div className={cn("w-2 h-2 rounded-full", selectedProduct.trackInventory ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" : "bg-blue-500")}></div>
+                                    <p className="font-black text-sm text-[var(--text)]">
+                                        {(() => {
+                                            if (!selectedProduct.trackInventory) return "Disponible";
+                                            const variantStock = selectedProduct.variants?.find(v => v.id === selectedVariantId);
+                                            if (variantStock && !variantStock.useParentStock) {
+                                                return `${variantStock.stock} unid.`;
+                                            }
+                                            return `${selectedProduct.inventory?.stock ?? '0'} unid.`;
+                                        })()}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="bg-[var(--bg)] p-1.5 rounded-full shadow-sm border border-[var(--border)]/50 flex items-center gap-3">
+                                <button
+                                    onClick={() => setQty(Math.max(1, currentQty - 1))}
+                                    className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--secondary)] hover:bg-[var(--border)] text-[var(--text)] transition-all active:scale-90"
+                                >
+                                    <Minus className="w-3 h-3" />
+                                </button>
+                                <span className="w-4 text-center font-black text-lg text-[var(--text)]">{currentQty}</span>
+                                <button
+                                    onClick={() => {
+                                        if (!selectedProduct.trackInventory) {
+                                            setQty(currentQty + 1);
+                                            return;
+                                        }
+                                        const v = selectedProduct.variants?.find(v => v.id === selectedVariantId);
+                                        const available = (v && !v.useParentStock)
+                                            ? v.stock
+                                            : (selectedProduct.inventory?.stock ?? 0);
+                                        if (currentQty < available) {
+                                            setQty(currentQty + 1);
+                                        } else {
+                                            showMessage(`Máx ${available}`);
+                                        }
+                                    }}
+                                    className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--secondary)] hover:bg-[var(--border)] text-[var(--text)] transition-all active:scale-90"
+                                >
+                                    <Plus className="w-3 h-3" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {selectedProduct.description && (
+                            <div className="space-y-4 px-2">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1 h-3 bg-[var(--primary)] rounded-full"></div>
+                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--text)]/50">Detalles</h3>
+                                </div>
+                                <p className="text-[var(--text)]/70 font-medium leading-relaxed text-sm break-words whitespace-pre-line">
+                                    {selectedProduct.description}
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Footer Action Button (Fixed by Flex) */}
+                    <div className="p-6 pt-4 mt-auto border-t border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur-sm z-10">
+                        {getEffectivePrice() === null ? (
+                            <a
+                                href={(() => {
+                                    const variant = selectedProduct.variants?.find(v => v.id === selectedVariantId);
+                                    const sku = variant?.sku || selectedProduct.sku;
+                                    const url = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}?p=${selectedProduct.id}` : '';
+
+                                    let message = `Hola, me interesa saber el precio de: *${selectedProduct.name}*`;
+                                    if (variant) message += ` (${variant.name})`;
+                                    if (sku) message += `\nCódigo: ${sku}`;
+                                    message += `\nVer aquí: ${url}`;
+
+                                    return `https://wa.me/${store?.whatsappNumber?.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+                                })()}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-full bg-green-500 text-white py-4 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-lg md:text-xl flex items-center justify-center gap-3 hover:bg-green-600 hover:scale-[1.02] transition-all shadow-xl active:scale-[0.98]"
+                            >
+                                <MessageCircle className="w-5 h-5 md:w-6 md:h-6" />
+                                Consultar por WhatsApp
+                            </a>
+                        ) : (
                             <button
                                 onClick={handleAddToCart}
                                 className="w-full bg-[var(--primary)] text-[var(--primary-foreground)] py-4 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-lg md:text-xl flex items-center justify-center gap-3 hover:scale-[1.02] transition-all shadow-xl active:scale-[0.98]"
@@ -454,7 +512,7 @@ export function ProductModal({
                                 <ShoppingCart className="w-5 h-5 md:w-6 md:h-6" />
                                 Añadir {finalEntriesCount > 1 ? `(${finalEntriesCount} tipos)` : ''} • {formatCurrency(getTotalSessionPrice())}
                             </button>
-                        </div>
+                        )}
                     </div>
                 </div>
             </div>
