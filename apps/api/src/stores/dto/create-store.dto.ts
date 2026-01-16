@@ -16,6 +16,10 @@ export class CreateStoreDto {
   })
   slug: string;
 
+  @IsBoolean()
+  @IsOptional()
+  autoGenerateSlug?: boolean;
+
   @IsOptional()
   @IsString()
   description?: string;

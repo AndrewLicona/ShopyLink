@@ -2,6 +2,7 @@ export interface Store {
     id: string;
     name: string;
     slug: string;
+    autoGenerateSlug?: boolean;
     logoUrl?: string | null;
     primaryColor?: string | null;
     whatsappNumber?: string | null;

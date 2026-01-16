@@ -34,6 +34,7 @@ export default function SettingsPage() {
     // Store State
     const [storeName, setStoreName] = useState('');
     const [storeSlug, setStoreSlug] = useState('');
+    const [autoGenerateSlug, setAutoGenerateSlug] = useState(true);
     const [hasManuallyEditedSlug, setHasManuallyEditedSlug] = useState(false);
     const [suggestedSlug, setSuggestedSlug] = useState<string | null>(null);
     const [storeLogo, setStoreLogo] = useState('');
@@ -89,6 +90,7 @@ export default function SettingsPage() {
             if (activeStore) {
                 setStoreName(activeStore.name || '');
                 setStoreSlug(activeStore.slug || '');
+                setAutoGenerateSlug((activeStore as any).autoGenerateSlug ?? true);
                 setStoreLogo(activeStore.logoUrl || '');
                 setWhatsapp(activeStore.whatsappNumber || '');
 
@@ -174,7 +176,7 @@ export default function SettingsPage() {
         setStoreName(newName);
         setSuggestedSlug(null);
 
-        if (!hasManuallyEditedSlug) {
+        if (autoGenerateSlug) {
             const newSlug = newName
                 .toLowerCase()
                 .normalize("NFD")
@@ -197,6 +199,7 @@ export default function SettingsPage() {
             await api.updateStore(activeStore.id, {
                 name: storeName,
                 slug: storeSlug,
+                autoGenerateSlug: autoGenerateSlug,
                 logoUrl: storeLogo,
                 whatsappNumber: whatsapp,
 
@@ -391,6 +394,7 @@ export default function SettingsPage() {
                     <StoreTab
                         storeName={storeName} setStoreName={handleNameChange}
                         storeSlug={storeSlug} setStoreSlug={(val) => { setStoreSlug(val); setHasManuallyEditedSlug(true); }}
+                        autoGenerateSlug={autoGenerateSlug} setAutoGenerateSlug={setAutoGenerateSlug}
                         suggestedSlug={suggestedSlug} setSuggestedSlug={setSuggestedSlug}
                         storeLogo={storeLogo}
                         whatsapp={whatsapp} setWhatsapp={setWhatsapp}
