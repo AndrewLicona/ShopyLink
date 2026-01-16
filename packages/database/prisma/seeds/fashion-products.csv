@@ -1,0 +1,21 @@
+name,description,price,discountPrice,sku,category,stock
+Camiseta Básica Blanca,Camiseta de algodón 100% suave y cómoda,25000,,CAM-BAS-WHT-001,Camisetas,50
+Camiseta Negra Premium,Camiseta de algodón premium con corte moderno,35000,28000,CAM-PREM-BLK-001,Camisetas,30
+Camiseta Estampada,Diseño exclusivo con estampado artístico,40000,,CAM-EST-001,Camisetas,20
+Camiseta Deportiva,Tela transpirable ideal para ejercicio,45000,38000,CAM-DEP-001,Camisetas,40
+Camiseta Polo,Elegante polo para ocasiones casuales,50000,,CAM-POLO-001,Camisetas,25
+Jean Clásico Azul,Jean de mezclilla resistente y cómodo,80000,,PAN-JEAN-BLU-001,Pantalones,35
+Pantalón Chino Beige,Pantalón elegante para uso diario,75000,60000,PAN-CHI-BEI-001,Pantalones,28
+Pantalón Deportivo,Cómodo y flexible para actividades físicas,55000,,PAN-DEP-001,Pantalones,45
+Short Casual,Perfecto para clima cálido,45000,,PAN-SHO-001,Pantalones,30
+Pantalón Formal Negro,Elegante para ocasiones especiales,90000,75000,PAN-FOR-BLK-001,Pantalones,20
+Zapatillas Deportivas,Comodidad y estilo para tu día a día,120000,,ZAP-DEP-001,Zapatos,25
+Zapatos Casuales,Versátiles y cómodos,95000,80000,ZAP-CAS-001,Zapatos,30
+Botas de Cuero,Resistentes y elegantes,150000,,ZAP-BOT-001,Zapatos,15
+Sandalias de Verano,Frescas y cómodas,40000,,ZAP-SAN-001,Zapatos,40
+Zapatos Formales,Perfectos para eventos especiales,130000,110000,ZAP-FOR-001,Zapatos,18
+Gorra Deportiva,Protección solar con estilo,25000,,ACC-GOR-001,Accesorios,50
+Cinturón de Cuero,Accesorio elegante y duradero,35000,28000,ACC-CIN-001,Accesorios,35
+Mochila Urbana,Espaciosa y resistente,80000,,ACC-MOC-001,Accesorios,20
+Gafas de Sol,Protección UV con diseño moderno,60000,,ACC-GAF-001,Accesorios,30
+Reloj Deportivo,Resistente al agua,120000,95000,ACC-REL-001,Accesorios,15
