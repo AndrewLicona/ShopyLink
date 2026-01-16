@@ -1,0 +1,21 @@
+name,description,price,discountPrice,sku,category,stock
+Smartphone Pro Max,Última generación con cámara de 108MP,2500000,,PHONE-PRO-001,Smartphones,15
+Smartphone Lite,Rendimiento excepcional a precio accesible,800000,700000,PHONE-LITE-001,Smartphones,30
+Smartphone Gaming,Optimizado para juegos móviles,1800000,,PHONE-GAM-001,Smartphones,20
+Smartphone Plegable,Innovación en diseño y funcionalidad,3500000,3200000,PHONE-FOLD-001,Smartphones,8
+Smartphone Básico,Perfecto para uso diario,450000,,PHONE-BAS-001,Smartphones,40
+Laptop Gaming RGB,RTX 4070 32GB RAM 1TB SSD,5500000,,LAP-GAM-001,Laptops,10
+Laptop Ultrabook,Ligera y potente para profesionales,3800000,3500000,LAP-ULT-001,Laptops,15
+Laptop para Estudiantes,Rendimiento confiable a buen precio,1500000,,LAP-STU-001,Laptops,25
+Laptop Workstation,Para diseño y edición profesional,6500000,,LAP-WOR-001,Laptops,8
+Laptop 2 en 1,Convertible tablet y laptop,2800000,2500000,LAP-2IN1-001,Laptops,18
+Audífonos Inalámbricos Pro,Cancelación de ruido activa,450000,,AUD-PRO-001,Audio,30
+Earbuds Deportivos,Resistentes al agua y sudor,180000,150000,AUD-EAR-001,Audio,45
+Parlante Bluetooth,Sonido potente y portátil,250000,,AUD-PAR-001,Audio,35
+Barra de Sonido,Experiencia de cine en casa,800000,,AUD-BAR-001,Audio,12
+Micrófono USB,Calidad profesional para streaming,320000,280000,AUD-MIC-001,Audio,20
+Cargador Rápido 65W,Compatible con múltiples dispositivos,80000,,CAR-001,Accesorios Tech,50
+Cable USB-C Premium,Transferencia rápida y carga veloz,25000,,CAB-001,Accesorios Tech,100
+Mouse Gamer RGB,16000 DPI programable,150000,120000,MOU-001,Accesorios Tech,30
+Teclado Mecánico,Switches azules retroiluminado,280000,,TEC-001,Accesorios Tech,25
+Webcam Full HD,Perfecta para videollamadas,180000,,WEB-001,Accesorios Tech,35

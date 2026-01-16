@@ -1,0 +1,21 @@
+name,description,price,discountPrice,sku,category,stock
+Coca-Cola 1.5L,Refresco clásico,5000,,BEB-COC-001,Bebidas,100
+Jugo de Naranja Natural,100% natural sin azúcar añadida,8000,6500,BEB-JUG-001,Bebidas,50
+Agua Mineral 600ml,Agua purificada,2000,,BEB-AGU-001,Bebidas,200
+Café Frío Latte,Café con leche helado,12000,,BEB-CAF-001,Bebidas,30
+Té Helado Limón,Refrescante y natural,6000,,BEB-TE-001,Bebidas,60
+Papas Fritas Clásicas,Crujientes y saladas,4000,,SNA-PAP-001,Snacks,80
+Nachos con Queso,Con salsa de queso incluida,8000,6000,SNA-NAC-001,Snacks,40
+Palomitas de Maíz,Sabor mantequilla,5000,,SNA-PAL-001,Snacks,60
+Mix de Frutos Secos,Saludable y nutritivo,12000,,SNA-FRU-001,Snacks,35
+Galletas de Chocolate,Deliciosas y crujientes,6000,5000,SNA-GAL-001,Snacks,70
+Pizza Pepperoni Personal,Pizza individual recién horneada,18000,,COM-PIZ-001,Comidas,25
+Hamburguesa Clásica,Con queso lechuga y tomate,22000,18000,COM-HAM-001,Comidas,30
+Sándwich de Pollo,Pollo a la parrilla con vegetales,16000,,COM-SAN-001,Comidas,35
+Ensalada César,Fresca y saludable,15000,,COM-ENS-001,Comidas,20
+Tacos al Pastor,Orden de 3 tacos,20000,17000,COM-TAC-001,Comidas,28
+Helado de Vainilla,Cremoso y delicioso,8000,,POS-HEL-001,Postres,40
+Brownie de Chocolate,Con nueces y chispas de chocolate,10000,8000,POS-BRO-001,Postres,35
+Cheesecake de Fresa,Suave y cremoso,14000,,POS-CHE-001,Postres,20
+Donas Glaseadas,Pack de 6 donas,12000,,POS-DON-001,Postres,30
+Tiramisú,Postre italiano clásico,16000,13000,POS-TIR-001,Postres,15

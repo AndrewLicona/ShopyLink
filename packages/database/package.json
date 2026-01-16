@@ -5,11 +5,14 @@
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "scripts": {
-        "build": "tsc"
+        "build": "tsc",
+        "seed": "ts-node --transpile-only prisma/seed.ts",
+        "prisma": "prisma"
     },
     "devDependencies": {
         "@repo/typescript-config": "*",
         "prisma": "^7.2.0",
+        "ts-node": "^10.9.2",
         "typescript": "5.9.2"
     },
     "dependencies": {

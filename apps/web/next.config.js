@@ -3,6 +3,7 @@
 const nextConfig = {
     output: "standalone",
     images: {
+        unoptimized: true, // Allow data URLs and any external source
         remotePatterns: [
             {
                 protocol: 'https',
