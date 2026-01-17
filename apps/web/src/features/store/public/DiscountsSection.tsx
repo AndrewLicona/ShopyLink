@@ -9,15 +9,35 @@ interface DiscountsSectionProps {
     products: Product[];
     categories: Category[];
     onProductClick: (product: Product) => void;
+    categoryFilter?: string;
+    searchTerm?: string;
+    onViewAllDiscounts?: () => void;
 }
 
 export function DiscountsSection({
     products,
     categories,
-    onProductClick
+    onProductClick,
+    categoryFilter = 'all',
+    searchTerm = '',
+    onViewAllDiscounts
 }: DiscountsSectionProps) {
     // Filter products with discounts
-    const discountedProducts = products.filter(p => p.discountPrice && p.price);
+    let discountedProducts = products.filter(p => p.discountPrice && p.price);
+
+    // Apply category filter
+    if (categoryFilter && categoryFilter !== 'all') {
+        discountedProducts = discountedProducts.filter(p => p.categoryId === categoryFilter);
+    }
+
+    // Apply search filter
+    if (searchTerm.trim()) {
+        const search = searchTerm.toLowerCase();
+        discountedProducts = discountedProducts.filter(p =>
+            p.name.toLowerCase().includes(search) ||
+            p.description?.toLowerCase().includes(search)
+        );
+    }
 
     if (discountedProducts.length === 0) {
         return null;
@@ -32,19 +52,28 @@ export function DiscountsSection({
                         <Tag className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-black text-[var(--text)]">Ofertas Especiales</h2>
+                        <h2 className="text-xl font-black text-[var(--text)]">
+                            {categoryFilter !== 'all' || searchTerm ? 'Ofertas Filtradas' : 'Ofertas Especiales'}
+                        </h2>
                         <p className="text-xs text-[var(--text)]/60 font-medium">
-                            ¡Ahorra hasta {Math.max(...discountedProducts.map(p => {
-                                const saved = Math.round(((Number(p.price) - Number(p.discountPrice)) / Number(p.price)) * 100);
-                                return saved;
-                            }))}% en productos seleccionados!
+                            {discountedProducts.length > 0 ? (
+                                <>¡Ahorra hasta {Math.max(...discountedProducts.map(p => {
+                                    const saved = Math.round(((Number(p.price) - Number(p.discountPrice)) / Number(p.price)) * 100);
+                                    return saved;
+                                }))}% en productos seleccionados!</>
+                            ) : (
+                                'No hay ofertas en esta categoría'
+                            )}
                         </p>
                     </div>
                 </div>
-                <div className="hidden sm:flex items-center gap-1 text-xs font-bold text-green-500">
-                    {discountedProducts.length} ofertas
+                <button
+                    onClick={onViewAllDiscounts}
+                    className="hidden sm:flex items-center gap-1 text-xs font-bold text-green-500 hover:text-green-600 transition-colors px-3 py-2 rounded-xl hover:bg-green-50 dark:hover:bg-green-950/20"
+                >
+                    Ver todas
                     <ChevronRight className="w-4 h-4" />
-                </div>
+                </button>
             </div>
 
             {/* Horizontal scroll grid */}
@@ -105,7 +134,7 @@ export function DiscountsSection({
                                                 {formatCurrency(product.discountPrice!)}
                                             </span>
                                         </div>
-                                        <div className="text-[9px] font-black text-green-600 bg-green-100 dark:bg-green-950/50 px-2 py-0.5 rounded-md inline-block w-fit">
+                                        <div className="text-[9px] font-black text-white bg-green-500 px-2 py-1 rounded-md inline-block w-fit">
                                             Ahorras {formatCurrency(Number(product.price!) - Number(product.discountPrice!))}
                                         </div>
                                     </div>
