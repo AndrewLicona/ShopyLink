@@ -1,147 +1,250 @@
-# Turborepo starter
+# ShopyLink 🛍️
 
-This Turborepo starter is maintained by the Turborepo core team.
+**ShopyLink** es una plataforma SaaS moderna que permite a emprendedores y negocios crear y gestionar tiendas en línea de manera rápida y sencilla. Con un enfoque en la simplicidad y la experiencia del usuario, ShopyLink facilita la venta de productos a través de un enlace único, integrando WhatsApp como canal principal de pedidos.
 
-## Using this example
+## 🌟 Características Principales
 
-Run the following command:
+- **🏪 Gestión de Tiendas**: Crea y personaliza tu tienda con nombre, slug único y branding personalizado
+- **📦 Catálogo de Productos**: Administra productos con imágenes, variantes (tallas, colores), precios y stock
+- **🔄 Sistema de Variantes Inteligente**: 
+  - Control de precio por variante (Global, Propio, o Consultar precio)
+  - Gestión de stock independiente (Global, Propio, o Sin límite)
+  - Soporte para productos sin seguimiento de inventario
+- **💬 Integración con WhatsApp**: Los pedidos se envían directamente a WhatsApp con información detallada
+- **📊 Dashboard Completo**: Panel de control con estadísticas, gestión de pedidos y configuración
+- **🎨 Diseño Premium**: Interfaz moderna con glassmorphism, animaciones y temas optimizados
+- **📱 100% Responsive**: Experiencia optimizada para móvil, tablet y escritorio
+- **🔒 Autenticación Segura**: Sistema de autenticación con Supabase
+- **🏷️ Sistema de Categorías**: Organiza tus productos por categorías personalizadas
+- **🔍 Búsqueda y Filtros**: Encuentra productos rápidamente con búsqueda en tiempo real
+- **💰 Ofertas y Descuentos**: Sistema de precios promocionales con badges visuales
 
-```sh
-npx create-turbo@latest
-```
+## 🛠️ Stack Tecnológico
 
-## What's inside?
+### Frontend
+- **[Next.js 15](https://nextjs.org/)** - Framework React con App Router
+- **[TypeScript](https://www.typescriptlang.org/)** - Type safety
+- **[Tailwind CSS](https://tailwindcss.com/)** - Styling con variables CSS personalizadas
+- **[Lucide Icons](https://lucide.dev/)** - Iconos modernos
+- **[React Hooks Custom](https://react.dev/)** - Estado y lógica reutilizable
 
-This Turborepo includes the following packages/apps:
+### Backend
+- **[NestJS](https://nestjs.com/)** - Framework Node.js escalable y modular
+- **[Prisma](https://www.prisma.io/)** - ORM type-safe para PostgreSQL
+- **[PostgreSQL](https://www.postgresql.org/)** - Base de datos relacional
+- **[Supabase](https://supabase.com/)** - Backend as a Service (Auth, Storage, DB)
+- **[JWT](https://jwt.io/)** - Autenticación basada en tokens
+- **[Class Validator](https://github.com/typestack/class-validator)** - Validación de DTOs
 
-### Apps and Packages
+### Infraestructura
+- **[Turborepo](https://turbo.build/repo)** - Monorepo con caché inteligente
+- **[Docker](https://www.docker.com/)** - Containerización
+- **[Vercel](https://vercel.com/)** - Deployment del frontend
+- **[Railway/Render](https://railway.app/)** - Deployment del backend
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
-```
-
-You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+## 📁 Estructura del Proyecto
 
 ```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+ShopyLink/
+├── apps/
+│   ├── web/                    # Frontend Next.js
+│   │   ├── src/
+│   │   │   ├── app/           # App Router pages
+│   │   │   ├── features/      # Componentes por feature
+│   │   │   ├── hooks/         # Custom hooks
+│   │   │   ├── services/      # API clients
+│   │   │   ├── types/         # TypeScript types
+│   │   │   └── lib/           # Utilidades
+│   │   └── public/            # Assets estáticos
+│   │
+│   └── api/                    # Backend NestJS
+│       ├── src/
+│       │   ├── core/          # Auth, Prisma, Common
+│       │   ├── features/      # Módulos por feature
+│       │   │   ├── stores/
+│       │   │   ├── products/
+│       │   │   ├── orders/
+│       │   │   └── categories/
+│       │   └── all-exceptions.filter.ts
+│       └── prisma/            # Schema y migraciones
+│
+└── packages/
+    ├── database/              # Paquete compartido de Prisma
+    │   └── prisma/
+    │       └── schema.prisma  # Definición del schema
+    ├── eslint-config/         # Configuración ESLint
+    └── typescript-config/     # Configuración TypeScript
 ```
 
-### Develop
+## 🚀 Instalación y Configuración
 
-To develop all apps and packages, run the following command:
+### Prerrequisitos
 
-```
-cd my-turborepo
+- **Node.js 18+** y **npm 9+**
+- **PostgreSQL 14+** (o cuenta de Supabase)
+- **Git**
 
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
+### 1. Clonar el repositorio
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
+```bash
+git clone https://github.com/AndrewLicona/ShopyLink.git
+cd ShopyLink
 ```
 
-### Remote Caching
+### 2. Instalar dependencias
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
+```bash
+npm install
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+### 3. Configurar variables de entorno
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+Crea un archivo `.env` en la raíz del proyecto:
 
+```env
+# Database
+DATABASE_URL="postgresql://user:password@localhost:5432/shopylink?schema=public"
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
+
+# API
+API_URL="http://localhost:4000"
+NEXT_PUBLIC_API_URL="http://localhost:4000"
+
+# JWT
+JWT_SECRET="your-super-secret-jwt-key"
+
+# Encryption (para datos sensibles)
+ENCRYPTION_KEY="your-32-char-encryption-key"
 ```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
+### 4. Ejecutar migraciones de Prisma
+
+```bash
+cd packages/database
+npx prisma generate
+npx prisma migrate dev
 ```
 
-## Useful Links
+### 5. Iniciar el proyecto en desarrollo
 
-Learn more about the power of Turborepo:
+```bash
+# Desde la raíz del proyecto
+npm run dev
+```
 
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+Esto iniciará:
+- **Frontend** en [http://localhost:3000](http://localhost:3000)
+- **Backend** en [http://localhost:4000](http://localhost:4000)
 
+## 📝 Scripts Disponibles
 
-git fetch origin main
-git reset --hard origin/main
+```bash
+# Desarrollo
+npm run dev                    # Inicia frontend y backend
+npm run dev --filter=web       # Solo frontend
+npm run dev --filter=api       # Solo backend
+
+# Build
+npm run build                  # Build de todos los proyectos
+npm run build --filter=web     # Build solo del frontend
+
+# Lint
+npm run lint                   # Ejecuta ESLint en todo el monorepo
+
+# Database
+cd packages/database
+npx prisma studio              # Abre Prisma Studio
+npx prisma migrate dev         # Crea y aplica migraciones
+npx prisma generate            # Genera el cliente de Prisma
+```
+
+## 🐳 Deployment con Docker
+
+### Desarrollo local con Docker Compose
+
+```bash
+docker compose up -d
+```
+
+### Rebuild completo
+
+```bash
 docker compose down
-docker compose --env-file .env up -d --build
+docker compose build --no-cache
+docker compose --env-file .env up -d
+```
 
+### Actualizar desde main
 
+```bash
 git pull origin main
 docker compose down
 docker compose build --no-cache
 docker compose --env-file .env up -d
+```
+
+## 🗄️ Modelo de Datos
+
+### Entidades Principales
+
+- **User**: Usuarios del sistema
+- **Store**: Tiendas de los usuarios
+- **Product**: Productos con precio base y stock global
+- **ProductVariant**: Variantes con precio/stock independiente o heredado
+- **Category**: Categorías para organizar productos
+- **Order**: Pedidos generados desde la tienda pública
+- **OrderItem**: Items individuales de cada pedido
+
+### Características del Modelo
+
+- **Stock a nivel de variante**: Cada variante puede tener control independiente
+- **Precios flexibles**: Global, propio, o "consultar precio"
+- **Soft deletes**: Los registros no se eliminan físicamente
+- **Timestamps automáticos**: `createdAt` y `updatedAt` en todas las tablas
+- **Relaciones en cascada**: Eliminación de datos relacionados
+
+## 🎨 Características de UX/UI
+
+- **Tema Dinámico**: Variables CSS para fácil personalización
+- **Glassmorphism**: Efectos de vidrio moderno en componentes clave
+- **Animaciones Suaves**: Transiciones y micro-interacciones
+- **Modal Full-Screen**: Modal de productos adaptable (95vw × 90vh en PC)
+- **Segmented Buttons**: Controles intuitivos para variantes
+- **Responsive Design**: Grid adaptativo y mobile-first
+- **Loading States**: Indicadores de carga en todas las operaciones async
+
+## 🔐 Seguridad
+
+- ✅ Autenticación con JWT y Supabase
+- ✅ Validación de DTOs con class-validator
+- ✅ Guards de NestJS para rutas protegidas
+- ✅ Sanitización de datos de entrada
+- ✅ CORS configurado
+- ✅ Rate limiting (configurar según necesidad)
+- ✅ Encriptación de datos sensibles
+
+## 🤝 Contribuir
+
+Las contribuciones son bienvenidas. Por favor:
+
+1. Fork el proyecto
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
+
+## 📄 Licencia
+
+Este proyecto está bajo la licencia MIT.
+
+## 👨‍💻 Autor
+
+**Andrew Licona**
+- GitHub: [@AndrewLicona](https://github.com/AndrewLicona)
+
+---
+
+⭐ Si este proyecto te fue útil, considera darle una estrella en GitHub!
