@@ -44,6 +44,12 @@ export function StoreView({ store, products, categories }: StoreViewProps) {
                     products={products}
                     categories={categories}
                     onProductClick={actions.setSelectedProduct}
+                    categoryFilter={state.categoryFilter}
+                    searchTerm={state.searchTerm}
+                    onViewAllDiscounts={() => {
+                        actions.setCategoryFilter('all');
+                        actions.setSearchTerm('');
+                    }}
                 />
 
                 <PublicProductGrid
