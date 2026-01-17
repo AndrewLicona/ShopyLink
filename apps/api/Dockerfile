@@ -33,9 +33,10 @@ FROM base AS prod-deps
 WORKDIR /app
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/package-lock.json ./package-lock.json
-COPY --from=pruner /app/out/full/packages/database/prisma/schema.prisma ./packages/database/prisma/schema.prisma
 RUN npm install --omit=dev
-RUN npx prisma generate --schema=packages/database/prisma/schema.prisma
+# Copy generated Prisma client from builder
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Phase 3: Runner
 FROM base AS runner
@@ -51,8 +52,6 @@ USER nestjs
 
 COPY --from=builder /app/apps/api/dist ./dist
 COPY --from=prod-deps /app/node_modules ./node_modules
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/packages/database ./packages/database
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/packages/database/prisma/schema.prisma ./prisma/schema.prisma
