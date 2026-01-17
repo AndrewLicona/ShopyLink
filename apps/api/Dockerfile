@@ -22,7 +22,7 @@ COPY --from=pruner /app/out/package-lock.json ./package-lock.json
 RUN npm install
 
 # Build api
-RUN npx prisma generate --schema=packages/database/prisma/schema.prisma
+RUN npm run prisma:generate --workspace=@repo/database
 RUN npx turbo run build --filter=api...
 
 # Phase 2.5: Production Dependencies
