@@ -3,12 +3,12 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { PrismaService } from '../common/prisma/prisma.module';
+import { PrismaService } from '../../core/prisma/prisma.module';
 import { OrderStatus } from '@repo/database';
 import { createHash } from 'crypto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
-import { decrypt } from '../common/encryption.util';
+import { decrypt } from '../../core/common/encryption.util';
 import {
   Prisma,
   Product,
@@ -31,7 +31,7 @@ interface StoreWithDetails {
 
 @Injectable()
 export class OrdersService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async create(createOrderDto: CreateOrderDto) {
     const { storeId, items, customerName, customerPhone, customerAddress } =
@@ -43,90 +43,11 @@ export class OrdersService {
     })) as StoreWithDetails | null;
     if (!store) throw new NotFoundException('Store not found');
 
-    // 2. Fetch products and validate stock
-    const productIds = items.map((i) => i.productId);
-    const products = (await this.prisma.product.findMany({
-      where: { id: { in: productIds }, storeId },
-      include: { inventory: true, variants: true },
-    })) as ProductWithDetails[];
+    // 2. Fetch products and validate stock/items
+    const products = await this.validateOrderItems(storeId, items);
 
-    if (products.length !== productIds.length) {
-      throw new BadRequestException(
-        'Some products were not found in this store',
-      );
-    }
-
-    let total = 0;
-    const orderItemsData: {
-      productId: string;
-      productName: string;
-      quantity: number;
-      price: number;
-      sku?: string;
-      variantId?: string;
-      variantName?: string;
-    }[] = [];
-
-    // 3. Calculate total and prepare items
-    for (const itemDto of items) {
-      const product = products.find((p) => p.id === itemDto.productId);
-      if (!product) continue;
-
-      let price = Number(product.discountPrice ?? product.price);
-      let sku = product.sku;
-      let variantName: string | undefined = undefined;
-
-      // Check Variant first
-      if (itemDto.variantId) {
-        const variant = product.variants.find(
-          (v) => v.id === itemDto.variantId,
-        );
-        if (!variant)
-          throw new BadRequestException(
-            `Variant not found for product: ${product.name}`,
-          );
-
-        // Use variant price if defined (assuming variants can override price, or just add to it? Usually override)
-        // Schema says Variant has optional price. If null, use product price?
-        // Let's assume override if present.
-        if (variant.price) {
-          price = Number(variant.price);
-        }
-
-        // Check Variant Stock
-        if (variant.stock < itemDto.quantity) {
-          throw new BadRequestException(
-            `Insufficient stock for product variant: ${product.name} - ${variant.name}`,
-          );
-        }
-
-        sku = variant.sku || sku;
-        variantName = variant.name;
-      } else {
-        // Check Main Product Stock logic (Inventory model)
-        if (
-          product.trackInventory &&
-          product.inventory &&
-          product.inventory.stock < itemDto.quantity
-        ) {
-          throw new BadRequestException(
-            `Insufficient stock for product: ${product.name}`,
-          );
-        }
-      }
-
-      total += price * itemDto.quantity;
-
-      orderItemsData.push({
-        productId: product.id,
-        productName: product.name,
-        quantity: itemDto.quantity,
-        price: price,
-        sku: sku ?? undefined,
-        variantId: itemDto.variantId,
-        variantName,
-      });
-    }
+    // 3. Prepare order items and calculate total
+    const { total, orderItemsData } = this.calculateOrderData(products, items);
 
     // 4. Create Order
     const order = await this.prisma.$transaction(
@@ -135,7 +56,6 @@ export class OrdersService {
           ? createHash('sha256').update(customerPhone).digest('hex')
           : null;
 
-        // Create Order
         const newOrder = await tx.order.create({
           data: {
             storeId,
@@ -156,30 +76,100 @@ export class OrdersService {
     );
 
     // 5. Generate WhatsApp Link
-    const orderForWhatsApp = {
-      id: order.id,
-      customerName: order.customerName,
-      customerAddress: order.customerAddress,
-      total: Number(order.total),
-      items: (order.items || []).map((i) => ({
-        quantity: i.quantity,
-        productName: i.productName,
-        sku: i.sku || null,
-        price: Number(i.price),
-        variantName: i.variantName, // Ensure this is logged/used if needed in WA
-      })),
-    };
-
     const decryptedWhatsapp = store.whatsappNumber
       ? decrypt(store.whatsappNumber)
       : null;
+
     const waLink = this.generateWhatsAppLink(
-      store.name,
-      orderForWhatsApp,
+      store.name || 'Tienda',
+      order,
       decryptedWhatsapp,
     );
 
     return { ...order, whatsappLink: waLink };
+  }
+
+  private async validateOrderItems(
+    storeId: string,
+    items: CreateOrderDto['items'],
+  ): Promise<ProductWithDetails[]> {
+    const productIds = items.map((i) => i.productId);
+    const products = (await this.prisma.product.findMany({
+      where: { id: { in: productIds }, storeId },
+      include: { inventory: true, variants: true },
+    })) as ProductWithDetails[];
+
+    if (products.length !== productIds.length) {
+      throw new BadRequestException(
+        'Some products were not found in this store',
+      );
+    }
+
+    return products;
+  }
+
+  private calculateOrderData(
+    products: ProductWithDetails[],
+    items: CreateOrderDto['items'],
+  ) {
+    let total = 0;
+    const orderItemsData: any[] = [];
+
+    for (const itemDto of items) {
+      const product = products.find((p) => p.id === itemDto.productId);
+      if (!product) continue;
+
+      let price = Number(product.discountPrice ?? product.price);
+      let sku = product.sku;
+      let variantName: string | undefined = undefined;
+
+      if (itemDto.variantId) {
+        const variant = product.variants.find(
+          (v) => v.id === itemDto.variantId,
+        );
+        if (!variant)
+          throw new BadRequestException(
+            `Variant not found for product: ${product.name}`,
+          );
+
+        if (variant.price) {
+          price = Number(variant.price);
+        }
+
+        if (variant.stock < itemDto.quantity) {
+          throw new BadRequestException(
+            `Insufficient stock for product variant: ${product.name} - ${variant.name}`,
+          );
+        }
+
+        sku = variant.sku || sku;
+        variantName = variant.name;
+      } else {
+        if (
+          product.trackInventory &&
+          product.inventory &&
+          product.inventory.stock < itemDto.quantity
+        ) {
+          throw new BadRequestException(
+            `Insufficient stock for product: ${product.name}`,
+          );
+        }
+      }
+
+      total += price * itemDto.quantity;
+
+      orderItemsData.push({
+        productId: product.id,
+        productName: product.name,
+        quantity: itemDto.quantity,
+        price,
+        sku: sku ?? undefined,
+        variantId: itemDto.variantId,
+        variantName,
+      });
+    }
+
+    return { total, orderItemsData };
   }
 
   private formatCurrency(value: number): string {
@@ -192,25 +182,18 @@ export class OrdersService {
   }
 
   private generateWhatsAppLink(
-    storeName: string | null,
+    storeName: string,
     order: {
       id: string;
       customerName: string;
       customerAddress?: string | null;
-      total: number;
-      items: {
-        quantity: number;
-        productName: string;
-        sku?: string | null;
-        price: number;
-      }[];
+      total: Prisma.Decimal | number;
+      items: OrderItem[];
     },
     whatsappNumber: string | null,
   ) {
-    // Basic formatting
     const phone = whatsappNumber ? whatsappNumber.replace(/\D/g, '') : '';
 
-    // Bulleted list with formatted prices and SKU
     const itemsList = order.items
       .map(
         (i) =>
@@ -218,18 +201,19 @@ export class OrdersService {
       )
       .join('\n');
 
-    const frontendUrl = process.env.FRONTEND_URL || 'https://shopylink.andrewlamaquina.my';
+    const frontendUrl =
+      process.env.FRONTEND_URL || 'https://shopylink.andrewlamaquina.my';
     const dashboardLink = `${frontendUrl}/dashboard/orders?id=${order.id}`;
 
     const text =
-      `Hola *${storeName || 'Tienda'}*.\n\n` +
+      `Hola *${storeName}*.\n\n` +
       `Mi nombre es *${order.customerName}*.\n` +
       (order.customerAddress
-        ? `📍 *\nENTREGA EN:* ${order.customerAddress}\n\n`
+        ? `📍 *ENTREGA EN:* ${order.customerAddress}\n\n`
         : '') +
       `Quiero confirmar mi pedido *#${order.id.slice(0, 8)}*\n\n` +
       `📦 *DETALLE:*\n${itemsList}\n\n` +
-      `💰 *TOTAL: ${this.formatCurrency(order.total)}*\n\n` +
+      `💰 *TOTAL: ${this.formatCurrency(Number(order.total))}*\n\n` +
       `-------------------\n` +
       `⚠️ *Nota para el cliente:* No modifiques este mensaje para asegurar la validez de tu pedido.\n\n` +
       `🔗 *Verificar en Dashboard (Solo dueño):*\n${dashboardLink}`;

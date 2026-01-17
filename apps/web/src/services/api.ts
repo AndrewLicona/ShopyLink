@@ -1,74 +1,67 @@
 
 import { createClient } from '@/lib/supabase';
-import type { Store, Product, Category, Order } from '@/types/types';
+import { Product, Store, Order, Category } from '@/types/types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
+async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
     const supabase = createClient();
     const { data: { session } } = await supabase.auth.getSession();
-
-    const headers = {
+    const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
-        ...options.headers,
+        ...((options.headers as Record<string, string>) || {}),
     };
 
-    const response = await fetch(`${API_URL}${endpoint}`, {
-        ...options,
-        headers,
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'An error occurred' }));
-
-        // NestJS often wraps the error message in an 'error' object or 'message' field
-        let errorMessage = 'An error occurred';
-
-        if (errorData.error && typeof errorData.error === 'object') {
-            errorMessage = errorData.error.message || errorData.message || errorMessage;
-        } else if (errorData.message) {
-            errorMessage = Array.isArray(errorData.message) ? errorData.message[0] : errorData.message;
-        }
-
-        throw new Error(errorMessage);
+    if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
     }
 
-    return response.json();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+
+    try {
+        const res = await fetch(`${API_URL}${endpoint}`, {
+            ...options,
+            headers,
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            throw new Error(errorData.message || `API Error: ${res.status} ${res.statusText}`);
+        }
+
+        return res.json();
+    } catch (error: unknown) {
+        clearTimeout(timeoutId);
+        if ((error as Error).name === 'AbortError') {
+            throw new Error('Request timeout');
+        }
+        throw error;
+    }
 }
 
-export interface CreateOrderDto {
-    storeId: string;
-    customerName: string;
-    customerPhone?: string | null;
-    customerAddress?: string;
-    items: {
-        productId: string;
-        quantity: number;
-    }[];
-}
-
-// API Methods
 export const api = {
     // Stores
-    getStores: (): Promise<Store[]> => fetchWithAuth('/stores'),
-    getStoreByUserId: (userId: string): Promise<Store> => fetchWithAuth(`/stores/user/${userId}`),
-    createStore: (data: Partial<Store>) => fetchWithAuth('/stores', {
-        method: 'POST',
-        body: JSON.stringify(data),
-    }),
+    getStores: () => fetchWithAuth('/stores'),
+    getStore: (id: string, options?: RequestInit) => fetchWithAuth(`/stores/${id}`, options),
+    getStoreBySlug: (slug: string, options?: RequestInit) => fetchWithAuth(`/stores/${slug}`, options),
     updateStore: (id: string, data: Partial<Store>) => fetchWithAuth(`/stores/${id}`, {
         method: 'PATCH',
+        body: JSON.stringify(data),
+    }),
+    createStore: (data: Partial<Store>) => fetchWithAuth('/stores', {
+        method: 'POST',
         body: JSON.stringify(data),
     }),
     deleteStore: (id: string) => fetchWithAuth(`/stores/${id}`, {
         method: 'DELETE',
     }),
-    getStoreBySlug: (slug: string, options: RequestInit = {}): Promise<Store> =>
-        fetchWithAuth(`/stores/${slug}`, options),
 
     // Products
-    getProducts: (storeId: string): Promise<Product[]> => fetchWithAuth(`/products?storeId=${storeId}`),
+    getProducts: (storeId: string, options?: RequestInit) => fetchWithAuth(`/products?storeId=${storeId}`, options),
     createProduct: (data: Partial<Product>) => fetchWithAuth('/products', {
         method: 'POST',
         body: JSON.stringify(data),
@@ -82,7 +75,7 @@ export const api = {
     }),
 
     // Categories
-    getCategories: (storeId: string): Promise<Category[]> => fetchWithAuth(`/categories?storeId=${storeId}`),
+    getCategories: (storeId: string) => fetchWithAuth(`/categories?storeId=${storeId}`),
     createCategory: (data: Partial<Category>) => fetchWithAuth('/categories', {
         method: 'POST',
         body: JSON.stringify(data),
@@ -92,8 +85,8 @@ export const api = {
     }),
 
     // Orders
-    getOrders: (storeId: string): Promise<Order[]> => fetchWithAuth(`/orders?storeId=${storeId}`),
-    createOrder: (data: CreateOrderDto) => fetchWithAuth('/orders', {
+    getOrders: (storeId: string) => fetchWithAuth(`/orders?storeId=${storeId}`),
+    createOrder: (data: Partial<Order>) => fetchWithAuth('/orders', {
         method: 'POST',
         body: JSON.stringify(data),
     }),
@@ -103,6 +96,5 @@ export const api = {
     }),
 
     // Auth
-    resolveUsername: (username: string): Promise<{ email: string }> => fetchWithAuth(`/auth/resolve-username/${username}`),
+    resolveUsername: (username: string) => fetchWithAuth(`/auth/resolve-username/${username}`),
 };
-

@@ -7,13 +7,13 @@ import {
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AuthModule } from './auth/auth.module';
-import { PrismaModule } from './common/prisma/prisma.module';
-import { StoresModule } from './stores/stores.module';
-import { ProductsModule } from './products/products.module';
-import { OrdersModule } from './orders/orders.module';
-import { CategoriesModule } from './categories/categories.module';
-import { ProxyCompatibilityMiddleware } from './proxy.middleware';
+import { AuthModule } from './core/auth/auth.module';
+import { PrismaModule } from './core/prisma/prisma.module';
+import { StoresModule } from './features/stores/stores.module';
+import { ProductsModule } from './features/products/products.module';
+import { OrdersModule } from './features/orders/orders.module';
+import { CategoriesModule } from './features/categories/categories.module';
+import { ProxyCompatibilityMiddleware } from './core/common/proxy.middleware';
 
 @Module({
   imports: [

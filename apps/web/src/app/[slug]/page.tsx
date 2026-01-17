@@ -26,18 +26,35 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
     try {
         // Fetch store by slug (public endpoint) - Server side
         const storeData = await api.getStoreBySlug(slug, {
-            next: { revalidate: 60 } // Cache for 1 minute
+            cache: 'no-store'
         });
 
         // Fetch products and categories - Server side
         const [productsData, categoriesData] = await Promise.all([
-            api.getProducts(storeData.id),
+            api.getProducts(storeData.id, { cache: 'no-store' }),
             api.getCategories(storeData.id)
         ]);
 
-        const activeProducts = productsData.filter((p: Product) =>
-            p.isActive && (!p.trackInventory || (p.inventory && p.inventory.stock > 0))
-        );
+        const activeProducts = productsData.filter((p: Product) => {
+            if (!p.isActive) return false;
+
+            // Si el producto no trackea inventario, siempre es visible
+            if (p.trackInventory === false) return true;
+
+            // Si tiene variantes, verificar disponibilidad granular
+            if (p.variants && p.variants.length > 0) {
+                return p.variants.some(v => {
+                    // Una variante es visible si no trackea stock OR (tiene stock > 0)
+                    if (v.trackInventory === false) return true;
+
+                    const stock = v.useParentStock ? (p.inventory?.stock ?? 0) : (v.stock ?? 0);
+                    return stock > 0;
+                });
+            }
+
+            // Producto simple: debe tener stock > 0
+            return (p.inventory?.stock ?? 0) > 0;
+        });
 
         // Filter categories: Only show categories that have at least one active product
         const activeCategoryIds = new Set(activeProducts.map((p: Product) => p.categoryId));

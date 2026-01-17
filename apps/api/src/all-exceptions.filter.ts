@@ -19,33 +19,44 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
+    const exceptionResponse =
+      exception instanceof HttpException ? exception.getResponse() : null;
+
     const message =
-      exception instanceof HttpException
-        ? exception.getResponse()
-        : {
-            message: (exception as Error).message,
-            stack: (exception as Error).stack,
-          };
+      exceptionResponse &&
+      typeof exceptionResponse === 'object' &&
+      'message' in exceptionResponse
+        ? (exceptionResponse as Record<string, unknown>).message
+        : typeof exceptionResponse === 'object' && exceptionResponse !== null
+          ? JSON.stringify(exceptionResponse)
+          : String(
+              exceptionResponse ||
+                (exception instanceof Error
+                  ? exception.message
+                  : 'Internal server error'),
+            );
 
-    console.error('Global Exception Filter Caught:', message);
+    console.error(
+      `[GlobalException] ${request.method} ${request.url} - Status: ${status} - Error:`,
+      message,
+    );
+    if (Number(status) === (HttpStatus.INTERNAL_SERVER_ERROR as number)) {
+      console.error(
+        'Stack Trace:',
+        exception instanceof Error ? exception.stack : 'No stack trace',
+      );
+    }
 
-    // Force CORS headers on Error Response
+    // Force CORS headers on Error Response (Safe fallback)
     response.header('Access-Control-Allow-Origin', '*');
-    response.header(
-      'Access-Control-Allow-Methods',
-      'GET,PUT,POST,DELETE,OPTIONS,PATCH',
-    );
-    response.header(
-      'Access-Control-Allow-Headers',
-      'Content-Type, Accept, Authorization',
-    );
     response.header('Access-Control-Allow-Credentials', 'false');
 
     response.status(status).json({
+      success: false,
       statusCode: status,
+      message,
       timestamp: new Date().toISOString(),
       path: request.url,
-      error: message,
     });
   }
 }

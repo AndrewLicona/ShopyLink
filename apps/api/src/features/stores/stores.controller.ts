@@ -13,8 +13,8 @@ import {
 import { StoresService } from './stores.service';
 import { CreateStoreDto } from './dto/create-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RequestWithUser } from '../auth/interfaces/user.interface';
+import { JwtAuthGuard } from '../../core/auth/jwt-auth.guard';
+import { RequestWithUser } from '../../core/auth/interfaces/user.interface';
 
 @Controller('stores')
 export class StoresController {
@@ -25,7 +25,7 @@ export class StoresController {
   create(
     @Request() req: RequestWithUser,
     @Body() createStoreDto: CreateStoreDto,
-  ) {
+  ): Promise<any> {
     // req.user contains the decoded JWT. Supabase passes 'sub' as userId and 'email'
     const userId = req.user.sub;
     const email = req.user.email;
@@ -34,21 +34,21 @@ export class StoresController {
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  findAll(@Request() req: RequestWithUser) {
+  findAll(@Request() req: RequestWithUser): Promise<any[]> {
     const userId = req.user.sub;
     return this.storesService.findAllByUser(userId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('user/:userId')
-  async findOneByUser(@Param('userId') userId: string) {
+  async findOneByUser(@Param('userId') userId: string): Promise<any> {
     const store = await this.storesService.findOneByUser(userId);
     if (!store) return null;
     return store;
   }
 
   @Get(':slug')
-  async findOne(@Param('slug') slug: string) {
+  async findOne(@Param('slug') slug: string): Promise<any> {
     const store = await this.storesService.findOneBySlug(slug);
     if (!store) throw new NotFoundException('Store not found');
     return store;
@@ -60,14 +60,17 @@ export class StoresController {
     @Request() req: RequestWithUser,
     @Param('id') id: string,
     @Body() updateStoreDto: UpdateStoreDto,
-  ) {
+  ): Promise<any> {
     const userId = req.user.sub;
     return this.storesService.update(id, userId, updateStoreDto);
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  remove(@Request() req: RequestWithUser, @Param('id') id: string) {
+  remove(
+    @Request() req: RequestWithUser,
+    @Param('id') id: string,
+  ): Promise<any> {
     const userId = req.user.sub;
     return this.storesService.remove(id, userId);
   }

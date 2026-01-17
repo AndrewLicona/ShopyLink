@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/services/api';
-import type { Store, Product, Category } from '@/types/types';
+import type { Store, Product } from '@/types/types';
 
 interface CartItem {
     id: string;
@@ -15,7 +15,7 @@ interface CartItem {
     variantName?: string;
 }
 
-export function useStoreView(store: Store, initialProducts: Product[], categories: Category[]) {
+export function useStoreView(store: Store, initialProducts: Product[]) {
     const [cart, setCart] = useState<CartItem[]>([]);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [isCartOpen, setIsCartOpen] = useState(false);
@@ -55,7 +55,8 @@ export function useStoreView(store: Store, initialProducts: Product[], categorie
             }
         }
 
-        const trackStock = product.trackInventory;
+        const variant = product.variants?.find(v => v.id === variantId);
+        const trackStock = product.trackInventory !== false && variant?.trackInventory !== false;
 
         setCart(prev => {
             const existing = prev.find(item => item.id === product.id && item.variantId === variantId);
@@ -113,7 +114,8 @@ export function useStoreView(store: Store, initialProducts: Product[], categorie
             if (item.id === id && item.variantId === variantId) {
                 const product = initialProducts.find(p => p.id === id);
                 let availableStock = product?.inventory?.stock ?? 0;
-                const trackStock = product?.trackInventory;
+                const v = product?.variants?.find(v => v.id === variantId);
+                const trackStock = product?.trackInventory !== false && v?.trackInventory !== false;
 
                 if (product?.variants && variantId) {
                     const v = product.variants.find(v => v.id === variantId);
@@ -138,8 +140,7 @@ export function useStoreView(store: Store, initialProducts: Product[], categorie
         return initialProducts.filter(p => {
             const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesCategory = categoryFilter === 'all' || p.categoryId === categoryFilter;
-            const hasStock = !p.trackInventory || (p.inventory && p.inventory.stock > 0);
-            return matchesSearch && matchesCategory && hasStock;
+            return matchesSearch && matchesCategory;
         });
     }, [initialProducts, searchTerm, categoryFilter]);
 
@@ -173,11 +174,14 @@ export function useStoreView(store: Store, initialProducts: Product[], categorie
                 items: cart.map(item => ({
                     productId: item.id,
                     quantity: item.quantity,
-                    variantId: item.variantId
+                    variantId: item.variantId,
+                    productName: item.name,
+                    price: item.price
                 }))
             };
 
-            const response = await api.createOrder(orderData);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const response = await api.createOrder(orderData as any);
 
             if (response.whatsappLink) {
                 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);

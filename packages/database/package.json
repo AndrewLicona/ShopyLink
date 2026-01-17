@@ -10,12 +10,13 @@
         "prisma": "prisma"
     },
     "devDependencies": {
+        "@prisma/config": "^6.19.2",
         "@repo/typescript-config": "*",
-        "prisma": "^7.2.0",
-        "ts-node": "^10.9.2",
+        "prisma": "^6.19.2",
+        "ts-node": "^1.7.1",
         "typescript": "5.9.2"
     },
     "dependencies": {
-        "@prisma/client": "^7.2.0"
+        "@prisma/client": "^6.19.2"
     }
 }

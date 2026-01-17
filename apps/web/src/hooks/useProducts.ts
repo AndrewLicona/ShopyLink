@@ -205,6 +205,7 @@ export function useProducts() {
             stock: v.useParentStock ? 0 : (v.stock ? parseInt(v.stock.toString()) : 0),
             sku: v.sku || (sku ? `${sku}-${idx + 1}` : null),
             useParentStock: v.useParentStock ?? false,
+            trackInventory: v.trackInventory ?? true,
             images: v.images || [],
         })) : [];
 
@@ -225,8 +226,10 @@ export function useProducts() {
 
         try {
             if (editingProduct) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 await api.updateProduct(editingProduct.id, productData as any);
             } else {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 await api.createProduct(productData as any);
             }
             setIsModalOpen(false);

@@ -16,7 +16,7 @@ import {
     MessageCircle
 } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
-import type { Product, Category, Store } from '@/types/types';
+import type { Product, Category, Store, ProductVariant } from '@/types/types';
 
 interface ProductModalProps {
     product: Product | null;
@@ -35,7 +35,6 @@ export function ProductModal({
     onAddToCart,
     categories,
     store,
-    cartItems
 }: ProductModalProps) {
     const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
     const [localQuantities, setLocalQuantities] = useState<Record<string, number>>({});
@@ -58,7 +57,17 @@ export function ProductModal({
     // Reset local state when product changes (new modal view)
     useEffect(() => {
         if (selectedProduct) {
-            setSelectedVariantId(null);
+            const principalInStock = !selectedProduct.trackInventory || (selectedProduct.inventory?.stock ?? 0) > 0;
+            if (!principalInStock && selectedProduct.variants && selectedProduct.variants.length > 0) {
+                const firstAvailable = selectedProduct.variants.find(v => {
+                    if (v.trackInventory === false) return true;
+                    const stock = v.useParentStock ? (selectedProduct.inventory?.stock ?? 0) : (v.stock ?? 0);
+                    return stock > 0;
+                });
+                setSelectedVariantId(firstAvailable?.id || null);
+            } else {
+                setSelectedVariantId(null);
+            }
             setCurrentImageIndex(0);
             setLocalQuantities({});
         }
@@ -66,11 +75,6 @@ export function ProductModal({
 
     if (!selectedProduct || !isOpen) return null;
 
-    // Get count already in cart
-    const inCartQty = cartItems.find(
-        item => item.id === selectedProduct.id &&
-            (item.variantId === (selectedVariantId || undefined))
-    )?.quantity || 0;
 
 
 
@@ -120,7 +124,7 @@ export function ProductModal({
 
         return entries.reduce((total, [key, qty]) => {
             const vId = key === 'base' ? null : key;
-            const v = selectedProduct.variants?.find(v => v.id === vId);
+            const v = selectedProduct.variants?.find((v: ProductVariant) => v.id === vId);
 
             // Precio base (puede ser null)
             let price = selectedProduct.discountPrice ?? selectedProduct.price ?? null;
@@ -383,35 +387,48 @@ export function ProductModal({
                                     <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text)]">Opciones</h3>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
-                                    <button
-                                        onClick={() => {
-                                            setSelectedVariantId(null);
-                                        }}
-                                        className={cn(
-                                            "px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all duration-200",
-                                            !selectedVariantId
-                                                ? "bg-[var(--primary)] border-[var(--primary)] text-[var(--primary-foreground)] shadow-lg shadow-[var(--primary)]/20 scale-105"
-                                                : "bg-[var(--secondary)] border-transparent text-[var(--text)] hover:border-[var(--border)]"
-                                        )}
-                                    >
-                                        Principal
-                                    </button>
-                                    {selectedProduct.variants.map((v) => (
+                                    {(!selectedProduct.trackInventory || (selectedProduct.inventory?.stock ?? 0) > 0) && (
                                         <button
-                                            key={v.id}
                                             onClick={() => {
-                                                setSelectedVariantId(v.id);
+                                                setSelectedVariantId(null);
                                             }}
                                             className={cn(
                                                 "px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all duration-200",
-                                                selectedVariantId === v.id
+                                                !selectedVariantId
                                                     ? "bg-[var(--primary)] border-[var(--primary)] text-[var(--primary-foreground)] shadow-lg shadow-[var(--primary)]/20 scale-105"
                                                     : "bg-[var(--secondary)] border-transparent text-[var(--text)] hover:border-[var(--border)]"
                                             )}
                                         >
-                                            {v.name}
+                                            Principal
                                         </button>
-                                    ))}
+                                    )}
+                                    {selectedProduct.variants
+                                        .filter(v => {
+                                            // Si el producto no trackea, siempre mostrar todas sus variantes
+                                            if (selectedProduct.trackInventory === false) return true;
+                                            // Si la variante no trackea, mostrarla
+                                            if (v.trackInventory === false) return true;
+                                            // Si usa stock del padre, el padre debe tener stock
+                                            if (v.useParentStock) return (selectedProduct.inventory?.stock ?? 0) > 0;
+                                            // Si tiene stock propio, debe ser > 0
+                                            return v.stock > 0;
+                                        })
+                                        .map((v) => (
+                                            <button
+                                                key={v.id}
+                                                onClick={() => {
+                                                    setSelectedVariantId(v.id);
+                                                }}
+                                                className={cn(
+                                                    "px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all duration-200",
+                                                    selectedVariantId === v.id
+                                                        ? "bg-[var(--primary)] border-[var(--primary)] text-[var(--primary-foreground)] shadow-lg shadow-[var(--primary)]/20 scale-105"
+                                                        : "bg-[var(--secondary)] border-transparent text-[var(--text)] hover:border-[var(--border)]"
+                                                )}
+                                            >
+                                                {v.name}
+                                            </button>
+                                        ))}
                                 </div>
                             </div>
                         )}
@@ -427,11 +444,11 @@ export function ProductModal({
                                     <p className="font-black text-sm text-[var(--text)]">
                                         {(() => {
                                             if (!selectedProduct.trackInventory) return "Disponible";
-                                            const variantStock = selectedProduct.variants?.find(v => v.id === selectedVariantId);
-                                            if (variantStock && !variantStock.useParentStock) {
-                                                return `${variantStock.stock} unid.`;
-                                            }
-                                            return `${selectedProduct.inventory?.stock ?? '0'} unid.`;
+                                            const v = selectedProduct.variants?.find(v => v.id === selectedVariantId);
+                                            if (v && v.trackInventory === false) return "Disponible";
+
+                                            const available = (v && !v.useParentStock) ? v.stock : (selectedProduct.inventory?.stock ?? 0);
+                                            return `${available} unid.`;
                                         })()}
                                     </p>
                                 </div>
@@ -447,11 +464,14 @@ export function ProductModal({
                                 <span className="w-4 text-center font-black text-lg text-[var(--text)]">{currentQty}</span>
                                 <button
                                     onClick={() => {
-                                        if (!selectedProduct.trackInventory) {
+                                        const v = selectedProduct.variants?.find(v => v.id === selectedVariantId);
+                                        const isTracked = selectedProduct.trackInventory !== false && v?.trackInventory !== false;
+
+                                        if (!isTracked) {
                                             setQty(currentQty + 1);
                                             return;
                                         }
-                                        const v = selectedProduct.variants?.find(v => v.id === selectedVariantId);
+
                                         const available = (v && !v.useParentStock)
                                             ? v.stock
                                             : (selectedProduct.inventory?.stock ?? 0);
