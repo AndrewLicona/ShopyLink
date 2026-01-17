@@ -24,8 +24,8 @@ RUN npm install
 COPY --from=pruner /app/out/full/ .
 COPY turbo.json turbo.json
 
-# Build api (use Prisma binary directly from node_modules)
-RUN ./node_modules/.bin/prisma generate --schema=packages/database/prisma/schema.prisma
+# Build api (use npx with specific version to ensure Prisma 6.19.2 is used)
+RUN npx prisma@6.19.2 generate --schema=packages/database/prisma/schema.prisma
 RUN npx turbo run build --filter=api...
 
 # Phase 2.5: Production Dependencies
