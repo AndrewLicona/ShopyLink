@@ -13,16 +13,13 @@ FROM base AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Copy lockfile and package.json's of isolated subworkspace
-COPY --from=pruner /app/out/json/ .
-COPY --from=pruner /app/out/package-lock.json ./package-lock.json
-
-# Install dependencies
-RUN npm install
-
-# Build the project
+# Copy the full workspace first
 COPY --from=pruner /app/out/full/ .
 COPY turbo.json turbo.json
+COPY --from=pruner /app/out/package-lock.json ./package-lock.json
+
+# Install all dependencies (including devDependencies for build)
+RUN npm install
 
 # Build api
 RUN npx prisma generate --schema=packages/database/prisma/schema.prisma
