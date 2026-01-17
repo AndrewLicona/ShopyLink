@@ -60,14 +60,14 @@ export function PublicProductGrid({
                         )}
 
                         {product.discountPrice && product.price && (
-                            <div className="absolute top-2 right-2 flex flex-col gap-1.5 items-end">
-                                <div className="bg-red-500/90 backdrop-blur-md text-white px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-[0_4px_12px_rgba(239,68,68,0.3)] animate-in fade-in zoom-in duration-500">
+                            <div className="absolute top-2 right-2 sm:flex sm:flex-col sm:gap-1.5 sm:items-end">
+                                <div className="bg-green-500/90 backdrop-blur-md text-white px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-[0_4px_12px_rgba(34,197,94,0.3)] animate-in fade-in zoom-in duration-500">
                                     Oferta
                                 </div>
                                 {(() => {
                                     const saved = Math.round(((Number(product.price) - Number(product.discountPrice)) / Number(product.price)) * 100);
                                     return saved > 0 ? (
-                                        <div className="bg-[var(--text)]/90 backdrop-blur-md text-[var(--bg)] px-2 py-1 rounded-lg text-[10px] font-black shadow-lg animate-in slide-in-from-right-full duration-700">
+                                        <div className="hidden sm:block bg-[var(--text)]/90 backdrop-blur-md text-[var(--bg)] px-2 py-1 rounded-lg text-[10px] font-black shadow-lg animate-in slide-in-from-right-full duration-700">
                                             -{saved}%
                                         </div>
                                     ) : null;
@@ -99,6 +99,14 @@ export function PublicProductGrid({
                                         <span className="text-base font-black text-green-500">
                                             {formatCurrency(product.discountPrice)}
                                         </span>
+                                        {(() => {
+                                            const saved = Math.round(((Number(product.price) - Number(product.discountPrice)) / Number(product.price)) * 100);
+                                            return saved > 0 ? (
+                                                <span className="sm:hidden inline-block text-[10px] font-black text-white bg-green-500 px-2 py-0.5 rounded-md mt-1">
+                                                    -{saved}% OFF
+                                                </span>
+                                            ) : null;
+                                        })()}
                                     </>
                                 ) : (
                                     <span className="text-base font-black text-[var(--primary)]">

@@ -12,6 +12,7 @@ import { CategoryBar } from '@/features/store/public/CategoryBar';
 import { PublicProductGrid } from '@/features/store/public/PublicProductGrid';
 import { CartDrawer } from '@/features/store/public/CartDrawer';
 import { OrderModals } from '@/features/store/public/OrderModals';
+import { DiscountsSection } from '@/features/store/public/DiscountsSection';
 
 interface StoreViewProps {
     store: Store;
@@ -37,6 +38,12 @@ export function StoreView({ store, products, categories }: StoreViewProps) {
                     onSelectCategory={actions.setCategoryFilter}
                     searchTerm={state.searchTerm}
                     onSearchChange={actions.setSearchTerm}
+                />
+
+                <DiscountsSection
+                    products={products}
+                    categories={categories}
+                    onProductClick={actions.setSelectedProduct}
                 />
 
                 <PublicProductGrid
