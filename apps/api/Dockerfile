@@ -13,16 +13,19 @@ FROM base AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Copy the full workspace first
-COPY --from=pruner /app/out/full/ .
-COPY turbo.json turbo.json
+# Copy lockfile and package.json's of isolated subworkspace
+COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/package-lock.json ./package-lock.json
 
-# Install all dependencies (including devDependencies for build)
+# Install all dependencies (this layer will be cached if package.json doesn't change)
 RUN npm install
 
-# Build api
-RUN npm run prisma:generate --workspace=@repo/database
+# Copy source files and build
+COPY --from=pruner /app/out/full/ .
+COPY turbo.json turbo.json
+
+# Build api (use Prisma binary directly from node_modules)
+RUN ./node_modules/.bin/prisma generate --schema=packages/database/prisma/schema.prisma
 RUN npx turbo run build --filter=api...
 
 # Phase 2.5: Production Dependencies
