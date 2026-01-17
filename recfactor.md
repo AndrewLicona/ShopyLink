@@ -1,253 +1,243 @@
-Aquí tienes un **README / PLAN.md en Markdown**, **listo para copiar**, pensado para **ejecutar el refactor por fases**, **delegable a un agente**, **sin romper producción** y **con reglas estrictas**.
+Perfecto. Entonces dejamos **FUERA por ahora planes, límites y monetización**.
+Primero: **ordenar la casa** para que **sea mantenible y estable**.
+Luego, sobre eso, **agregar features sin dolor**.
 
-No hay relleno. Es operativo.
+Voy a darte **un plan de reestructuración puro**, empezando por **FRONTEND → luego BACKEND**, con reglas claras para el agente.
 
 ---
 
-```md
-# 🧱 Plan de Refactor Frontend – Next.js (Seguro y por Fases)
+# 🧭 PLAN PRINCIPAL – REESTRUCTURACIÓN (SIN FEATURES NUEVAS)
 
 ## 🎯 Objetivo
-Reestructurar el frontend para:
-- Eliminar código repetido
-- Reducir tamaño de archivos
-- Separar UI, lógica y datos
-- Aplicar Atomic / Molecular Architecture
-- Facilitar mantenimiento y delegación a agentes
-- No romper funcionalidades existentes
+
+* Eliminar código repetido
+* Reducir tamaño de archivos
+* Separar responsabilidades
+* Evitar errores SSR / digest
+* Hacer el proyecto fácil de mantener y de trabajar con agentes
 
 ---
 
-## 🛑 Reglas Generales (OBLIGATORIAS)
+# 🧩 PARTE 1 – FRONTEND (PRIORIDAD)
 
-### Arquitectura
-- `app/` → SOLO rutas, layouts y loading
-- `components/` → UI pura (sin fetch, sin lógica)
-- `features/` → lógica de negocio por dominio
-- `services/` → comunicación con API / Supabase
-- `lib/` → configuración global
-- `utils/` → funciones puras
-- `types/` → tipos compartidos
+## 🔹 Principios del frontend (REGLAS)
 
-### Código
-- ❌ No `fetch` en componentes ni `page.tsx`
-- ❌ No lógica de negocio en UI
-- ❌ No archivos > 150 líneas
-- ❌ No duplicar lógica
-- ✅ Un archivo = una responsabilidad
-- ✅ Tipado estricto
-- ✅ Imports absolutos (`@/`)
-
-### Convenciones
-- `*.service.ts` → reglas de negocio
-- `*.api.ts` → llamadas HTTP
-- `*.hooks.ts` → hooks
-- `*.types.ts` → tipos del dominio
-- `*.constants.ts` → constantes
-- `page.tsx` máx. 30 líneas
+1. **UI ≠ lógica ≠ datos**
+2. Ningún componente UI hace `fetch`
+3. `fetch` solo vive en `services/`
+4. SSR solo para datos mínimos
+5. Todo lo que pueda fallar → fallback
+6. Componentes pequeños (máx. 150 líneas)
+7. Nada de lógica de negocio en `page.tsx`
 
 ---
 
-## 📁 Estructura Final Objetivo
+## 🧱 Estructura objetivo (FRONTEND)
 
 ```
+app/
+ ├── (public)/
+ │    ├── layout.tsx
+ │    └── page.tsx
+ ├── (store)/
+ │    └── [slug]/
+ │         ├── page.tsx
+ │         └── loading.tsx
+ ├── error.tsx
+ └── not-found.tsx
 
 src/
-├── app/
-├── components/
-│   ├── atoms/
-│   ├── molecules/
-│   ├── organisms/
-│   └── templates/
-├── features/
-├── services/
-├── hooks/
-├── store/
-├── lib/
-├── utils/
-└── types/
-
-````
-
----
-
-## 🟢 FASE 1 — Preparación (RIESGO: NULO)
-
-### Objetivo
-Preparar el terreno sin tocar código existente.
-
-### Tareas
-- [ ] Crear carpetas base
-```bash
-mkdir -p src/{features,services,hooks,store,utils,types}
-mkdir -p src/components/{atoms,molecules,organisms,templates}
-````
-
-* [ ] Verificar alias `@/` en `tsconfig.json`
-* [ ] Confirmar que el proyecto compila sin cambios
-
----
-
-## 🟡 FASE 2 — Centralizar Servicios (RIESGO: BAJO)
-
-### Objetivo
-
-Eliminar fetchs repetidos y accesos directos a Supabase.
-
-### Subfase 2.1 – Base API
-
-* [ ] Crear `services/api.ts`
-* [ ] Centralizar headers, base URL y errores
-* [ ] Reemplazar fetchs directos progresivamente
-
-### Subfase 2.2 – Servicios por dominio
-
-* [ ] Crear archivos:
-
-```
-services/auth.api.ts
-services/products.api.ts
-services/orders.api.ts
-services/stores.api.ts
+ ├── components/
+ │    ├── atoms/
+ │    ├── molecules/
+ │    └── organisms/
+ ├── features/
+ │    ├── store/
+ │    │    ├── StoreHeader.tsx
+ │    │    ├── StoreCategories.tsx
+ │    │    └── StoreProducts.tsx
+ │    ├── category/
+ │    └── product/
+ ├── services/
+ │    ├── store.service.ts
+ │    ├── category.service.ts
+ │    └── product.service.ts
+ ├── hooks/
+ ├── lib/
+ └── types/
 ```
 
-* [ ] Mover llamadas HTTP desde:
-
-  * `page.tsx`
-  * componentes
-  * contextos
-
-### Reglas
-
-* ❌ No lógica aquí
-* ✅ Solo comunicación externa
-
 ---
 
-## 🟠 FASE 3 — Features (RIESGO: MEDIO)
-
-### Objetivo
-
-Mover TODA la lógica de negocio fuera de UI.
-
-### Estructura estándar por feature
-
-```
-features/<feature>/
-├── <feature>.service.ts
-├── <feature>.hooks.ts
-├── <feature>.types.ts
-└── <feature>.constants.ts
-```
-
-### Subfase 3.1 – Crear dominios
-
-* [ ] `features/auth`
-* [ ] `features/products`
-* [ ] `features/orders`
-* [ ] `features/store`
-* [ ] `features/settings`
-
-### Subfase 3.2 – Mover lógica
-
-* [ ] Extraer lógica desde `page.tsx`
-* [ ] Extraer lógica desde `contexts/`
-* [ ] Usar hooks como única interfaz hacia UI
-
-### Reglas
-
-* UI solo usa hooks
-* Services solo se usan desde features
-
----
-
-## 🔵 FASE 4 — Componentes (Atomic Design) (RIESGO: MEDIO)
-
-### Objetivo
-
-Componentes pequeños, reutilizables y sin lógica.
-
-### Subfase 4.1 – Clasificación
-
-* [ ] Mover inputs, botones, iconos → `atoms`
-* [ ] Formularios → `molecules`
-* [ ] Navbar, Footer → `organisms`
-* [ ] Layouts → `templates`
-
-### Subfase 4.2 – Limpieza
-
-* [ ] Eliminar lógica interna
-* [ ] Pasar callbacks por props
-* [ ] Reducir tamaño de componentes
-
-### Reglas
-
-* ❌ Nada de fetch
-* ❌ Nada de estado de negocio
-* ✅ Solo props
-
----
-
-## 🟣 FASE 5 — Limpieza de `app/` (RIESGO: BAJO)
-
-### Objetivo
-
-`app/` como capa de routing, no de lógica.
-
-### Subfase 5.1 – Pages
-
-* [ ] Cada `page.tsx`:
-
-  * importar un componente desde `features`
-  * no tener lógica propia
-
-### Subfase 5.2 – Eliminar archivos indebidos
-
-* [ ] Eliminar componentes dentro de `app/`
-* [ ] Moverlos a `features` o `components`
-
----
-
-## 🧹 FASE 6 — Limpieza Final (RIESGO: BAJO)
+## 🧩 FASE F1 – Limpieza inicial (SIN CAMBIAR FUNCIONALIDAD)
 
 ### Tareas
 
-* [ ] Eliminar código duplicado
-* [ ] Unificar tipos en `types/`
-* [ ] Revisar imports circulares
-* [ ] Verificar build y lint
+* [ ] Identificar componentes >200 líneas
+* [ ] Mover `fetch` fuera de componentes
+* [ ] Eliminar lógica duplicada
+* [ ] Crear `services/` para API calls
+* [ ] Tipar respuestas (`types/`)
 
 ---
 
-## ✅ Checklist Final
+## 🧩 FASE F2 – SSR seguro
 
-* [ ] No hay fetch fuera de `services`
-* [ ] No hay lógica en componentes
-* [ ] `page.tsx` es delgado
-* [ ] Cada feature es independiente
-* [ ] Archivos < 150 líneas
-* [ ] Build pasa sin errores
+### Reglas SSR
 
----
+* `page.tsx` solo:
 
-## 🤖 Instrucciones para Agentes
+  * lee params
+  * llama services
+  * arma layout
+* Nada de loops
+* Nada de transformaciones
 
-* Ejecutar UNA fase a la vez
-* No mezclar fases
-* No refactorizar estilos sin permiso
-* No cambiar comportamiento funcional
-* Commits pequeños y claros
+### Patrón correcto
 
----
+```ts
+let data = null;
 
-## 🏁 Resultado Esperado
-
-* Código modular
-* Fácil de mantener
-* Fácil de testear
-* Fácil de delegar
-* Escalable sin deuda técnica
-
+try {
+  data = await getStore(slug);
+} catch {
+  return notFound();
+}
 ```
 
+---
 
+## 🧩 FASE F3 – Client vs Server
+
+### Server
+
+* Store info
+* SEO
+* Metadata
+
+### Client
+
+* Categorías
+* Productos
+* Listas
+* Interacciones
+
+Usar:
+
+```tsx
+<Suspense fallback={<Skeleton />}>
+  <CategoriesClient storeId={id} />
+</Suspense>
+```
+
+---
+
+## 🧩 FASE F4 – Manejo de errores
+
+### Obligatorio
+
+* `app/error.tsx`
+* `not-found.tsx`
+* Fallback UI
+
+Nunca:
+
+* mostrar stack
+* mostrar digest
+* romper la página
+
+---
+
+## 🧩 FASE F5 – Estandarización
+
+### Naming
+
+* `*.service.ts` → fetch
+* `*.client.tsx` → client component
+* `*.server.ts` → server helpers
+
+### Convenciones
+
+* 1 archivo = 1 responsabilidad
+* Props tipadas
+* Nada hardcodeado
+
+---
+
+# 🧩 PARTE 2 – BACKEND (DESPUÉS)
+
+## 🔹 Principios backend
+
+1. Controllers sin lógica
+2. Services con reglas de negocio
+3. Repositories con Prisma
+4. DTOs obligatorios
+5. Errores de dominio
+
+---
+
+## 🧱 Estructura objetivo (BACKEND)
+
+```
+src/
+ ├── modules/
+ │    ├── stores/
+ │    ├── categories/
+ │    ├── products/
+ │    ├── inventory/
+ │    └── users/
+ ├── shared/
+ │    ├── prisma/
+ │    ├── errors/
+ │    ├── filters/
+ │    └── utils/
+```
+
+---
+
+## 🧩 FASE B1 – Infraestructura
+
+* [ ] Prisma singleton
+* [ ] Conexión directa Supabase
+* [ ] Logger
+* [ ] Exception Filter limpio
+
+---
+
+## 🧩 FASE B2 – Separación real
+
+* [ ] Crear repositories
+* [ ] Mover Prisma fuera de services
+* [ ] DTOs + validation
+* [ ] Eliminar duplicación
+
+---
+
+## 🧩 FASE B3 – Endpoints estables
+
+* [ ] Responses estandarizadas
+* [ ] Errores claros
+* [ ] Nada de leaks técnicos
+
+---
+
+# 🧠 ORDEN DE EJECUCIÓN (CLAVE)
+
+1. Frontend F1 → F5
+2. Verificar que TODO funciona igual
+3. Backend B1 → B3
+4. Verificar estabilidad
+5. **Luego recién agregar planes, límites y features**
+
+---
+
+## ✅ Resultado esperado
+
+* Código limpio
+* SSR estable
+* Menos bugs
+* Menos estrés
+* Agentes productivos
+* Base lista para monetización
+
+---

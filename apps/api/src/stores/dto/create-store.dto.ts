@@ -58,7 +58,7 @@ export class CreateStoreDto {
 
   @IsString()
   @IsOptional()
-  @IsIn(['light', 'dark', 'beige', 'gray', 'dark-gray'])
+  @IsIn(['light', 'dark', 'beige', 'gray', 'dark-gray', 'dark-blue'])
   mode?: string;
 
   @IsBoolean()
