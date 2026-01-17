@@ -66,8 +66,8 @@ export function useProfileSettings() {
             if (updateError) throw updateError;
             setSuccess('Perfil actualizado con éxito.');
             setTimeout(() => setSuccess(null), 3000);
-        } catch (err: any) {
-            setError(err?.message || 'Error al actualizar el perfil.');
+        } catch (err: unknown) {
+            setError((err as Error)?.message || 'Error al actualizar el perfil.');
         } finally {
             setSaving(false);
         }
@@ -85,8 +85,8 @@ export function useProfileSettings() {
             setAvatarUrl(url);
             await supabase.auth.updateUser({ data: { avatar_url: url } });
             setSuccess('Avatar subido correctamente.');
-        } catch (err: any) {
-            setError(err?.message || 'Error al subir el avatar.');
+        } catch (err: unknown) {
+            setError((err as Error)?.message || 'Error al subir el avatar.');
         } finally {
             setUploading(false);
         }
@@ -114,8 +114,8 @@ export function useProfileSettings() {
             setSuccess('Contraseña actualizada con éxito.');
             setNewPassword('');
             setConfirmPassword('');
-        } catch (err: any) {
-            setError(err?.message || 'Error al cambiar la contraseña.');
+        } catch (err: unknown) {
+            setError((err as Error)?.message || 'Error al cambiar la contraseña.');
         } finally {
             setSaving(false);
         }

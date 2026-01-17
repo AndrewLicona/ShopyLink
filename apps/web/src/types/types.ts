@@ -43,6 +43,7 @@ export interface ProductVariant {
     // Nuevos campos Phase 56
     useParentPrice?: boolean;
     useParentStock?: boolean;
+    trackInventory?: boolean;
     images?: string[];  // max 2
 }
 

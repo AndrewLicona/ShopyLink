@@ -20,7 +20,7 @@ interface StoreViewProps {
 }
 
 export function StoreView({ store, products, categories }: StoreViewProps) {
-    const { state, actions } = useStoreView(store, products, categories);
+    const { state, actions } = useStoreView(store, products);
 
     return (
         <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col pb-20">

@@ -76,14 +76,14 @@ function ProductsContent() {
                         {state.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
 
-                    <div className="bg-[var(--surface)] border border-[var(--border)] p-1 rounded-2xl flex w-full sm:w-auto h-[60px] sm:h-auto items-stretch sm:items-center">
+                    <div className="bg-[var(--surface)] border border-[var(--border)] p-1 rounded-2xl flex w-full sm:w-auto h-[60px] items-stretch">
                         {(['active', 'paused'] as const).map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => actions.setStatusTab(tab)}
                                 className={cn(
-                                    "flex-1 sm:flex-none px-6 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                                    state.statusTab === tab ? "bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/10" : "text-[var(--text)]/40 hover:text-[var(--text)]"
+                                    "flex-1 sm:w-40 px-6 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center",
+                                    state.statusTab === tab ? "bg-[var(--text)] text-white shadow-lg" : "text-[var(--text)]/40 hover:text-[var(--text)]"
                                 )}
                             >
                                 {tab === 'active' ? 'En venta' : 'Pausados'}
@@ -109,7 +109,7 @@ function ProductsContent() {
                         </div>
                         <h3 className="text-xl font-black text-[var(--text)] mb-2">¿Estás seguro?</h3>
                         <p className="text-[var(--text)]/40 font-medium mb-8">
-                            Se eliminará <span className="text-[var(--text)] font-bold">"{state.confirmModal.name}"</span> permanentemente.
+                            Se eliminará <span className="text-[var(--text)] font-bold">&quot;{state.confirmModal.name}&quot;</span> permanentemente.
                         </p>
                         <div className="flex gap-3">
                             <button

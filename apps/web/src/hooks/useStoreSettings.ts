@@ -98,9 +98,9 @@ export function useStoreSettings() {
             await refreshStores();
             setSuccess('Tienda actualizada con éxito.');
             setTimeout(() => setSuccess(null), 3000);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Update Store Error:', err);
-            const message = err?.message || 'Error al actualizar la tienda';
+            const message = (err as Error)?.message || 'Error al actualizar la tienda';
             setError(message);
             if (message.includes('uso') || message.includes('already in use')) {
                 setSuggestedSlug(`${slug}-${Math.floor(Math.random() * 90) + 10}`);
@@ -120,7 +120,7 @@ export function useStoreSettings() {
             const url = await storage.uploadImage(file, 'logos');
             setLogoUrl(url);
             setSuccess('Logo subido correctamente.');
-        } catch (err: any) {
+        } catch (err: unknown) {
             setError('Error al subir el logo.');
             console.error(err);
         } finally {

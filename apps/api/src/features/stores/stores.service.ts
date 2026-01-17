@@ -1,4 +1,9 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 
 // Actually in my PrismaModule I exported PrismaClient directly but widely it's better to wrap it or use it directly.
 // In PrismaModule I exported PrismaClient as provider.
@@ -7,10 +12,10 @@ import { Injectable, ConflictException } from '@nestjs/common';
 // In Step 385 I did: provide: PrismaClient, useClass: PrismaClient.
 // So I can inject PrismaClient.
 
-import { PrismaService } from '../common/prisma/prisma.module';
+import { PrismaService } from '../../core/prisma/prisma.module';
 import { CreateStoreDto } from './dto/create-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
-import { encrypt, decrypt } from '../common/encryption.util';
+import { encrypt, decrypt } from '../../core/common/encryption.util';
 
 @Injectable()
 export class StoresService {
@@ -21,15 +26,7 @@ export class StoresService {
     userEmail: string,
     createStoreDto: CreateStoreDto,
   ) {
-    // Check if slug exists
-    const existing = await this.prisma.store.findUnique({
-      where: { slug: createStoreDto.slug },
-    });
-    if (existing) {
-      throw new ConflictException(
-        'Este identificador de tienda (link) ya está en uso',
-      );
-    }
+    await this.checkSlugAvailability(createStoreDto.slug);
 
     // Upsert User to ensure local DB record exists
     // We assume userId comes from Supabase Auth (UUID)
@@ -95,14 +92,7 @@ export class StoresService {
 
   async update(id: string, userId: string, updateStoreDto: UpdateStoreDto) {
     if (updateStoreDto.slug) {
-      const existing = await this.prisma.store.findUnique({
-        where: { slug: updateStoreDto.slug },
-      });
-      if (existing && existing.id !== id) {
-        throw new ConflictException(
-          'Este identificador de tienda (link) ya está en uso',
-        );
-      }
+      await this.checkSlugAvailability(updateStoreDto.slug, id);
     }
 
     const data = { ...updateStoreDto };
@@ -127,5 +117,29 @@ export class StoresService {
     return this.prisma.store.delete({
       where: { id, userId },
     });
+  }
+
+  private async checkSlugAvailability(slug: string, excludeId?: string) {
+    const existing = await this.prisma.store.findUnique({
+      where: { slug },
+    });
+
+    if (existing && existing.id !== excludeId) {
+      throw new ConflictException(
+        'Este identificador de tienda (link) ya está en uso',
+      );
+    }
+  }
+
+  private async ensureStoreOwnership(id: string, userId: string) {
+    const store = await this.prisma.store.findUnique({
+      where: { id },
+    });
+
+    if (!store) throw new NotFoundException('Store not found');
+    if (store.userId !== userId) {
+      throw new ForbiddenException('You do not own this store');
+    }
+    return store;
   }
 }

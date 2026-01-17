@@ -30,6 +30,7 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
 
         if (!res.ok) {
             const errorData = await res.json().catch(() => ({}));
+            // console.error('API Error Response:', errorData); // Silenced as per task
             throw new Error(errorData.message || `API Error: ${res.status} ${res.statusText}`);
         }
 
@@ -97,4 +98,4 @@ export const api = {
 
     // Auth
     resolveUsername: (username: string) => fetchWithAuth(`/auth/resolve-username/${username}`),
-};
+}; // Force reload

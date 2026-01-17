@@ -1,5 +1,5 @@
 import { Controller, Get, Param, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../common/prisma/prisma.module';
+import { PrismaService } from '../prisma/prisma.module';
 
 @Controller('auth')
 export class AuthController {

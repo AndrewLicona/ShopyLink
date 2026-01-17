@@ -3,7 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
-import { PrismaService } from '../common/prisma/prisma.module';
+import { PrismaService } from '../../core/prisma/prisma.module';
 import { CreateCategoryDto } from './dto/create-category.dto';
 
 @Injectable()

@@ -3,10 +3,22 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from '../common/prisma/prisma.module';
+import { PrismaService } from '../../core/prisma/prisma.module';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Prisma } from '@repo/database';
+interface ProductVariantInput {
+  id?: string;
+  name: string;
+  price?: number | string | Prisma.Decimal;
+  stock: number;
+  sku?: string;
+  image?: string;
+  useParentPrice?: boolean;
+  useParentStock?: boolean;
+  trackInventory?: boolean;
+  images?: string[];
+}
 
 @Injectable()
 export class ProductsService {
@@ -23,11 +35,7 @@ export class ProductsService {
       throw new ForbiddenException('You do not own this store');
 
     const { stock, sku, trackInventory, ...rest } = createProductDto;
-    // Generate SKU if not provided
-    const generatedSku =
-      sku && sku.trim().length > 0
-        ? sku.trim()
-        : `SKU-${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
+    const generatedSku = this.generateSku(sku);
 
     return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const product = await tx.product.create({
@@ -45,28 +53,8 @@ export class ProductsService {
         },
       });
 
-      // Handle Variants (Smart Sync)
       if (rest.variants && rest.variants.length > 0) {
-        await tx.productVariant.createMany({
-          data: rest.variants.map((v) => ({
-            productId: product.id,
-            name: v.name,
-            price: v.price,
-            stock: v.stock,
-            sku: v.sku,
-            image: v.image,
-            useParentPrice: v.useParentPrice ?? false,
-            useParentStock: v.useParentStock ?? false,
-            images: v.images ?? [],
-          })),
-        });
-
-        // If variants are used, we might want to sum up stock for the main product
-        // or just rely on variants. For now, let's keep main stock separate or aggregated?
-        // Typically if variants exist, main stock is just a cache or ignored.
-        // Let's create an inventory record for the main product anyway (as total or default).
-        // If user sets stock on main product AND variants, it's ambiguous.
-        // Assuming if variants exist, main stock input is ignored or represents "general" stock.
+        await this.syncProductVariants(tx, product.id, rest.variants);
       }
 
       if (stock !== undefined) {
@@ -124,11 +112,7 @@ export class ProductsService {
 
     const { stock, sku, trackInventory, ...productData } = updateProductDto;
 
-    // Usamos el SKU proporcionado o el actual, o generamos uno si no existe ninguno
-    let finalSku = sku && sku.trim().length > 0 ? sku.trim() : product.sku;
-    if (!finalSku || finalSku.trim().length === 0) {
-      finalSku = `SKU-${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
-    }
+    const finalSku = this.generateSku(sku, product.sku || undefined);
 
     return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       if (stock !== undefined) {
@@ -139,55 +123,8 @@ export class ProductsService {
         });
       }
 
-      /* Variant Logic: Sync (Delete missing, Update existing, Create new) */
       if (productData.variants) {
-        // 1. Get IDs of variants to keep (those that already have an ID)
-        const variantIdsToKeep = productData.variants
-          .filter((v) => v.id)
-          .map((v) => v.id as string);
-
-        // 2. Delete variants not in the list
-        await tx.productVariant.deleteMany({
-          where: {
-            productId: id,
-            id: { notIn: variantIdsToKeep },
-          },
-        });
-
-        // 3. Upsert (Update or Create)
-        for (const v of productData.variants) {
-          if (v.id) {
-            // Update existing
-            await tx.productVariant.update({
-              where: { id: v.id },
-              data: {
-                name: v.name,
-                price: v.price,
-                stock: v.stock,
-                sku: v.sku,
-                image: v.image,
-                useParentPrice: v.useParentPrice ?? false,
-                useParentStock: v.useParentStock ?? false,
-                images: v.images ?? [],
-              },
-            });
-          } else {
-            // Create new
-            await tx.productVariant.create({
-              data: {
-                productId: id,
-                name: v.name,
-                price: v.price,
-                stock: v.stock,
-                sku: v.sku,
-                image: v.image,
-                useParentPrice: v.useParentPrice ?? false,
-                useParentStock: v.useParentStock ?? false,
-                images: v.images ?? [],
-              },
-            });
-          }
-        }
+        await this.syncProductVariants(tx, id, productData.variants);
       }
 
       return tx.product.update({
@@ -219,5 +156,56 @@ export class ProductsService {
       throw new ForbiddenException('You do not own this product');
 
     return this.prisma.product.delete({ where: { id } });
+  }
+
+  private generateSku(sku?: string, currentSku?: string): string {
+    const finalSku = sku && sku.trim().length > 0 ? sku.trim() : currentSku;
+    if (!finalSku || finalSku.trim().length === 0) {
+      return `SKU-${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
+    }
+    return finalSku;
+  }
+
+  private async syncProductVariants(
+    tx: Prisma.TransactionClient,
+    productId: string,
+    variants: ProductVariantInput[],
+  ) {
+    const variantIdsToKeep = variants
+      .filter((v) => v.id)
+      .map((v) => v.id as string);
+
+    await tx.productVariant.deleteMany({
+      where: {
+        productId,
+        id: { notIn: variantIdsToKeep },
+      },
+    });
+
+    for (const v of variants) {
+      const data: Prisma.ProductVariantUncheckedCreateInput = {
+        productId,
+        name: v.name,
+        price: v.price as Prisma.Decimal | number | undefined,
+        stock: v.stock,
+        sku: v.sku,
+        image: v.image,
+        useParentPrice: v.useParentPrice ?? false,
+        useParentStock: v.useParentStock ?? false,
+        trackInventory: v.trackInventory ?? true,
+        images: v.images ?? [],
+      };
+
+      if (v.id) {
+        await tx.productVariant.update({
+          where: { id: v.id },
+          data,
+        });
+      } else {
+        await tx.productVariant.create({
+          data,
+        });
+      }
+    }
   }
 }

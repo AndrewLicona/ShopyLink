@@ -6,6 +6,7 @@ generator client {
 
 datasource db {
     provider = "postgresql"
+    url      = env("DATABASE_URL")
 }
 
 // Representa a un Owner de tienda (vinculado a Supabase Auth)
@@ -98,6 +99,9 @@ model ProductVariant {
     // Flags para heredar del producto padre
     useParentPrice Boolean @default(false)
     useParentStock Boolean @default(false)
+
+    // Control de inventario a nivel de variante
+    trackInventory Boolean @default(true)
 
     sku String?
 

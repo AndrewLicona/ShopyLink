@@ -5,10 +5,12 @@ import { Request, Response, NextFunction } from 'express';
 export class ProxyCompatibilityMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
     if (req.url.startsWith('/api-proxy')) {
-      console.log(
-        `[Middleware] Rewriting path from ${req.url} to ${req.url.replace('/api-proxy', '/api')}`,
-      );
-      req.url = req.url.replace('/api-proxy', '/api');
+      const oldUrl = req.url;
+      const newUrl = req.url.replace('/api-proxy', '/api');
+      console.log(`[ProxyMiddleware] Rewriting: ${oldUrl} -> ${newUrl}`);
+      req.url = newUrl;
+    } else {
+      // Optional: console.debug(`[ProxyMiddleware] Skipping non-proxy path: ${req.url}`);
     }
     next();
   }

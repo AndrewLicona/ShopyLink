@@ -10,7 +10,7 @@ import type { Order, Product } from '@/types/types';
 
 export function useDashboard() {
     const { activeStore } = useStore();
-    const [stats, setStats] = useState<{ label: string, value: string, change: string, icon: any, color: string, bg: string }[]>([]);
+    const [stats, setStats] = useState<{ label: string, value: string, change: string, icon: React.ElementType, color: string, bg: string }[]>([]);
     const [recentOrders, setRecentOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);

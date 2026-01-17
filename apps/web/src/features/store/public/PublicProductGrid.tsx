@@ -59,11 +59,19 @@ export function PublicProductGrid({
                             <ShoppingBag className="w-8 h-8 text-gray-200" />
                         )}
 
-                        {product.discountPrice && (
-                            <div className="absolute top-2 right-2">
-                                <span className="bg-green-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
+                        {product.discountPrice && product.price && (
+                            <div className="absolute top-2 right-2 flex flex-col gap-1.5 items-end">
+                                <div className="bg-red-500/90 backdrop-blur-md text-white px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-[0_4px_12px_rgba(239,68,68,0.3)] animate-in fade-in zoom-in duration-500">
                                     Oferta
-                                </span>
+                                </div>
+                                {(() => {
+                                    const saved = Math.round(((Number(product.price) - Number(product.discountPrice)) / Number(product.price)) * 100);
+                                    return saved > 0 ? (
+                                        <div className="bg-[var(--text)]/90 backdrop-blur-md text-[var(--bg)] px-2 py-1 rounded-lg text-[10px] font-black shadow-lg animate-in slide-in-from-right-full duration-700">
+                                            -{saved}%
+                                        </div>
+                                    ) : null;
+                                })()}
                             </div>
                         )}
 
@@ -115,7 +123,7 @@ export function PublicProductGrid({
                                         {(() => {
                                             const totalQty = cart
                                                 .filter(item => item.id === product.id)
-                                                .reduce((sum, item: any) => sum + item.quantity, 0);
+                                                .reduce((sum, item) => sum + item.quantity, 0);
                                             return totalQty > 0 ? (
                                                 <span className="absolute -top-2 -right-2 bg-[var(--text)] text-[var(--bg)] text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-[var(--bg)] animate-in zoom-in-50">
                                                     {totalQty}
