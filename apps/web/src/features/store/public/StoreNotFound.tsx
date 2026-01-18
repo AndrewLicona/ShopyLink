@@ -20,19 +20,28 @@ export function StoreNotFound() {
                     </p>
                 </div>
 
-                <div className="w-full flex flex-col sm:flex-row gap-4">
-                    <Link
-                        href="/landing"
-                        className="flex-1 bg-[var(--primary)] text-[var(--primary-foreground)] py-5 rounded-[2rem] font-black text-lg shadow-xl shadow-[var(--primary)]/20 hover:scale-[1.02] transition-all active:scale-95 flex items-center justify-center"
+                <div className="w-full flex flex-col gap-3">
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="w-full bg-[var(--primary)] text-[var(--primary-foreground)] py-5 rounded-[2rem] font-black text-lg shadow-xl shadow-[var(--primary)]/20 hover:scale-[1.02] transition-all active:scale-95 flex items-center justify-center gap-2"
                     >
-                        Ir al Inicio
-                    </Link>
-                    <Link
-                        href="/signup"
-                        className="flex-1 bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] py-5 rounded-[2rem] font-black text-lg hover:bg-[var(--secondary)] transition-all active:scale-95 flex items-center justify-center"
-                    >
-                        Crear mi Tienda
-                    </Link>
+                        Recargar Página
+                    </button>
+
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <Link
+                            href="/landing"
+                            className="flex-1 bg-[var(--secondary)] text-[var(--text)] py-5 rounded-[2rem] font-black text-lg hover:bg-[var(--secondary)]/80 transition-all active:scale-95 flex items-center justify-center"
+                        >
+                            Ir al Inicio
+                        </Link>
+                        <Link
+                            href="/signup"
+                            className="flex-1 bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] py-5 rounded-[2rem] font-black text-lg hover:bg-[var(--secondary)] transition-all active:scale-95 flex items-center justify-center"
+                        >
+                            Crear mi Tienda
+                        </Link>
+                    </div>
                 </div>
 
                 <p className="text-[10px] text-[var(--text)]/20 font-black uppercase tracking-widest pt-4">
