@@ -36,8 +36,7 @@ ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-# Build web - generate prisma client first to avoid build errors
-RUN prisma generate --schema=packages/database/prisma/schema.prisma
+# Build web - this generates the standalone server
 RUN npx turbo run build --filter=web... --concurrency=1
 
 # Phase 3: Runner
