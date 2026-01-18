@@ -14,7 +14,7 @@ RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 # Install prisma globally to ensure it's in the PATH and works in Alpine
-RUN npm install -g prisma@6.19.2
+RUN npm install -g prisma@7.2.0
 
 # Copy lockfile and package.json's of isolated subworkspace
 COPY --from=pruner /app/out/json/ .
