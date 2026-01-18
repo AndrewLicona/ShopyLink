@@ -19,7 +19,7 @@ import { encrypt, decrypt } from '../../core/common/encryption.util';
 
 @Injectable()
 export class StoresService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(
     userId: string,
@@ -30,14 +30,16 @@ export class StoresService {
 
     // Upsert User to ensure local DB record exists
     // We assume userId comes from Supabase Auth (UUID)
-    const user = await this.prisma.user.upsert({
-      where: { id: userId },
-      update: { email: userEmail },
-      create: {
-        id: userId,
-        email: userEmail,
-      },
-    });
+    const user = await this.withRetry(() =>
+      this.prisma.user.upsert({
+        where: { id: userId },
+        update: { email: userEmail },
+        create: {
+          id: userId,
+          email: userEmail,
+        },
+      }),
+    );
 
     const data = {
       ...createStoreDto,
@@ -48,9 +50,11 @@ export class StoresService {
       data.whatsappNumber = encrypt(data.whatsappNumber);
     }
 
-    const store = await this.prisma.store.create({
-      data,
-    });
+    const store = await this.withRetry(() =>
+      this.prisma.store.create({
+        data,
+      }),
+    );
 
     return this.decryptStore(store);
   }
@@ -66,28 +70,59 @@ export class StoresService {
   }
 
   async findAllByUser(userId: string) {
-    const stores = await this.prisma.store.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
+    const stores = await this.withRetry(() =>
+      this.prisma.store.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+      }),
+    );
     return stores.map((store) => this.decryptStore(store));
   }
 
   async findOneByUser(userId: string) {
-    const store = await this.prisma.store.findFirst({
-      where: { userId },
-    });
+    const store = await this.withRetry(() =>
+      this.prisma.store.findFirst({
+        where: { userId },
+      }),
+    );
     return this.decryptStore(store);
   }
 
   async findOneBySlug(slug: string) {
-    const store = await this.prisma.store.findUnique({
-      where: { slug },
-      include: {
-        categories: true,
-      },
-    });
-    return this.decryptStore(store);
+    return this.withRetry(() =>
+      this.prisma.store.findUnique({
+        where: { slug },
+        include: {
+          categories: true,
+        },
+      }),
+    ).then((store) => this.decryptStore(store));
+  }
+
+  private async withRetry<T>(
+    operation: () => Promise<T>,
+    retries = 3,
+    delay = 500,
+  ): Promise<T> {
+    try {
+      return await operation();
+    } catch (error) {
+      const isNetworkError =
+        error instanceof Error &&
+        (error.message.includes('EAI_AGAIN') ||
+          error.message.includes('Can\'t reach database server') ||
+          error.message.includes('Timed out'));
+
+      if (isNetworkError && retries > 0) {
+        console.warn(
+          `Database operation failed (retrying ${retries} more times):`,
+          error.message,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return this.withRetry(operation, retries - 1, delay * 2);
+      }
+      throw error;
+    }
   }
 
   async update(id: string, userId: string, updateStoreDto: UpdateStoreDto) {
@@ -120,9 +155,11 @@ export class StoresService {
   }
 
   private async checkSlugAvailability(slug: string, excludeId?: string) {
-    const existing = await this.prisma.store.findUnique({
-      where: { slug },
-    });
+    const existing = await this.withRetry(() =>
+      this.prisma.store.findUnique({
+        where: { slug },
+      }),
+    );
 
     if (existing && existing.id !== excludeId) {
       throw new ConflictException(
@@ -132,9 +169,11 @@ export class StoresService {
   }
 
   private async ensureStoreOwnership(id: string, userId: string) {
-    const store = await this.prisma.store.findUnique({
-      where: { id },
-    });
+    const store = await this.withRetry(() =>
+      this.prisma.store.findUnique({
+        where: { id },
+      }),
+    );
 
     if (!store) throw new NotFoundException('Store not found');
     if (store.userId !== userId) {
