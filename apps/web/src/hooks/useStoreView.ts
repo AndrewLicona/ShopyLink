@@ -161,6 +161,11 @@ export function useStoreView(store: Store, initialProducts: Product[]) {
 
         setShowNameModal(false);
         setIsCreatingOrder(true);
+
+        // Detect mobile before the async call to decide if we need to pre-open a window
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const pcWindow = !isMobile ? window.open('about:blank', '_blank') : null;
+
         try {
             let finalAddress: string | undefined = undefined;
             if (store.deliveryEnabled && deliveryMethod === 'delivery') {
@@ -182,10 +187,13 @@ export function useStoreView(store: Store, initialProducts: Product[]) {
             const response = await api.createOrder(orderData as any);
 
             if (response.whatsappLink) {
-                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
                 if (isMobile) {
                     window.location.href = response.whatsappLink;
+                } else if (pcWindow) {
+                    pcWindow.location.href = response.whatsappLink;
+                    pcWindow.focus();
                 } else {
+                    // Fallback if pcWindow was somehow blocked or null
                     window.open(response.whatsappLink, '_blank');
                 }
 
@@ -194,6 +202,8 @@ export function useStoreView(store: Store, initialProducts: Product[]) {
             }
         } catch (err: unknown) {
             console.error('Error creating order:', err);
+            if (pcWindow) pcWindow.close(); // Close the blank window on error
+
             let message = 'Hubo un error al procesar tu pedido. Por favor intenta de nuevo.';
 
             if (err instanceof Error) {
@@ -201,7 +211,7 @@ export function useStoreView(store: Store, initialProducts: Product[]) {
                     const productName = err.message.split(': ')[1] || 'un producto';
                     message = `¡Lo sentimos! No hay suficiente stock disponible para: ${productName}. Por favor, reduce la cantidad e intenta de nuevo.`;
                 } else {
-                    message = err.message; // Detailed error from fetchWithAuth
+                    message = err.message;
                 }
             }
 
