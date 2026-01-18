@@ -23,7 +23,8 @@ export class CreateProductDto {
 
   @IsNumber()
   @Min(0)
-  price: number;
+  @IsOptional()
+  price?: number;
 
   @IsNumber()
   @Min(0)

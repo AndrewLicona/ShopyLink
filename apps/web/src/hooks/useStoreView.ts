@@ -175,8 +175,6 @@ export function useStoreView(store: Store, initialProducts: Product[]) {
                     productId: item.id,
                     quantity: item.quantity,
                     variantId: item.variantId,
-                    productName: item.name,
-                    price: item.price
                 }))
             };
 
@@ -196,12 +194,18 @@ export function useStoreView(store: Store, initialProducts: Product[]) {
             }
         } catch (err: unknown) {
             console.error('Error creating order:', err);
-            if (err instanceof Error && err.message?.includes('Insufficient stock')) {
-                const productName = err.message.split(': ')[1] || 'un producto';
-                showMessage(`¡Lo sentimos! No hay suficiente stock disponible para: ${productName}. Por favor, reduce la cantidad e intenta de nuevo.`);
-            } else {
-                showMessage('Hubo un error al procesar tu pedido. Por favor intenta de nuevo.');
+            let message = 'Hubo un error al procesar tu pedido. Por favor intenta de nuevo.';
+
+            if (err instanceof Error) {
+                if (err.message.includes('Insufficient stock')) {
+                    const productName = err.message.split(': ')[1] || 'un producto';
+                    message = `¡Lo sentimos! No hay suficiente stock disponible para: ${productName}. Por favor, reduce la cantidad e intenta de nuevo.`;
+                } else {
+                    message = err.message; // Detailed error from fetchWithAuth
+                }
             }
+
+            showMessage(message);
         } finally {
             setIsCreatingOrder(false);
         }

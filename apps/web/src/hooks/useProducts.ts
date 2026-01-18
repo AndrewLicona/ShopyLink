@@ -211,14 +211,14 @@ export function useProducts() {
 
         const productData = {
             name,
-            price: hasPrice ? parseFloat(price) : null,
+            price: hasPrice ? (parseFloat(price) || 0) : null,
             description,
             stock: finalStock,
             storeId,
             images: imageUrls,
             categoryId: categoryId && categoryId.trim() !== '' ? categoryId : undefined,
             sku: sku || null,
-            discountPrice: (hasPrice && discountPrice) ? parseFloat(discountPrice) : null,
+            discountPrice: (hasPrice && discountPrice) ? (parseFloat(discountPrice) || 0) : null,
             isActive,
             trackInventory,
             variants: processedVariants
@@ -236,7 +236,8 @@ export function useProducts() {
             await loadData();
         } catch (err: unknown) {
             console.error('Save product error:', err);
-            setErrorAlert({ show: true, title: 'Error al guardar', message: 'No se pudo guardar el producto.' });
+            const message = err instanceof Error ? err.message : 'No se pudo guardar el producto.';
+            setErrorAlert({ show: true, title: 'Error al guardar', message });
         } finally {
             setCreating(false);
         }
