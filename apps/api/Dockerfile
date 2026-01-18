@@ -38,8 +38,8 @@ WORKDIR /app
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/package-lock.json ./package-lock.json
 RUN npm install --omit=dev --no-audit --no-fund
-# Copy generated Prisma client from builder
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+
+# Copy generated Prisma client (the actual artifacts)
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Phase 3: Runner
