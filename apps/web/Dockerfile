@@ -10,7 +10,7 @@ RUN turbo prune --scope=web --docker
 
 # Phase 2: Install and Build
 FROM base AS builder
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 # Copy lockfile and package.json's of isolated subworkspace
