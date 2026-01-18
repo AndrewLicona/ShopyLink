@@ -124,18 +124,30 @@ export function useProducts() {
 
     const handleCreateCategory = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
-        if (!storeId || !newCatName) return;
+        const trimmedName = newCatName.trim();
+        if (!storeId || !trimmedName) return;
+
         try {
+            // Improved slug generation (remove accents, multiple spaces, etc)
+            const slug = trimmedName
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/[^a-z0-z0-9\s-]/g, "")
+                .trim()
+                .replace(/\s+/g, "-");
+
             await api.createCategory({
-                name: newCatName,
-                slug: newCatName.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, ''),
+                name: trimmedName,
+                slug: slug || 'cat',
                 storeId
             });
             setNewCatName('');
             await loadData();
         } catch (err: unknown) {
             console.error('Create category error:', err);
-            setErrorAlert({ show: true, title: 'Error de Categoría', message: 'No se pudo crear la categoría.' });
+            const message = err instanceof Error ? err.message : 'No se pudo crear la categoría.';
+            setErrorAlert({ show: true, title: 'Error de Categoría', message });
         }
     };
 
