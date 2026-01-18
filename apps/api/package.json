@@ -1,6 +1,9 @@
 {
   "name": "api",
   "version": "0.0.1",
+  "prisma": {
+    "schema": "../../packages/database/prisma/schema.prisma"
+  },
   "description": "",
   "author": "",
   "private": true,
