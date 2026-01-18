@@ -18,7 +18,7 @@ import { RequestWithUser } from '../../core/auth/interfaces/user.interface';
 
 @Controller('stores')
 export class StoresController {
-  constructor(private readonly storesService: StoresService) {}
+  constructor(private readonly storesService: StoresService) { }
 
   @UseGuards(JwtAuthGuard)
   @Post()
@@ -45,6 +45,11 @@ export class StoresController {
     const store = await this.storesService.findOneByUser(userId);
     if (!store) return null;
     return store;
+  }
+
+  @Get('favicon.ico')
+  async handleFavicon(): Promise<void> {
+    return; // Returns 200 by default, or we can use @HttpCode(204)
   }
 
   @Get(':slug')
