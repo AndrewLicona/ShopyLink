@@ -54,12 +54,11 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nestjs
 USER nestjs
 
-COPY --from=builder /app/apps/api/dist ./dist
-COPY --from=prod-deps /app/node_modules ./node_modules
-COPY --from=builder /app/packages/database ./packages/database
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/packages/database/prisma/schema.prisma ./prisma/schema.prisma
+COPY --from=builder --chown=nestjs:nodejs /app/apps/api/dist ./dist
+COPY --from=prod-deps --chown=nestjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nestjs:nodejs /app/packages/database ./packages/database
+COPY --from=builder --chown=nestjs:nodejs /app/package.json ./package.json
 
 EXPOSE 3001
 
-CMD ["node", "dist/src/main"]
+CMD ["node", "dist/main"]
