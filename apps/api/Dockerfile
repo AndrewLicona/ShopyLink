@@ -18,7 +18,7 @@ COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/package-lock.json ./package-lock.json
 
 # Install all dependencies
-RUN npm install
+RUN npm install --no-audit --no-fund
 
 # Copy source files and build
 COPY --from=pruner /app/out/full/ .
@@ -26,14 +26,14 @@ COPY turbo.json turbo.json
 
 # Build api
 RUN npx prisma generate --schema=packages/database/prisma/schema.prisma
-RUN npx turbo run build --filter=api...
+RUN npx turbo run build --filter=api... --concurrency=1
 
 # Phase 2.5: Production Dependencies
 FROM base AS prod-deps
 WORKDIR /app
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/package-lock.json ./package-lock.json
-RUN npm install --omit=dev
+RUN npm install --omit=dev --no-audit --no-fund
 # Copy generated Prisma client from builder
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma

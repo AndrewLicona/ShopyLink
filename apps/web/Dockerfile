@@ -18,7 +18,7 @@ COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/package-lock.json ./package-lock.json
 
 # Install dependencies
-RUN npm install
+RUN npm install --no-audit --no-fund
 
 # Build the project
 COPY --from=pruner /app/out/full/ .
@@ -34,7 +34,7 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 # Build web - generate prisma client first to avoid build errors
 RUN npx prisma@6.19.2 generate --schema=packages/database/prisma/schema.prisma
-RUN npx turbo run build --filter=web...
+RUN npx turbo run build --filter=web... --concurrency=1
 
 # Phase 3: Runner
 FROM base AS runner
