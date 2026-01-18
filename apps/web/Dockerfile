@@ -22,7 +22,10 @@ COPY --from=pruner /app/out/package-lock.json ./package-lock.json
 
 # Install dependencies
 ENV CI=true
-RUN npm install --no-audit --no-fund
+RUN npm config set fetch-retries 5 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000 && \
+    npm install --no-audit --no-fund
 
 # Build the project
 COPY --from=pruner /app/out/full/ .

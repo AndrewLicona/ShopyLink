@@ -22,7 +22,10 @@ COPY --from=pruner /app/out/package-lock.json ./package-lock.json
 
 # Install all dependencies (using CI=true to reduce overhead)
 ENV CI=true
-RUN npm install --no-audit --no-fund
+RUN npm config set fetch-retries 5 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000 && \
+    npm install --no-audit --no-fund
 
 # Copy source files and build
 COPY --from=pruner /app/out/full/ .
@@ -37,7 +40,10 @@ FROM base AS prod-deps
 WORKDIR /app
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/package-lock.json ./package-lock.json
-RUN npm install --omit=dev --no-audit --no-fund
+RUN npm config set fetch-retries 5 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000 && \
+    npm install --omit=dev --no-audit --no-fund
 
 # Copy generated Prisma client (the actual artifacts)
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
