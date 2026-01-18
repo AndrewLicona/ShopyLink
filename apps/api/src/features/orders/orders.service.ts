@@ -31,16 +31,18 @@ interface StoreWithDetails {
 
 @Injectable()
 export class OrdersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(createOrderDto: CreateOrderDto) {
     const { storeId, items, customerName, customerPhone, customerAddress } =
       createOrderDto;
 
     // 1. Verify Store exists
-    const store = (await this.prisma.store.findUnique({
-      where: { id: storeId },
-    })) as StoreWithDetails | null;
+    const store = (await this.prisma.withRetry(() =>
+      this.prisma.store.findUnique({
+        where: { id: storeId },
+      }),
+    )) as StoreWithDetails | null;
     if (!store) throw new NotFoundException('Store not found');
 
     // 2. Fetch products and validate stock/items
@@ -94,10 +96,12 @@ export class OrdersService {
     items: CreateOrderDto['items'],
   ): Promise<ProductWithDetails[]> {
     const productIds = items.map((i) => i.productId);
-    const products = (await this.prisma.product.findMany({
-      where: { id: { in: productIds }, storeId },
-      include: { inventory: true, variants: true },
-    })) as ProductWithDetails[];
+    const products = (await this.prisma.withRetry(() =>
+      this.prisma.product.findMany({
+        where: { id: { in: productIds }, storeId },
+        include: { inventory: true, variants: true },
+      }),
+    )) as ProductWithDetails[];
 
     if (products.length !== productIds.length) {
       throw new BadRequestException(
@@ -229,18 +233,22 @@ export class OrdersService {
     if (!store || store.userId !== userId)
       throw new NotFoundException('Store not found or access denied');
 
-    return this.prisma.order.findMany({
-      where: { storeId },
-      include: { items: true },
-      orderBy: { createdAt: 'desc' },
-    });
+    return this.prisma.withRetry(() =>
+      this.prisma.order.findMany({
+        where: { storeId },
+        include: { items: true },
+        orderBy: { createdAt: 'desc' },
+      }),
+    );
   }
 
   async findOne(id: string, userId: string) {
-    const order = await this.prisma.order.findUnique({
-      where: { id },
-      include: { items: true, store: true },
-    });
+    const order = await this.prisma.withRetry(() =>
+      this.prisma.order.findUnique({
+        where: { id },
+        include: { items: true, store: true },
+      }),
+    );
     if (!order) throw new NotFoundException('Order not found');
     if (order.store.userId !== userId)
       throw new NotFoundException('Access denied');
@@ -252,10 +260,12 @@ export class OrdersService {
     userId: string,
     updateOrderStatusDto: UpdateOrderStatusDto,
   ) {
-    const order = await this.prisma.order.findUnique({
-      where: { id },
-      include: { store: true, items: true },
-    });
+    const order = await this.prisma.withRetry(() =>
+      this.prisma.order.findUnique({
+        where: { id },
+        include: { store: true, items: true },
+      }),
+    );
     if (!order) throw new NotFoundException('Order not found');
     if (order.store.userId !== userId)
       throw new NotFoundException('Access denied');

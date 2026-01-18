@@ -22,13 +22,15 @@ interface ProductVariantInput {
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(userId: string, createProductDto: CreateProductDto) {
     // Verify store ownership
-    const store = await this.prisma.store.findUnique({
-      where: { id: createProductDto.storeId },
-    });
+    const store = await this.prisma.withRetry(() =>
+      this.prisma.store.findUnique({
+        where: { id: createProductDto.storeId },
+      }),
+    );
 
     if (!store) throw new NotFoundException('Store not found');
     if (store.userId !== userId)
@@ -74,10 +76,12 @@ export class ProductsService {
   }
 
   async updateStock(productId: string, userId: string, stock: number) {
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
-      include: { store: true },
-    });
+    const product = await this.prisma.withRetry(() =>
+      this.prisma.product.findUnique({
+        where: { id: productId },
+        include: { store: true },
+      }),
+    );
     if (!product) throw new NotFoundException('Product not found');
     if (product.store.userId !== userId)
       throw new ForbiddenException('You do not own this product');
@@ -90,22 +94,28 @@ export class ProductsService {
   }
 
   async findAllByStore(storeId: string) {
-    return this.prisma.product.findMany({
-      where: { storeId },
-      include: { inventory: true, variants: true },
-      orderBy: { createdAt: 'desc' },
-    });
+    return this.prisma.withRetry(() =>
+      this.prisma.product.findMany({
+        where: { storeId },
+        include: { inventory: true, variants: true },
+        orderBy: { createdAt: 'desc' },
+      }),
+    );
   }
 
   async findOne(id: string) {
-    return this.prisma.product.findUnique({ where: { id } });
+    return this.prisma.withRetry(() =>
+      this.prisma.product.findUnique({ where: { id } }),
+    );
   }
 
   async update(id: string, userId: string, updateProductDto: UpdateProductDto) {
-    const product = await this.prisma.product.findUnique({
-      where: { id },
-      include: { store: true },
-    });
+    const product = await this.prisma.withRetry(() =>
+      this.prisma.product.findUnique({
+        where: { id },
+        include: { store: true },
+      }),
+    );
     if (!product) throw new NotFoundException('Product not found');
     if (product.store.userId !== userId)
       throw new ForbiddenException('You do not own this product');
@@ -147,10 +157,12 @@ export class ProductsService {
   }
 
   async remove(id: string, userId: string) {
-    const product = await this.prisma.product.findUnique({
-      where: { id },
-      include: { store: true },
-    });
+    const product = await this.prisma.withRetry(() =>
+      this.prisma.product.findUnique({
+        where: { id },
+        include: { store: true },
+      }),
+    );
     if (!product) throw new NotFoundException('Product not found');
     if (product.store.userId !== userId)
       throw new ForbiddenException('You do not own this product');
