@@ -10,22 +10,22 @@ RUN turbo prune --scope=api --docker
 
 # Phase 2: Install and Build
 FROM base AS builder
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 # Copy lockfile and package.json's of isolated subworkspace
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/package-lock.json ./package-lock.json
 
-# Install all dependencies (this layer will be cached if package.json doesn't change)
+# Install all dependencies
 RUN npm install
 
 # Copy source files and build
 COPY --from=pruner /app/out/full/ .
 COPY turbo.json turbo.json
 
-# Build api (use npx with specific version to ensure Prisma 6.19.2 is used)
-RUN npx prisma@6.19.2 generate --schema=packages/database/prisma/schema.prisma
+# Build api
+RUN npx prisma generate --schema=packages/database/prisma/schema.prisma
 RUN npx turbo run build --filter=api...
 
 # Phase 2.5: Production Dependencies
