@@ -13,11 +13,15 @@ FROM base AS builder
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
+# Install prisma globally to ensure it's in the PATH and works in Alpine
+RUN npm install -g prisma@6.19.2
+
 # Copy lockfile and package.json's of isolated subworkspace
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/package-lock.json ./package-lock.json
 
-# Install all dependencies
+# Install all dependencies (using CI=true to reduce overhead)
+ENV CI=true
 RUN npm install --no-audit --no-fund
 
 # Copy source files and build
@@ -25,7 +29,7 @@ COPY --from=pruner /app/out/full/ .
 COPY turbo.json turbo.json
 
 # Build api
-RUN npx prisma generate --schema=packages/database/prisma/schema.prisma
+RUN prisma generate --schema=packages/database/prisma/schema.prisma
 RUN npx turbo run build --filter=api... --concurrency=1
 
 # Phase 2.5: Production Dependencies

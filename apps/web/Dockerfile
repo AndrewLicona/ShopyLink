@@ -13,11 +13,15 @@ FROM base AS builder
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
+# Install prisma globally
+RUN npm install -g prisma@6.19.2
+
 # Copy lockfile and package.json's of isolated subworkspace
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/package-lock.json ./package-lock.json
 
 # Install dependencies
+ENV CI=true
 RUN npm install --no-audit --no-fund
 
 # Build the project
@@ -33,7 +37,7 @@ ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 # Build web - generate prisma client first to avoid build errors
-RUN npx prisma@6.19.2 generate --schema=packages/database/prisma/schema.prisma
+RUN prisma generate --schema=packages/database/prisma/schema.prisma
 RUN npx turbo run build --filter=web... --concurrency=1
 
 # Phase 3: Runner
