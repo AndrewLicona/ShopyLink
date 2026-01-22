@@ -243,20 +243,34 @@ export function StoreTab({ hook }: StoreTabProps) {
                             <div className="pt-6 border-t border-[var(--border)]">
                                 <div
                                     onClick={() => actions.setApplyToDashboard(!state.applyToDashboard)}
-                                    className={cn("group cursor-pointer p-6 rounded-3xl border-2 transition-all relative overflow-hidden", state.applyToDashboard ? "border-[var(--primary)] bg-[var(--primary)]/5 shadow-md shadow-[var(--primary)]/10" : "border-[var(--border)] bg-[var(--surface)]")}
+                                    className={cn(
+                                        "group cursor-pointer p-4 md:p-6 rounded-3xl border-2 transition-all relative overflow-hidden",
+                                        state.applyToDashboard
+                                            ? "border-[var(--primary)] bg-[var(--primary)]/5 shadow-md shadow-[var(--primary)]/10"
+                                            : "border-[var(--border)] bg-[var(--surface)]"
+                                    )}
                                 >
-                                    <div className="flex items-center justify-between relative z-10">
-                                        <div className="flex items-center gap-4">
-                                            <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center transition-all", state.applyToDashboard ? "bg-[var(--primary)] text-white scale-110 shadow-lg" : "bg-[var(--secondary)] text-[var(--text)]/20")}>
-                                                <Palette className="w-6 h-6" />
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
+                                        <div className="flex items-center gap-3 md:gap-4">
+                                            <div className={cn(
+                                                "w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center transition-all",
+                                                state.applyToDashboard ? "bg-[var(--primary)] text-white scale-110 shadow-lg" : "bg-[var(--secondary)] text-[var(--text)]/20"
+                                            )}>
+                                                <Palette className="w-5 h-5 md:w-6 md:h-6" />
                                             </div>
-                                            <div className="space-y-1">
-                                                <p className={cn("font-black text-base transition-colors", state.applyToDashboard ? "text-[var(--text)]" : "text-[var(--text)]/40")}>Aplicar tema al Dashboard</p>
-                                                <p className="text-xs text-[var(--text)]/30 font-bold uppercase">Personaliza tu panel de control</p>
+                                            <div className="space-y-0.5 md:space-y-1">
+                                                <p className={cn("font-black text-sm md:text-base transition-colors", state.applyToDashboard ? "text-[var(--text)]" : "text-[var(--text)]/40")}>
+                                                    Aplicar tema al Dashboard
+                                                </p>
+                                                <p className="text-[10px] md:text-xs text-[var(--text)]/30 font-bold uppercase tracking-wider">
+                                                    Personaliza tu panel de control
+                                                </p>
                                             </div>
                                         </div>
-                                        <div className={cn("w-14 h-8 rounded-full transition-all flex items-center px-1", state.applyToDashboard ? "bg-[var(--primary)]" : "bg-[var(--border)]")}>
-                                            <div className={cn("w-6 h-6 rounded-full bg-white shadow-xl transition-all transform", state.applyToDashboard ? "translate-x-6 scale-90" : "translate-x-0 scale-75")} />
+                                        <div className="w-full sm:w-auto flex justify-end">
+                                            <div className={cn("w-14 h-8 rounded-full transition-all flex items-center px-1", state.applyToDashboard ? "bg-[var(--primary)]" : "bg-[var(--border)]")}>
+                                                <div className={cn("w-6 h-6 rounded-full bg-white shadow-xl transition-all transform", state.applyToDashboard ? "translate-x-6 scale-90" : "translate-x-0 scale-75")} />
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
