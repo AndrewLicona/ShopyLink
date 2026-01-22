@@ -52,6 +52,7 @@ export function useProducts() {
     const [isActive, setIsActive] = useState(true);
     const [trackInventory, setTrackInventory] = useState(true);
     const [hasPrice, setHasPrice] = useState(true);
+    const [baseVariantName, setBaseVariantName] = useState('Principal');
 
     // Form state - Variants
     const [hasVariants, setHasVariants] = useState(false);
@@ -176,6 +177,7 @@ export function useProducts() {
         setHasPrice(true);
         setHasVariants(false);
         setVariants([]);
+        setBaseVariantName('Principal');
         setIsModalOpen(true);
     }, []);
 
@@ -201,6 +203,7 @@ export function useProducts() {
             setHasVariants(false);
             setVariants([]);
         }
+        setBaseVariantName(product.baseVariantName || 'Principal');
         setIsModalOpen(true);
     };
 
@@ -233,6 +236,7 @@ export function useProducts() {
             discountPrice: (hasPrice && discountPrice) ? (parseFloat(discountPrice) || 0) : null,
             isActive,
             trackInventory,
+            baseVariantName,
             variants: processedVariants
         };
 
@@ -322,7 +326,7 @@ export function useProducts() {
             categoryFilter,
             // Form state
             form: {
-                name, price, description, stock, imageUrls, categoryId, sku, discountPrice, isActive, trackInventory, hasPrice,
+                name, baseVariantName, price, description, stock, imageUrls, categoryId, sku, discountPrice, isActive, trackInventory, hasPrice,
                 hasVariants, variants, newCatName
             }
         },
@@ -335,7 +339,7 @@ export function useProducts() {
             setStatusTab,
             setSearchTerm,
             setCategoryFilter,
-            setName, setPrice, setDescription, setStock, setImageUrls, setCategoryId, setSku, setDiscountPrice, setIsActive, setTrackInventory, setHasPrice,
+            setName, setBaseVariantName, setPrice, setDescription, setStock, setImageUrls, setCategoryId, setSku, setDiscountPrice, setIsActive, setTrackInventory, setHasPrice,
             setHasVariants, setVariants, setNewCatName,
             handleProductImageUpload,
             handleVariantImageUpload,

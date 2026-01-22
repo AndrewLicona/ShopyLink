@@ -187,217 +187,231 @@ export function ProductFormModal({ hook }: ProductFormModalProps) {
                                 </div>
 
                                 {form.hasVariants && (
-                                    <div className="space-y-3 bg-[var(--secondary)]/10 p-4 rounded-2xl max-h-[300px] overflow-y-auto custom-scrollbar">
-                                        <div className="flex justify-between items-center px-1">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text)]/40">Variantes ({form.variants.length})</span>
-                                            <button
-                                                type="button"
-                                                onClick={() => actions.setVariants([...form.variants, { name: '', price: null, stock: 0, useParentPrice: true, useParentStock: true, trackInventory: true, images: [] }])}
-                                                className="text-[10px] font-black text-[var(--primary)] hover:underline"
-                                            >
-                                                + Añadir
-                                            </button>
+                                    <div className="space-y-4 bg-[var(--secondary)]/10 p-4 rounded-2xl">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-wider text-[var(--text)]/40 px-1">Nombre de variante principal</label>
+                                            <input
+                                                type="text"
+                                                value={form.baseVariantName}
+                                                onChange={(e) => actions.setBaseVariantName(e.target.value)}
+                                                className="w-full px-5 py-3 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] outline-none transition-all font-bold text-[var(--text)] bg-[var(--bg)]"
+                                                placeholder="Ej: 500 gramos"
+                                            />
+                                            <p className="text-[10px] text-[var(--text)]/40 px-1">Es el nombre que tendrá la opción base del producto.</p>
                                         </div>
-                                        {form.variants.map((v, idx) => (
-                                            <div key={idx} className="bg-[var(--surface)] p-4 rounded-xl border-2 border-[var(--border)] shadow-sm space-y-4">
-                                                <div className="flex gap-2 items-start">
-                                                    <div className="flex-1">
-                                                        <label className="text-[10px] font-black uppercase tracking-wider text-[var(--text)]/40 px-1">Nombre Variante</label>
-                                                        <input
-                                                            placeholder="Ej: Rojo / XL"
-                                                            value={v.name}
-                                                            onChange={(e) => {
-                                                                const next = [...form.variants];
-                                                                next[idx] = { ...next[idx], name: e.target.value };
-                                                                actions.setVariants(next);
-                                                            }}
-                                                            className="w-full px-3 py-2 rounded-lg border-2 border-[var(--border)] focus:border-[var(--primary)] text-sm font-bold bg-[var(--bg)] outline-none"
-                                                        />
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => actions.setVariants(form.variants.filter((_, i) => i !== idx))}
-                                                        className="mt-6 p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
-                                                    >
-                                                        <X className="w-5 h-5" />
-                                                    </button>
-                                                </div>
 
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                    <div className="space-y-2">
-                                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
-                                                            <label className="text-[10px] font-black uppercase tracking-wider text-[var(--text)]/40">Precio</label>
-                                                            <div className="grid grid-cols-3 sm:flex gap-1 bg-[var(--secondary)] rounded-lg p-1 w-full sm:w-auto">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        const next = [...form.variants];
-                                                                        next[idx] = { ...next[idx], useParentPrice: true };
-                                                                        actions.setVariants(next);
-                                                                    }}
-                                                                    className={cn(
-                                                                        "px-2 py-1.5 sm:py-0.5 text-[10px] font-bold rounded-md transition-all flex items-center justify-center",
-                                                                        v.useParentPrice ? "bg-white shadow-sm text-[var(--text)]" : "text-[var(--text)]/40 hover:text-[var(--text)]/60"
-                                                                    )}
-                                                                >
-                                                                    GLOBAL
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        const next = [...form.variants];
-                                                                        next[idx] = { ...next[idx], useParentPrice: false, price: v.price ?? 0 };
-                                                                        actions.setVariants(next);
-                                                                    }}
-                                                                    className={cn(
-                                                                        "px-2 py-1.5 sm:py-0.5 text-[10px] font-bold rounded-md transition-all flex items-center justify-center",
-                                                                        !v.useParentPrice && v.price !== null ? "bg-white shadow-sm text-[var(--text)]" : "text-[var(--text)]/40 hover:text-[var(--text)]/60"
-                                                                    )}
-                                                                >
-                                                                    PROPIO
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        const next = [...form.variants];
-                                                                        next[idx] = { ...next[idx], useParentPrice: false, price: null };
-                                                                        actions.setVariants(next);
-                                                                    }}
-                                                                    className={cn(
-                                                                        "px-2 py-1.5 sm:py-0.5 text-[10px] font-bold rounded-md transition-all flex items-center justify-center",
-                                                                        !v.useParentPrice && v.price === null ? "bg-[var(--primary)] text-white shadow-sm" : "text-[var(--text)]/40 hover:text-[var(--text)]/60"
-                                                                    )}
-                                                                >
-                                                                    CONSULTAR
-                                                                </button>
-                                                            </div>
-                                                        </div>
-
-                                                        {(!v.useParentPrice && v.price === null) ? (
-                                                            <div className="w-full px-3 py-2 rounded-lg border-2 border-[var(--primary)]/20 bg-[var(--primary)]/5 text-[var(--primary)] text-xs font-bold flex items-center gap-2">
-                                                                <span>💬 Consultar precio</span>
-                                                            </div>
-                                                        ) : (
+                                        <div className="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar pt-2 border-t border-[var(--border)]/50">
+                                            <div className="flex justify-between items-center px-1">
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text)]/40">Variantes ({form.variants.length})</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => actions.setVariants([...form.variants, { name: '', price: null, stock: 0, useParentPrice: true, useParentStock: true, trackInventory: true, images: [] }])}
+                                                    className="text-[10px] font-black text-[var(--primary)] hover:underline"
+                                                >
+                                                    + Añadir
+                                                </button>
+                                            </div>
+                                            {form.variants.map((v, idx) => (
+                                                <div key={idx} className="bg-[var(--surface)] p-4 rounded-xl border-2 border-[var(--border)] shadow-sm space-y-4">
+                                                    <div className="flex gap-2 items-start">
+                                                        <div className="flex-1">
+                                                            <label className="text-[10px] font-black uppercase tracking-wider text-[var(--text)]/40 px-1">Nombre Variante</label>
                                                             <input
-                                                                type="number"
-                                                                placeholder={v.useParentPrice ? "Heredado del producto" : "0.00"}
-                                                                disabled={v.useParentPrice}
-                                                                value={v.useParentPrice ? '' : (v.price ?? '')}
+                                                                placeholder="Ej: Rojo / XL"
+                                                                value={v.name}
                                                                 onChange={(e) => {
                                                                     const next = [...form.variants];
-                                                                    next[idx] = { ...next[idx], price: parseFloat(e.target.value) };
+                                                                    next[idx] = { ...next[idx], name: e.target.value };
+                                                                    actions.setVariants(next);
+                                                                }}
+                                                                className="w-full px-3 py-2 rounded-lg border-2 border-[var(--border)] focus:border-[var(--primary)] text-sm font-bold bg-[var(--bg)] outline-none"
+                                                            />
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => actions.setVariants(form.variants.filter((_, i) => i !== idx))}
+                                                            className="mt-6 p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                                                        >
+                                                            <X className="w-5 h-5" />
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        <div className="space-y-2">
+                                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
+                                                                <label className="text-[10px] font-black uppercase tracking-wider text-[var(--text)]/40">Precio</label>
+                                                                <div className="grid grid-cols-3 sm:flex gap-1 bg-[var(--secondary)] rounded-lg p-1 w-full sm:w-auto">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            const next = [...form.variants];
+                                                                            next[idx] = { ...next[idx], useParentPrice: true };
+                                                                            actions.setVariants(next);
+                                                                        }}
+                                                                        className={cn(
+                                                                            "px-2 py-1.5 sm:py-0.5 text-[10px] font-bold rounded-md transition-all flex items-center justify-center",
+                                                                            v.useParentPrice ? "bg-white shadow-sm text-[var(--text)]" : "text-[var(--text)]/40 hover:text-[var(--text)]/60"
+                                                                        )}
+                                                                    >
+                                                                        GLOBAL
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            const next = [...form.variants];
+                                                                            next[idx] = { ...next[idx], useParentPrice: false, price: v.price ?? 0 };
+                                                                            actions.setVariants(next);
+                                                                        }}
+                                                                        className={cn(
+                                                                            "px-2 py-1.5 sm:py-0.5 text-[10px] font-bold rounded-md transition-all flex items-center justify-center",
+                                                                            !v.useParentPrice && v.price !== null ? "bg-white shadow-sm text-[var(--text)]" : "text-[var(--text)]/40 hover:text-[var(--text)]/60"
+                                                                        )}
+                                                                    >
+                                                                        PROPIO
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            const next = [...form.variants];
+                                                                            next[idx] = { ...next[idx], useParentPrice: false, price: null };
+                                                                            actions.setVariants(next);
+                                                                        }}
+                                                                        className={cn(
+                                                                            "px-2 py-1.5 sm:py-0.5 text-[10px] font-bold rounded-md transition-all flex items-center justify-center",
+                                                                            !v.useParentPrice && v.price === null ? "bg-[var(--primary)] text-white shadow-sm" : "text-[var(--text)]/40 hover:text-[var(--text)]/60"
+                                                                        )}
+                                                                    >
+                                                                        CONSULTAR
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+
+                                                            {(!v.useParentPrice && v.price === null) ? (
+                                                                <div className="w-full px-3 py-2 rounded-lg border-2 border-[var(--primary)]/20 bg-[var(--primary)]/5 text-[var(--primary)] text-xs font-bold flex items-center gap-2">
+                                                                    <span>💬 Consultar precio</span>
+                                                                </div>
+                                                            ) : (
+                                                                <input
+                                                                    type="number"
+                                                                    placeholder={v.useParentPrice ? "Heredado del producto" : "0.00"}
+                                                                    disabled={v.useParentPrice}
+                                                                    value={v.useParentPrice ? '' : (v.price ?? '')}
+                                                                    onChange={(e) => {
+                                                                        const next = [...form.variants];
+                                                                        next[idx] = { ...next[idx], price: parseFloat(e.target.value) };
+                                                                        actions.setVariants(next);
+                                                                    }}
+                                                                    className={cn(
+                                                                        "w-full px-3 py-2 rounded-lg border-2 outline-none text-sm font-bold bg-[var(--bg)] transition-all",
+                                                                        v.useParentPrice
+                                                                            ? "border-[var(--border)]/50 opacity-50 cursor-not-allowed"
+                                                                            : "border-[var(--border)] focus:border-[var(--primary)]"
+                                                                    )}
+                                                                />
+                                                            )}
+                                                        </div>
+
+                                                        <div className="space-y-2">
+                                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
+                                                                <label className="text-[10px] font-black uppercase tracking-wider text-[var(--text)]/40">Stock</label>
+                                                                <div className="grid grid-cols-3 sm:flex gap-1 bg-[var(--secondary)] rounded-lg p-1 w-full sm:w-auto">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            const next = [...form.variants];
+                                                                            next[idx] = { ...next[idx], useParentStock: true, trackInventory: true };
+                                                                            actions.setVariants(next);
+                                                                        }}
+                                                                        className={cn(
+                                                                            "px-2 py-1.5 sm:py-0.5 text-[10px] font-bold rounded-md transition-all flex items-center justify-center",
+                                                                            v.useParentStock ? "bg-white shadow-sm text-[var(--text)]" : "text-[var(--text)]/40 hover:text-[var(--text)]/60"
+                                                                        )}
+                                                                    >
+                                                                        GLOBAL
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            const next = [...form.variants];
+                                                                            next[idx] = { ...next[idx], useParentStock: false, trackInventory: true };
+                                                                            actions.setVariants(next);
+                                                                        }}
+                                                                        className={cn(
+                                                                            "px-2 py-1.5 sm:py-0.5 text-[10px] font-bold rounded-md transition-all flex items-center justify-center",
+                                                                            (!v.useParentStock && v.trackInventory) ? "bg-[var(--primary)] text-white shadow-sm" : "text-[var(--text)]/40 hover:text-[var(--text)]/60"
+                                                                        )}
+                                                                    >
+                                                                        PROPIO
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            const next = [...form.variants];
+                                                                            next[idx] = { ...next[idx], useParentStock: false, trackInventory: false };
+                                                                            actions.setVariants(next);
+                                                                        }}
+                                                                        className={cn(
+                                                                            "px-2 py-1.5 sm:py-0.5 text-[10px] font-bold rounded-md transition-all flex items-center justify-center",
+                                                                            !v.trackInventory ? "bg-red-500 text-white shadow-sm" : "text-[var(--text)]/40 hover:text-[var(--text)]/60"
+                                                                        )}
+                                                                    >
+                                                                        OFF
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                            <input
+                                                                type="number"
+                                                                placeholder={!v.trackInventory ? "Sin límite (Stock apagado)" : (v.useParentStock ? "Heredado del producto" : "0")}
+                                                                disabled={v.useParentStock || !v.trackInventory}
+                                                                value={(!v.trackInventory || v.useParentStock) ? '' : (v.stock ?? '')}
+                                                                onChange={(e) => {
+                                                                    const next = [...form.variants];
+                                                                    next[idx] = { ...next[idx], stock: parseInt(e.target.value) };
                                                                     actions.setVariants(next);
                                                                 }}
                                                                 className={cn(
                                                                     "w-full px-3 py-2 rounded-lg border-2 outline-none text-sm font-bold bg-[var(--bg)] transition-all",
-                                                                    v.useParentPrice
+                                                                    (v.useParentStock || !v.trackInventory)
                                                                         ? "border-[var(--border)]/50 opacity-50 cursor-not-allowed"
                                                                         : "border-[var(--border)] focus:border-[var(--primary)]"
                                                                 )}
                                                             />
-                                                        )}
-                                                    </div>
-
-                                                    <div className="space-y-2">
-                                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
-                                                            <label className="text-[10px] font-black uppercase tracking-wider text-[var(--text)]/40">Stock</label>
-                                                            <div className="grid grid-cols-3 sm:flex gap-1 bg-[var(--secondary)] rounded-lg p-1 w-full sm:w-auto">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        const next = [...form.variants];
-                                                                        next[idx] = { ...next[idx], useParentStock: true, trackInventory: true };
-                                                                        actions.setVariants(next);
-                                                                    }}
-                                                                    className={cn(
-                                                                        "px-2 py-1.5 sm:py-0.5 text-[10px] font-bold rounded-md transition-all flex items-center justify-center",
-                                                                        v.useParentStock ? "bg-white shadow-sm text-[var(--text)]" : "text-[var(--text)]/40 hover:text-[var(--text)]/60"
-                                                                    )}
-                                                                >
-                                                                    GLOBAL
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        const next = [...form.variants];
-                                                                        next[idx] = { ...next[idx], useParentStock: false, trackInventory: true };
-                                                                        actions.setVariants(next);
-                                                                    }}
-                                                                    className={cn(
-                                                                        "px-2 py-1.5 sm:py-0.5 text-[10px] font-bold rounded-md transition-all flex items-center justify-center",
-                                                                        (!v.useParentStock && v.trackInventory) ? "bg-[var(--primary)] text-white shadow-sm" : "text-[var(--text)]/40 hover:text-[var(--text)]/60"
-                                                                    )}
-                                                                >
-                                                                    PROPIO
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        const next = [...form.variants];
-                                                                        next[idx] = { ...next[idx], useParentStock: false, trackInventory: false };
-                                                                        actions.setVariants(next);
-                                                                    }}
-                                                                    className={cn(
-                                                                        "px-2 py-1.5 sm:py-0.5 text-[10px] font-bold rounded-md transition-all flex items-center justify-center",
-                                                                        !v.trackInventory ? "bg-red-500 text-white shadow-sm" : "text-[var(--text)]/40 hover:text-[var(--text)]/60"
-                                                                    )}
-                                                                >
-                                                                    OFF
-                                                                </button>
-                                                            </div>
                                                         </div>
-                                                        <input
-                                                            type="number"
-                                                            placeholder={!v.trackInventory ? "Sin límite (Stock apagado)" : (v.useParentStock ? "Heredado del producto" : "0")}
-                                                            disabled={v.useParentStock || !v.trackInventory}
-                                                            value={(!v.trackInventory || v.useParentStock) ? '' : (v.stock ?? '')}
-                                                            onChange={(e) => {
-                                                                const next = [...form.variants];
-                                                                next[idx] = { ...next[idx], stock: parseInt(e.target.value) };
-                                                                actions.setVariants(next);
-                                                            }}
-                                                            className={cn(
-                                                                "w-full px-3 py-2 rounded-lg border-2 outline-none text-sm font-bold bg-[var(--bg)] transition-all",
-                                                                (v.useParentStock || !v.trackInventory)
-                                                                    ? "border-[var(--border)]/50 opacity-50 cursor-not-allowed"
-                                                                    : "border-[var(--border)] focus:border-[var(--primary)]"
-                                                            )}
-                                                        />
                                                     </div>
-                                                </div>
 
-                                                {/* Variant Images */}
-                                                <div className="pt-2 border-t border-[var(--border)]/50">
-                                                    <label className="text-[10px] font-black uppercase tracking-wider text-[var(--text)]/40 px-1 mb-2 block">Imágenes (Max 2)</label>
-                                                    <div className="flex gap-2">
-                                                        {(v.images || []).map((url, imgIdx) => (
-                                                            <div key={imgIdx} className="w-16 h-16 relative rounded-lg overflow-hidden border border-[var(--border)] group">
-                                                                <Image src={url} alt="Var" fill className="object-cover" />
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => actions.removeVariantImage(idx, imgIdx)}
-                                                                    className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all"
-                                                                >
-                                                                    <X className="w-4 h-4" />
-                                                                </button>
-                                                            </div>
-                                                        ))}
-                                                        {(!v.images || v.images.length < 2) && (
-                                                            <label className="w-16 h-16 rounded-lg border-2 border-dashed border-[var(--border)] hover:border-[var(--primary)] flex items-center justify-center cursor-pointer transition-colors bg-[var(--bg)]">
-                                                                <input
-                                                                    type="file"
-                                                                    accept="image/*"
-                                                                    multiple
-                                                                    className="hidden"
-                                                                    onChange={(e) => actions.handleVariantImageUpload(e, idx)}
-                                                                />
-                                                                <Plus className="w-5 h-5 text-[var(--text)]/20" />
-                                                            </label>
-                                                        )}
+                                                    {/* Variant Images */}
+                                                    <div className="pt-2 border-t border-[var(--border)]/50">
+                                                        <label className="text-[10px] font-black uppercase tracking-wider text-[var(--text)]/40 px-1 mb-2 block">Imágenes (Max 2)</label>
+                                                        <div className="flex gap-2">
+                                                            {(v.images || []).map((url, imgIdx) => (
+                                                                <div key={imgIdx} className="w-16 h-16 relative rounded-lg overflow-hidden border border-[var(--border)] group">
+                                                                    <Image src={url} alt="Var" fill className="object-cover" />
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => actions.removeVariantImage(idx, imgIdx)}
+                                                                        className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all"
+                                                                    >
+                                                                        <X className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
+                                                            ))}
+                                                            {(!v.images || v.images.length < 2) && (
+                                                                <label className="w-16 h-16 rounded-lg border-2 border-dashed border-[var(--border)] hover:border-[var(--primary)] flex items-center justify-center cursor-pointer transition-colors bg-[var(--bg)]">
+                                                                    <input
+                                                                        type="file"
+                                                                        accept="image/*"
+                                                                        multiple
+                                                                        className="hidden"
+                                                                        onChange={(e) => actions.handleVariantImageUpload(e, idx)}
+                                                                    />
+                                                                    <Plus className="w-5 h-5 text-[var(--text)]/20" />
+                                                                </label>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                             </div>
