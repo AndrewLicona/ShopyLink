@@ -50,6 +50,7 @@ export interface ProductVariant {
 export interface Product {
     id: string;
     name: string;
+    baseVariantName?: string | null;
     description?: string | null;
     price?: number | null;
     discountPrice?: number | null;

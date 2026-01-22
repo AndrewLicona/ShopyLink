@@ -6,6 +6,7 @@ generator client {
 
 datasource db {
     provider = "postgresql"
+    url      = env("DATABASE_URL")
 }
 
 // Representa a un Owner de tienda (vinculado a Supabase Auth)
@@ -87,6 +88,7 @@ model Product {
     orderItems OrderItem[]
 
     variants ProductVariant[]
+    baseVariantName String? @default("Principal")
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
