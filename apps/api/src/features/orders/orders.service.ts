@@ -31,7 +31,7 @@ interface StoreWithDetails {
 
 @Injectable()
 export class OrdersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(createOrderDto: CreateOrderDto) {
     const { storeId, items, customerName, customerPhone, customerAddress } =
@@ -96,14 +96,15 @@ export class OrdersService {
     items: CreateOrderDto['items'],
   ): Promise<ProductWithDetails[]> {
     const productIds = items.map((i) => i.productId);
+    const uniqueProductIds: string[] = [...new Set(productIds)];
     const products = (await this.prisma.withRetry(() =>
       this.prisma.product.findMany({
-        where: { id: { in: productIds }, storeId },
+        where: { id: { in: uniqueProductIds }, storeId },
         include: { inventory: true, variants: true },
       }),
     )) as ProductWithDetails[];
 
-    if (products.length !== productIds.length) {
+    if (products.length !== uniqueProductIds.length) {
       throw new BadRequestException(
         'Some products were not found in this store',
       );
@@ -141,8 +142,12 @@ export class OrdersService {
         }
 
         // Check if variant tracks inventory
-        if (variant.trackInventory) {
-          if (variant.stock < itemDto.quantity) {
+        if (product.trackInventory && variant.trackInventory) {
+          const effectiveStock = variant.useParentStock
+            ? product.inventory?.stock ?? 0
+            : variant.stock;
+
+          if (effectiveStock < itemDto.quantity) {
             throw new BadRequestException(
               `Insufficient stock for product variant: ${product.name} - ${variant.name}`,
             );
@@ -214,9 +219,9 @@ export class OrdersService {
 
     const text =
       `Hola *${storeName}*.\n\n` +
-      `Mi nombre es *${order.customerName}*.\n` +
+      `Mi nombre es *${order.customerName}*.\n\n` +
       (order.customerAddress
-        ? `📍 *ENTREGA EN:* ${order.customerAddress}\n\n`
+        ? `📍 *ENTREGA EN:* ${order.customerAddress}\n`
         : '') +
       `Quiero confirmar mi pedido *#${order.id.slice(0, 8)}*\n\n` +
       `📦 *DETALLE:*\n${itemsList}\n\n` +
