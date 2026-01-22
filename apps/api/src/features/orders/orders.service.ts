@@ -31,7 +31,7 @@ interface StoreWithDetails {
 
 @Injectable()
 export class OrdersService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async create(createOrderDto: CreateOrderDto) {
     const { storeId, items, customerName, customerPhone, customerAddress } =
@@ -140,10 +140,13 @@ export class OrdersService {
           price = Number(variant.price);
         }
 
-        if (variant.stock < itemDto.quantity) {
-          throw new BadRequestException(
-            `Insufficient stock for product variant: ${product.name} - ${variant.name}`,
-          );
+        // Check if variant tracks inventory
+        if (variant.trackInventory) {
+          if (variant.stock < itemDto.quantity) {
+            throw new BadRequestException(
+              `Insufficient stock for product variant: ${product.name} - ${variant.name}`,
+            );
+          }
         }
 
         sku = variant.sku || sku;

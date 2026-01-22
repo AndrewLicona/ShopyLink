@@ -19,7 +19,7 @@ import { encrypt, decrypt } from '../../core/common/encryption.util';
 
 @Injectable()
 export class StoresService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async create(
     userId: string,
@@ -89,14 +89,16 @@ export class StoresService {
   }
 
   async findOneBySlug(slug: string) {
-    return this.prisma.withRetry(() =>
-      this.prisma.store.findUnique({
-        where: { slug },
-        include: {
-          categories: true,
-        },
-      }),
-    ).then((store) => this.decryptStore(store));
+    return this.prisma
+      .withRetry(() =>
+        this.prisma.store.findUnique({
+          where: { slug },
+          include: {
+            categories: true,
+          },
+        }),
+      )
+      .then((store) => this.decryptStore(store));
   }
 
   async update(id: string, userId: string, updateStoreDto: UpdateStoreDto) {

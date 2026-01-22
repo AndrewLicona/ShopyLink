@@ -31,7 +31,7 @@ function cn(...inputs: ClassValue[]) {
 function DashboardContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
-    const { stores, activeStore, setActiveStoreById, loading: storeLoading } = useStore();
+    const { stores, activeStore, setActiveStoreById, loading: storeLoading, error: storeError } = useStore();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -69,13 +69,15 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             setUserName(session.user.user_metadata?.full_name || '');
             setUserAvatar(session.user.user_metadata?.avatar_url || '');
 
-            if (stores.length === 0 && !storeLoading) {
+            // Only redirect to setup if fetch finished successfully (no error),
+            // and truly no stores were found.
+            if (stores.length === 0 && !storeLoading && !storeError) {
                 router.push('/setup');
             }
         };
 
         checkSession();
-    }, [stores.length, storeLoading, router]);
+    }, [stores.length, storeLoading, storeError, router]);
 
     const menuItems = [
         { icon: LayoutDashboard, label: 'Panel', href: '/dashboard' },
@@ -92,8 +94,26 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         );
     }
 
+    if (storeError) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--bg)] p-4 text-center space-y-4">
+                <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mb-2">
+                    <LogOut className="w-8 h-8" />
+                </div>
+                <h2 className="text-xl font-black text-[var(--text)]">Algo salió mal</h2>
+                <p className="text-[var(--text)]/60 max-w-xs text-sm font-medium">{storeError === 'Request timeout' ? 'El servidor tardó mucho en responder. Verifica tu conexión.' : storeError}</p>
+                <button
+                    onClick={() => window.location.reload()}
+                    className="px-6 py-3 bg-[var(--primary)] text-white rounded-xl font-bold hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-[var(--primary)]/20"
+                >
+                    Reintentar conexión
+                </button>
+            </div>
+        );
+    }
+
     if (stores.length === 0) {
-        return null;
+        return null; // Or show a "Create your first store" full page state if desired, but redirection handles this mostly.
     }
 
     return (
