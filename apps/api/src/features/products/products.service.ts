@@ -52,8 +52,8 @@ export class ProductsService {
           trackInventory: trackInventory ?? true,
           storeId: rest.storeId,
           categoryId: rest.categoryId,
-          baseVariantName: rest.baseVariantName,
-        },
+          baseVariantName: rest.baseVariantName as any,
+        } as any,
       });
 
       if (rest.variants && rest.variants.length > 0) {
@@ -151,8 +151,8 @@ export class ProductsService {
           trackInventory:
             trackInventory !== undefined ? trackInventory : undefined,
           categoryId: productData.categoryId,
-          baseVariantName: productData.baseVariantName,
-        },
+          baseVariantName: productData.baseVariantName as any,
+        } as any,
         include: { inventory: true, variants: true },
       });
     });
