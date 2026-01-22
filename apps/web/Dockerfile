@@ -13,8 +13,8 @@ FROM base AS builder
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
-# Install prisma globally
-RUN npm install -g prisma@7.2.0
+# Build args
+# RUN npm install -g prisma@7.2.0 (Removed to avoid WASM module errors)
 
 # Copy lockfile and package.json's of isolated subworkspace
 COPY --from=pruner /app/out/json/ .
