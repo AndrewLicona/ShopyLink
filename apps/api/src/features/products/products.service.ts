@@ -22,7 +22,7 @@ interface ProductVariantInput {
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async create(userId: string, createProductDto: CreateProductDto) {
     // Verify store ownership
@@ -40,7 +40,7 @@ export class ProductsService {
     const generatedSku = this.generateSku(sku);
 
     return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const data: any = {
+      const data: Prisma.ProductUncheckedCreateInput = {
         name: rest.name,
         description: rest.description,
         price: rest.price,
@@ -54,7 +54,8 @@ export class ProductsService {
       };
 
       if (rest.baseVariantName) {
-        data.baseVariantName = rest.baseVariantName;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (data as any).baseVariantName = rest.baseVariantName;
       }
 
       const product = await tx.product.create({
@@ -143,7 +144,7 @@ export class ProductsService {
         await this.syncProductVariants(tx, id, productData.variants);
       }
 
-      const data: any = {
+      const data: Prisma.ProductUncheckedUpdateInput = {
         name: productData.name,
         description: productData.description,
         price: productData.price,
@@ -157,7 +158,8 @@ export class ProductsService {
       };
 
       if (productData.baseVariantName) {
-        data.baseVariantName = productData.baseVariantName;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (data as any).baseVariantName = productData.baseVariantName;
       }
 
       return tx.product.update({
@@ -216,9 +218,13 @@ export class ProductsService {
         image: v.image,
         useParentPrice: v.useParentPrice ?? false,
         useParentStock: v.useParentStock ?? false,
-        trackInventory: v.trackInventory ?? true,
         images: v.images ?? [],
       };
+
+      if (v.trackInventory !== undefined) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (data as any).trackInventory = v.trackInventory;
+      }
 
       if (v.id) {
         await tx.productVariant.update({

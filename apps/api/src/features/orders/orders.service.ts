@@ -31,7 +31,7 @@ interface StoreWithDetails {
 
 @Injectable()
 export class OrdersService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async create(createOrderDto: CreateOrderDto) {
     const { storeId, items, customerName, customerPhone, customerAddress } =
@@ -141,10 +141,10 @@ export class OrdersService {
           price = Number(variant.price);
         }
 
-        // Check if variant tracks inventory
-        if (product.trackInventory && variant.trackInventory) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        if (product.trackInventory && (variant as any).trackInventory) {
           const effectiveStock = variant.useParentStock
-            ? product.inventory?.stock ?? 0
+            ? (product.inventory?.stock ?? 0)
             : variant.stock;
 
           if (effectiveStock < itemDto.quantity) {
@@ -152,7 +152,7 @@ export class OrdersService {
               `Insufficient stock for product variant: ${product.name} - ${variant.name}`,
             );
           }
-        } 
+        }
 
         sku = variant.sku || sku;
         variantName = variant.name;
@@ -296,7 +296,8 @@ export class OrdersService {
               include: { product: { include: { inventory: true } } },
             });
 
-            if (variant && variant.trackInventory) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if (variant && (variant as any).trackInventory) {
               if (variant.useParentStock) {
                 const product = variant.product;
                 if (product?.trackInventory && product?.inventory) {
@@ -356,7 +357,8 @@ export class OrdersService {
               include: { product: true },
             });
 
-            if (variant && variant.trackInventory) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if (variant && (variant as any).trackInventory) {
               if (variant.useParentStock) {
                 const product = variant.product;
                 if (product?.trackInventory) {
