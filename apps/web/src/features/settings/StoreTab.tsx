@@ -240,6 +240,28 @@ export function StoreTab({ hook }: StoreTabProps) {
                                 </div>
                             </div>
 
+                            <div className="pt-6 border-t border-[var(--border)]">
+                                <div
+                                    onClick={() => actions.setApplyToDashboard(!state.applyToDashboard)}
+                                    className={cn("group cursor-pointer p-6 rounded-3xl border-2 transition-all relative overflow-hidden", state.applyToDashboard ? "border-[var(--primary)] bg-[var(--primary)]/5 shadow-md shadow-[var(--primary)]/10" : "border-[var(--border)] bg-[var(--surface)]")}
+                                >
+                                    <div className="flex items-center justify-between relative z-10">
+                                        <div className="flex items-center gap-4">
+                                            <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center transition-all", state.applyToDashboard ? "bg-[var(--primary)] text-white scale-110 shadow-lg" : "bg-[var(--secondary)] text-[var(--text)]/20")}>
+                                                <Palette className="w-6 h-6" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className={cn("font-black text-base transition-colors", state.applyToDashboard ? "text-[var(--text)]" : "text-[var(--text)]/40")}>Aplicar tema al Dashboard</p>
+                                                <p className="text-xs text-[var(--text)]/30 font-bold uppercase">Personaliza tu panel de control</p>
+                                            </div>
+                                        </div>
+                                        <div className={cn("w-14 h-8 rounded-full transition-all flex items-center px-1", state.applyToDashboard ? "bg-[var(--primary)]" : "bg-[var(--border)]")}>
+                                            <div className={cn("w-6 h-6 rounded-full bg-white shadow-xl transition-all transform", state.applyToDashboard ? "translate-x-6 scale-90" : "translate-x-0 scale-75")} />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Minimalist Reference Preview (At bottom) */}
                             <div className="pt-12 border-t border-[var(--border)] flex flex-col items-center">
                                 <div

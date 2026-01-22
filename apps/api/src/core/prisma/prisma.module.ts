@@ -12,7 +12,8 @@ import { Pool } from 'pg';
 @Injectable()
 export class PrismaService
   extends PrismaClient
-  implements OnModuleInit, OnModuleDestroy {
+  implements OnModuleInit, OnModuleDestroy
+{
   constructor() {
     const pool = new Pool({ connectionString: process.env.DATABASE_URL });
     const adapter = new PrismaPg(pool);
@@ -41,7 +42,7 @@ export class PrismaService
       const isNetworkError =
         error instanceof Error &&
         (error.message.includes('EAI_AGAIN') ||
-          error.message.includes('Can\'t reach database server') ||
+          error.message.includes("Can't reach database server") ||
           error.message.includes('Timed out'));
 
       if (isNetworkError && retries > 0) {
@@ -62,4 +63,4 @@ export class PrismaService
   providers: [PrismaService],
   exports: [PrismaService],
 })
-export class PrismaModule { }
+export class PrismaModule {}

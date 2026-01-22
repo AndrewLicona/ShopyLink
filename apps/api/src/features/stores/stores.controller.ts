@@ -48,7 +48,7 @@ export class StoresController {
   }
 
   @Get('favicon.ico')
-  async handleFavicon(): Promise<void> {
+  handleFavicon(): void {
     return; // Returns 200 by default, or we can use @HttpCode(204)
   }
 
