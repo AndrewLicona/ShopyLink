@@ -293,21 +293,38 @@ export class OrdersService {
           if (item.variantId) {
             const variant = await tx.productVariant.findUnique({
               where: { id: item.variantId },
+              include: { product: { include: { inventory: true } } },
             });
 
-            if (variant && variant.stock < item.quantity) {
-              throw new BadRequestException(
-                `No hay suficiente stock para la variante: ${item.productName} - ${variant.name}`,
-              );
+            if (variant && variant.trackInventory) {
+              if (variant.useParentStock) {
+                const product = variant.product;
+                if (product?.trackInventory && product?.inventory) {
+                  if (product.inventory.stock < item.quantity) {
+                    throw new BadRequestException(
+                      `No hay suficiente stock para el producto: ${product.name}`,
+                    );
+                  }
+                  await tx.inventory.update({
+                    where: { productId: product.id },
+                    data: { stock: { decrement: item.quantity } },
+                  });
+                }
+              } else {
+                if (variant.stock < item.quantity) {
+                  throw new BadRequestException(
+                    `No hay suficiente stock para la variante: ${item.productName} - ${variant.name}`,
+                  );
+                }
+                await tx.productVariant.update({
+                  where: { id: item.variantId },
+                  data: { stock: { decrement: item.quantity } },
+                });
+              }
             }
-
-            await tx.productVariant.update({
-              where: { id: item.variantId },
-              data: { stock: { decrement: item.quantity } },
-            });
-          } else {
+          } else if (item.productId) {
             const product = await tx.product.findUnique({
-              where: { id: item.productId || undefined },
+              where: { id: item.productId },
               include: { inventory: true },
             });
 
@@ -334,13 +351,30 @@ export class OrdersService {
       ) {
         for (const item of order.items) {
           if (item.variantId) {
-            await tx.productVariant.update({
+            const variant = await tx.productVariant.findUnique({
               where: { id: item.variantId },
-              data: { stock: { increment: item.quantity } },
+              include: { product: true },
             });
-          } else {
+
+            if (variant && variant.trackInventory) {
+              if (variant.useParentStock) {
+                const product = variant.product;
+                if (product?.trackInventory) {
+                  await tx.inventory.update({
+                    where: { productId: product.id },
+                    data: { stock: { increment: item.quantity } },
+                  });
+                }
+              } else {
+                await tx.productVariant.update({
+                  where: { id: item.variantId },
+                  data: { stock: { increment: item.quantity } },
+                });
+              }
+            }
+          } else if (item.productId) {
             const product = await tx.product.findUnique({
-              where: { id: item.productId || undefined },
+              where: { id: item.productId },
               include: { inventory: true },
             });
 

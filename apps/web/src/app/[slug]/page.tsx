@@ -43,13 +43,18 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
 
             // Si tiene variantes, verificar disponibilidad granular
             if (p.variants && p.variants.length > 0) {
-                return p.variants.some(v => {
+                // El producto es visible si el base tiene stock O alguna variante tiene stock
+                const isBaseAvailable = (p.inventory?.stock ?? 0) > 0;
+
+                const hasAvailableVariant = p.variants.some(v => {
                     // Una variante es visible si no trackea stock OR (tiene stock > 0)
                     if (v.trackInventory === false) return true;
 
                     const stock = v.useParentStock ? (p.inventory?.stock ?? 0) : (v.stock ?? 0);
                     return stock > 0;
                 });
+
+                return isBaseAvailable || hasAvailableVariant;
             }
 
             // Producto simple: debe tener stock > 0

@@ -59,7 +59,7 @@ export function ProductFormModal({ hook }: ProductFormModalProps) {
                                             type="number"
                                             value={form.price}
                                             onChange={(e) => actions.setPrice(e.target.value)}
-                                            disabled={!form.hasPrice || form.hasVariants}
+                                            disabled={!form.hasPrice}
                                             className={cn(
                                                 "w-full pl-8 pr-5 py-3 rounded-2xl border-2 outline-none transition-all font-bold bg-[var(--bg)]",
                                                 form.hasPrice
@@ -110,7 +110,13 @@ export function ProductFormModal({ hook }: ProductFormModalProps) {
                                         type="number"
                                         value={form.discountPrice}
                                         onChange={(e) => actions.setDiscountPrice(e.target.value)}
-                                        className="w-full pl-8 pr-5 py-3 rounded-2xl border-2 border-green-500/20 focus:border-green-500 outline-none transition-all font-bold bg-green-500/5 text-green-500"
+                                        disabled={!form.hasPrice}
+                                        className={cn(
+                                            "w-full pl-8 pr-5 py-3 rounded-2xl border-2 outline-none transition-all font-bold bg-green-500/5 text-green-500",
+                                            form.hasPrice
+                                                ? "border-green-500/20 focus:border-green-500"
+                                                : "border-[var(--border)]/50 text-[var(--text)]/30 cursor-not-allowed opacity-50"
+                                        )}
                                         placeholder="0 (Opcional)"
                                     />
                                 </div>
