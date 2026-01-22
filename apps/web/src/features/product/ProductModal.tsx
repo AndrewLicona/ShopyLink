@@ -399,7 +399,7 @@ export function ProductModal({
                                                     : "bg-[var(--secondary)] border-transparent text-[var(--text)] hover:border-[var(--border)]"
                                             )}
                                         >
-                                            Principal
+                                            {selectedProduct.baseVariantName || 'Principal'}
                                         </button>
                                     )}
                                     {selectedProduct.variants

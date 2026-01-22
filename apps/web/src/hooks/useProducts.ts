@@ -219,6 +219,7 @@ export function useProducts() {
             price: v.useParentPrice ? null : (v.price ? parseFloat(v.price.toString()) : null),
             stock: v.useParentStock ? 0 : (v.stock ? parseInt(v.stock.toString()) : 0),
             sku: v.sku || (sku ? `${sku}-${idx + 1}` : null),
+            useParentPrice: v.useParentPrice ?? false,
             useParentStock: v.useParentStock ?? false,
             trackInventory: v.trackInventory ?? true,
             images: v.images || [],

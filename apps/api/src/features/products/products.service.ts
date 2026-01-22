@@ -40,20 +40,25 @@ export class ProductsService {
     const generatedSku = this.generateSku(sku);
 
     return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const data: any = {
+        name: rest.name,
+        description: rest.description,
+        price: rest.price,
+        discountPrice: rest.discountPrice,
+        images: rest.images,
+        sku: generatedSku,
+        isActive: rest.isActive ?? true,
+        trackInventory: trackInventory ?? true,
+        storeId: rest.storeId,
+        categoryId: rest.categoryId,
+      };
+
+      if (rest.baseVariantName) {
+        data.baseVariantName = rest.baseVariantName;
+      }
+
       const product = await tx.product.create({
-        data: {
-          name: rest.name,
-          description: rest.description,
-          price: rest.price,
-          discountPrice: rest.discountPrice,
-          images: rest.images,
-          sku: generatedSku,
-          isActive: rest.isActive ?? true,
-          trackInventory: trackInventory ?? true,
-          storeId: rest.storeId,
-          categoryId: rest.categoryId,
-          baseVariantName: rest.baseVariantName as any,
-        } as any,
+        data,
       });
 
       if (rest.variants && rest.variants.length > 0) {
@@ -138,21 +143,26 @@ export class ProductsService {
         await this.syncProductVariants(tx, id, productData.variants);
       }
 
+      const data: any = {
+        name: productData.name,
+        description: productData.description,
+        price: productData.price,
+        discountPrice: productData.discountPrice,
+        images: productData.images,
+        sku: finalSku,
+        isActive: productData.isActive,
+        trackInventory:
+          trackInventory !== undefined ? trackInventory : undefined,
+        categoryId: productData.categoryId,
+      };
+
+      if (productData.baseVariantName) {
+        data.baseVariantName = productData.baseVariantName;
+      }
+
       return tx.product.update({
         where: { id },
-        data: {
-          name: productData.name,
-          description: productData.description,
-          price: productData.price,
-          discountPrice: productData.discountPrice,
-          images: productData.images,
-          sku: finalSku,
-          isActive: productData.isActive,
-          trackInventory:
-            trackInventory !== undefined ? trackInventory : undefined,
-          categoryId: productData.categoryId,
-          baseVariantName: productData.baseVariantName as any,
-        } as any,
+        data,
         include: { inventory: true, variants: true },
       });
     });

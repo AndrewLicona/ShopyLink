@@ -41,6 +41,12 @@ export function ProductGrid({ hook }: ProductGridProps) {
                             <ImageIcon className="w-8 h-8 text-[var(--text)]/10" />
                         )}
 
+                        {product.discountPrice && product.discountPrice > 0 && (
+                            <div className="absolute top-2 left-2 z-10 bg-red-500 text-white px-2 py-1 rounded-xl text-[8px] font-black uppercase tracking-widest shadow-xl animate-pulse">
+                                Oferta
+                            </div>
+                        )}
+
                         <div className="absolute top-2 right-2 flex flex-col gap-1 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
                                 onClick={() => actions.openEditModal(product)}
@@ -85,9 +91,22 @@ export function ProductGrid({ hook }: ProductGridProps) {
                     <div className="mt-4 flex-1 flex flex-col px-1">
                         <div className="flex flex-col">
                             <h3 className="text-sm font-black text-[var(--text)] truncate">{product.name}</h3>
-                            <span className="text-base font-black text-[var(--primary)] mt-1">
-                                {product.price != null ? formatCurrency(product.price) : 'Consultar'}
-                            </span>
+                            <div className="flex items-center gap-2 mt-1">
+                                {product.discountPrice && product.discountPrice > 0 ? (
+                                    <>
+                                        <span className="text-base font-black text-red-500">
+                                            {formatCurrency(product.discountPrice)}
+                                        </span>
+                                        <span className="text-xs font-bold text-[var(--text)]/30 line-through">
+                                            {product.price != null ? formatCurrency(product.price) : ''}
+                                        </span>
+                                    </>
+                                ) : (
+                                    <span className="text-base font-black text-[var(--primary)]">
+                                        {product.price != null ? formatCurrency(product.price) : 'Consultar'}
+                                    </span>
+                                )}
+                            </div>
                         </div>
 
                         <div className="mt-3 flex items-center justify-between">
