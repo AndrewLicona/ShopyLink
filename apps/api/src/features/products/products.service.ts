@@ -22,7 +22,7 @@ interface ProductVariantInput {
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(userId: string, createProductDto: CreateProductDto) {
     // Verify store ownership
@@ -52,6 +52,7 @@ export class ProductsService {
           trackInventory: trackInventory ?? true,
           storeId: rest.storeId,
           categoryId: rest.categoryId,
+          baseVariantName: rest.baseVariantName,
         },
       });
 
@@ -150,6 +151,7 @@ export class ProductsService {
           trackInventory:
             trackInventory !== undefined ? trackInventory : undefined,
           categoryId: productData.categoryId,
+          baseVariantName: productData.baseVariantName,
         },
         include: { inventory: true, variants: true },
       });
