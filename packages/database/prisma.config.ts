@@ -1,7 +1,7 @@
 import { defineConfig } from "prisma/config";
 
 export default defineConfig({
-    engine: 'classic',
+   // engine: 'classic',
     datasource: {
         url: process.env.DATABASE_URL!,
     },

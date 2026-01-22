@@ -152,7 +152,7 @@ export class OrdersService {
               `Insufficient stock for product variant: ${product.name} - ${variant.name}`,
             );
           }
-        }
+        } 
 
         sku = variant.sku || sku;
         variantName = variant.name;
