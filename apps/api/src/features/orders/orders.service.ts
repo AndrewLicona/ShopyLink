@@ -221,14 +221,14 @@ export class OrdersService {
       `Hola *${storeName}*.\n\n` +
       `Mi nombre es *${order.customerName}*.\n\n` +
       (order.customerAddress
-        ? `📍 *ENTREGA EN:* ${order.customerAddress}\n`
+        ? `[ENTREGA] *${order.customerAddress}*\n\n`
         : '') +
       `Quiero confirmar mi pedido *#${order.id.slice(0, 8)}*\n\n` +
-      `📦 *DETALLE:*\n${itemsList}\n\n` +
-      `💰 *TOTAL: ${this.formatCurrency(Number(order.total))}*\n\n` +
+      `*DETALLE DE PEDIDO:*\n${itemsList}\n\n` +
+      `*TOTAL: ${this.formatCurrency(Number(order.total))}*\n\n` +
       `-------------------\n` +
-      `⚠️ *Nota para el cliente:* No modifiques este mensaje para asegurar la validez de tu pedido.\n\n` +
-      `🔗 *Verificar en Dashboard (Solo dueño):*\n${dashboardLink}`;
+      `[!] *Nota para el cliente:* No modifiques este mensaje para asegurar la validez de tu pedido.\n\n` +
+      `*Verificar en Dashboard (Solo dueño):*\n${dashboardLink}`;
 
     const baseUrl = phone ? `https://wa.me/${phone}` : `https://wa.me/`;
     return `${baseUrl}?text=${encodeURIComponent(text)}`;
