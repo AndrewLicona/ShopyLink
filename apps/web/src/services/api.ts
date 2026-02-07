@@ -61,7 +61,10 @@ export const api = {
     }),
 
     // Products
-    getProducts: (storeId: string, options?: RequestInit) => fetchWithAuth(`/products?storeId=${storeId}`, options),
+    getProducts: (storeId: string, params?: Record<string, string>, options?: RequestInit) => {
+        const query = new URLSearchParams({ storeId, ...params }).toString();
+        return fetchWithAuth(`/products?${query}`, options);
+    },
     createProduct: (data: Partial<Product>) => fetchWithAuth('/products', {
         method: 'POST',
         body: JSON.stringify(data),

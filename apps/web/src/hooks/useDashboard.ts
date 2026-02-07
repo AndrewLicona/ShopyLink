@@ -1,16 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { TrendingUp, Clock, ShoppingBag } from 'lucide-react';
 import { api } from '@/services/api';
-import { formatCurrency } from '@/lib/utils';
 import { useStore } from '@/contexts/StoreContext';
 import { copyToClipboard } from '@/lib/clipboard';
 import type { Order, Product } from '@/types/types';
 
 export function useDashboard() {
     const { activeStore } = useStore();
-    const [stats, setStats] = useState<{ label: string, value: string, change: string, icon: React.ElementType, color: string, bg: string }[]>([]);
+    const [stats, setStats] = useState({
+        todaySales: 0,
+        todayOrders: 0,
+        totalProducts: 0,
+        pendingOrders: 0,
+        totalOrders: 0,
+        totalSales: 0
+    });
     const [recentOrders, setRecentOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
@@ -37,9 +42,9 @@ export function useDashboard() {
         if (navigator.share && window.isSecureContext) {
             try {
                 await navigator.share({
-                    title: storeName,
+                    title: storeName as string,
                     text: `¡Mira mi tienda en ShopyLink!`,
-                    url: storeUrl,
+                    url: storeUrl as string,
                 });
             } catch (err) {
                 if ((err as Error).name !== 'AbortError') {
@@ -65,32 +70,30 @@ export function useDashboard() {
 
                 setRecentOrders(orders.slice(0, 5));
 
-                setStats([
-                    {
-                        label: 'Ventas Totales',
-                        value: formatCurrency(orders.filter((o: Order) => o.status === 'COMPLETED').reduce((acc: number, o: Order) => acc + Number(o.total), 0)),
-                        change: 'Consolidado',
-                        icon: TrendingUp,
-                        color: 'text-[var(--primary)]',
-                        bg: 'bg-[var(--primary)]/10'
-                    },
-                    {
-                        label: 'Pedidos Pendientes',
-                        value: orders.filter((o: Order) => o.status === 'PENDING').length.toString(),
-                        change: 'Actualizado',
-                        icon: Clock,
-                        color: 'text-orange-500',
-                        bg: 'bg-orange-500/10'
-                    },
-                    {
-                        label: 'Productos Activos',
-                        value: (products as Product[]).length.toString(),
-                        change: 'En catálogo',
-                        icon: ShoppingBag,
-                        color: 'text-[var(--primary)]',
-                        bg: 'bg-[var(--primary)]/5'
-                    },
-                ]);
+                const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
+
+                const todayOrders = orders.filter((o: Order) => {
+                    const orderDate = new Date(o.createdAt);
+                    const orderDateStr = orderDate.toLocaleDateString('en-CA');
+                    return orderDateStr === todayStr;
+                });
+
+                const todaySales = todayOrders
+                    .filter((o: Order) => o.status === 'COMPLETED')
+                    .reduce((acc: number, o: Order) => acc + Number(o.total || 0), 0);
+
+                const totalSales = orders
+                    .filter((o: Order) => o.status === 'COMPLETED')
+                    .reduce((acc: number, o: Order) => acc + Number(o.total || 0), 0);
+
+                setStats({
+                    todaySales,
+                    todayOrders: todayOrders.length,
+                    totalProducts: (products as Product[]).length,
+                    pendingOrders: orders.filter((o: Order) => o.status === 'PENDING').length,
+                    totalOrders: orders.length,
+                    totalSales
+                });
             } catch (err) {
                 console.error('Error loading dashboard:', err);
             } finally {

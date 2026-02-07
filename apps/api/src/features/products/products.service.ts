@@ -22,7 +22,7 @@ interface ProductVariantInput {
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(userId: string, createProductDto: CreateProductDto) {
     // Verify store ownership
@@ -100,10 +100,15 @@ export class ProductsService {
     });
   }
 
-  async findAllByStore(storeId: string) {
+  async findAllByStore(storeId: string, onlyActive = false) {
+    const where: Prisma.ProductWhereInput = { storeId };
+    if (onlyActive) {
+      where.isActive = true;
+    }
+
     return this.prisma.withRetry(() =>
       this.prisma.product.findMany({
-        where: { storeId },
+        where,
         include: { inventory: true, variants: true },
         orderBy: { createdAt: 'desc' },
       }),

@@ -26,12 +26,12 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
     try {
         // Fetch store by slug (public endpoint) - Server side
         const storeData = await api.getStoreBySlug(slug, {
-            cache: 'no-store'
+            next: { revalidate: 60 }
         });
 
         // Fetch products and categories - Server side
         const [productsData, categoriesData] = await Promise.all([
-            api.getProducts(storeData.id, { cache: 'no-store' }),
+            api.getProducts(storeData.id, { onlyActive: 'true' }, { next: { revalidate: 60 } }),
             api.getCategories(storeData.id)
         ]);
 

@@ -40,21 +40,32 @@ export function PublicProductGrid({
 
     return (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {products.map((product) => (
+            {products.map((product, index) => (
                 <div
                     key={product.id}
                     onClick={() => onProductClick(product)}
-                    className="bg-[var(--bg)] rounded-[2rem] p-3 border border-[var(--border)] hover:border-[var(--primary)]/50 hover:shadow-xl transition-all group flex flex-col relative cursor-pointer"
+                    className="bg-[var(--bg)] rounded-xl p-3 border border-[var(--border)] hover:border-[var(--primary)]/50 hover:shadow-xl transition-all group flex flex-col relative cursor-pointer"
                 >
-                    <div className="aspect-square bg-[var(--secondary)] rounded-[1.5rem] flex items-center justify-center relative overflow-hidden">
+                    <div className="aspect-square bg-[var(--secondary)]/30 flex items-center justify-center relative overflow-hidden rounded-lg">
                         {product.images?.[0] ? (
-                            <Image
-                                src={product.images[0]}
-                                alt={product.name}
-                                fill
-                                className="object-cover transition-transform group-hover:scale-110 duration-500"
-                                sizes="(max-width: 768px) 50vw, 25vw"
-                            />
+                            <>
+                                {/* Ambient Blur Background */}
+                                <Image
+                                    src={product.images[0]}
+                                    alt="Background"
+                                    fill
+                                    className="object-cover blur-2xl scale-110 opacity-30"
+                                    sizes="100px"
+                                />
+                                <Image
+                                    src={product.images[0]}
+                                    alt={product.name}
+                                    fill
+                                    priority={index === 0}
+                                    className="object-cover relative z-10"
+                                    sizes="(max-width: 768px) 50vw, 25vw"
+                                />
+                            </>
                         ) : (
                             <ShoppingBag className="w-8 h-8 text-gray-200" />
                         )}
@@ -116,7 +127,7 @@ export function PublicProductGrid({
                             </div>
                             {(product.price !== null && product.price !== undefined) && (
                                 <div
-                                    className="relative z-[50]"
+                                    className="relative z-10"
                                     onClick={(e) => e.stopPropagation()}
                                 >
                                     <button
