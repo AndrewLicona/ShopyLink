@@ -13,6 +13,8 @@ export function useOrders() {
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [loadingStatus, setLoadingStatus] = useState<string | null>(null);
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
     const searchParams = useSearchParams();
 
     const loadOrders = useCallback(async () => {
@@ -42,6 +44,16 @@ export function useOrders() {
         initOrders();
     }, [loadOrders, searchParams]);
 
+    const filteredOrders = orders.filter(order => {
+        const matchesSearch =
+            order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            order.id.toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+
+        return matchesSearch && matchesStatus;
+    });
+
     const handleUpdateStatus = async (orderId: string, newStatus: string) => {
         setUpdatingId(orderId);
         setLoadingStatus(newStatus);
@@ -65,15 +77,20 @@ export function useOrders() {
 
     return {
         state: {
-            orders,
+            orders: filteredOrders,
+            allOrders: orders,
             loading,
             updatingId,
             loadingStatus,
             selectedOrder,
+            searchTerm,
+            statusFilter,
             activeStore
         },
         actions: {
             setSelectedOrder,
+            setSearchTerm,
+            setStatusFilter,
             handleUpdateStatus,
             refreshOrders: loadOrders
         }

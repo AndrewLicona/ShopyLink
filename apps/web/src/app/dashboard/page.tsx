@@ -3,81 +3,82 @@
 import {
     Plus,
     ShoppingBag,
-    Loader2,
     Share2,
-    Check
+    Check,
+    DollarSign,
+    Package
 } from 'lucide-react';
 import Link from 'next/link';
 import { formatCurrency, cn } from '@/lib/utils';
 import { useDashboard } from '@/hooks/useDashboard';
+import { LoadingState } from '@/components/atoms/LoadingState';
+import { SectionHeader } from '@/components/molecules/SectionHeader';
+import { StatCard } from '@/components/molecules/StatCard';
+import { Button } from '@/components/atoms/Button';
 
 export default function DashboardPage() {
     const { state, actions } = useDashboard();
     const { stats, recentOrders, loading, copied, storeName } = state;
 
     if (loading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-                <Loader2 className="w-10 h-10 text-[var(--primary)] animate-spin" />
-                <p className="text-[var(--text)]/40 font-medium">Cargando tus datos...</p>
-            </div>
-        );
+        return <LoadingState message="Cargando tus datos..." fullPage />;
     }
 
     return (
         <div className="space-y-6 md:space-y-10">
-            {/* Header with Title and Subtle Share Button */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 md:mb-12">
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-black text-[var(--text)] leading-tight">
-                        Hola, <span className="text-[var(--primary)]">{storeName}</span>
-                    </h1>
-                    <p className="text-[var(--text)]/40 mt-1 text-sm md:text-base font-medium">Resumen de actividad de hoy.</p>
-                </div>
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={actions.handleShare}
-                        className={cn(
-                            "flex-1 md:flex-none inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-black text-xs transition-all active:scale-95 border shadow-sm",
-                            copied
-                                ? "bg-green-500 text-white border-green-500"
-                                : "bg-[var(--surface)] text-[var(--text)] border-[var(--border)] hover:bg-[var(--secondary)]"
-                        )}
-                    >
-                        {copied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
-                        {copied ? 'Copiado' : 'Compartir Enlace'}
-                    </button>
-                    <Link
-                        href="/dashboard/products?action=new"
-                        className="p-3.5 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-[var(--primary)]/10"
-                        title="Nuevo Producto"
-                    >
+            {/* Header */}
+            <SectionHeader
+                title={storeName}
+                description="Resumen de actividad de hoy."
+            >
+                {/* Mobile actions are handled inside SectionHeader */}
+                <Link href="/dashboard/products?action=new">
+                    <Button variant="primary" size="md" className="p-3 rounded-2xl">
                         <Plus className="w-6 h-6" />
-                    </Link>
-                </div>
-            </div>
+                    </Button>
+                </Link>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                {stats.map((stat, i) => {
-                    const Icon = stat.icon;
-                    return (
-                        <div key={i} className="bg-[var(--surface)] p-5 md:p-6 rounded-[2rem] shadow-[var(--shadow)] border border-[var(--border)] hover:shadow-[var(--shadow-strong)] transition-all group">
-                            <div className="flex items-center justify-between mb-3 md:mb-4">
-                                <div className={cn(stat.bg, "p-3 md:p-4 rounded-2xl group-hover:scale-110 transition-transform")}>
-                                    <Icon className={cn("w-5 h-5 md:w-6 md:h-6", stat.color)} />
-                                </div>
-                                <span className={cn("text-[10px] md:text-xs font-black uppercase tracking-wider", stat.color)}>
-                                    {stat.change}
-                                </span>
-                            </div>
-                            <div>
-                                <p className="text-[10px] md:text-sm font-bold text-[var(--text)]/40 uppercase tracking-widest leading-none">{stat.label}</p>
-                                <p className="text-2xl md:text-3xl font-black text-[var(--text)] mt-1.5 md:mt-1">{stat.value}</p>
-                            </div>
-                        </div>
-                    );
-                })}
+                <Button
+                    variant="secondary"
+                    onClick={actions.handleShare}
+                    className="p-3 md:p-3.5 rounded-2xl"
+                    aria-label="Compartir tienda"
+                >
+                    {copied ? <Check className="w-5 h-5 text-green-500" /> : <Share2 className="w-5 h-5 text-[var(--text)]/60" />}
+                </Button>
+                <Link href="/dashboard/products?action=new" className="hidden md:block">
+                    <Button leftIcon={<Plus className="w-5 h-5" />}>
+                        Nuevo Producto
+                    </Button>
+                </Link>
+            </SectionHeader>
+
+            {/* Stats Grid - Pill Format */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5">
+                <StatCard
+                    icon={DollarSign}
+                    label="Ventas Hoy"
+                    value={formatCurrency(stats.todaySales)}
+                    color="primary"
+                />
+                <StatCard
+                    icon={ShoppingBag}
+                    label="Pedidos Pend."
+                    value={stats.pendingOrders}
+                    color="orange"
+                />
+                <StatCard
+                    icon={Package}
+                    label="Productos"
+                    value={stats.totalProducts}
+                    color="green"
+                />
+                <StatCard
+                    icon={DollarSign}
+                    label="Ventas Totales"
+                    value={formatCurrency(stats.totalSales || 0)}
+                    color="red"
+                />
             </div>
 
             {/* Recent Orders Section */}
@@ -144,24 +145,24 @@ export default function DashboardPage() {
                         {/* Mobile List View */}
                         <div className="md:hidden divide-y divide-[var(--border)]">
                             {recentOrders.map((order, i) => (
-                                <div key={i} className="p-6 space-y-3">
+                                <div key={i} className="p-4 space-y-2 active:bg-[var(--secondary)]/50 transition-colors">
                                     <div className="flex justify-between items-start">
-                                        <div>
-                                            <span className="text-[10px] font-black text-[var(--primary)] uppercase tracking-widest">#{order.id.slice(0, 8)}</span>
-                                            <p className="text-sm font-bold text-[var(--text)]">{order.customerName}</p>
+                                        <div className="space-y-0.5">
+                                            <span className="text-[8px] font-black text-[var(--primary)] uppercase tracking-widest">#{order.id.slice(0, 8)}</span>
+                                            <p className="text-sm font-bold text-[var(--text)] leading-tight">{order.customerName}</p>
                                         </div>
                                         <span className={cn(
-                                            "px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider",
+                                            "px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider",
                                             order.status === 'COMPLETED' ? 'bg-green-500/10 text-green-600' :
                                                 order.status === 'PENDING' ? 'bg-orange-500/10 text-orange-600' :
                                                     'bg-red-500/10 text-red-600'
                                         )}>
-                                            {order.status === 'COMPLETED' ? 'Completado' : order.status === 'PENDING' ? 'Pendiente' : 'Cancelado'}
+                                            {order.status === 'COMPLETED' ? 'Hecho' : order.status === 'PENDING' ? 'Pend' : 'Canc'}
                                         </span>
                                     </div>
-                                    <div className="flex justify-between items-end">
-                                        <span className="text-[10px] text-[var(--text)]/40 font-medium">{new Date(order.createdAt).toLocaleDateString()}</span>
-                                        <span className="text-lg font-black text-[var(--text)]">{formatCurrency(order.total)}</span>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-[9px] text-[var(--text)]/40 font-medium">{new Date(order.createdAt).toLocaleDateString()}</span>
+                                        <span className="text-base font-black text-[var(--text)]">{formatCurrency(order.total)}</span>
                                     </div>
                                 </div>
                             ))}

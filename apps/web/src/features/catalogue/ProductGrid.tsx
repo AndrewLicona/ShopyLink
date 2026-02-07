@@ -25,10 +25,10 @@ export function ProductGrid({ hook }: ProductGridProps) {
     }
 
     return (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
             {state.products.map((product) => (
-                <div key={product.id} className="bg-[var(--surface)] rounded-[2rem] p-3 border border-[var(--border)] shadow-[var(--shadow)] hover:shadow-[var(--shadow-strong)] transition-all flex flex-col group relative">
-                    <div className="aspect-square bg-[var(--bg)] rounded-[1.5rem] flex items-center justify-center relative overflow-hidden">
+                <div key={product.id} className="bg-[var(--surface)] rounded-xl p-3 border border-[var(--border)] shadow-[var(--shadow)] hover:shadow-[var(--shadow-strong)] transition-all flex flex-col group relative">
+                    <div className="aspect-square bg-[var(--bg)] rounded-lg flex items-center justify-center relative overflow-hidden">
                         {product.images?.[0] ? (
                             <Image
                                 src={product.images[0]}
@@ -47,22 +47,28 @@ export function ProductGrid({ hook }: ProductGridProps) {
                             </div>
                         )}
 
-                        <div className="absolute top-2 right-2 flex flex-col gap-1 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute top-2 right-2 flex flex-col gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity z-20">
                             <button
-                                onClick={() => actions.openEditModal(product)}
-                                className="p-2 bg-[var(--surface)]/95 backdrop-blur-sm rounded-xl shadow-[var(--shadow-strong)] border border-[var(--border)] text-[var(--text)] hover:opacity-80 active:scale-90 transition-all"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    actions.openEditModal(product);
+                                }}
+                                className="p-2.5 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-[var(--border)] text-[var(--text)] active:scale-90 transition-all"
                             >
                                 <Edit2 className="w-4 h-4" />
                             </button>
                             <button
-                                onClick={() => actions.setConfirmModal({
-                                    show: true,
-                                    type: 'product',
-                                    id: product.id,
-                                    name: product.name,
-                                    isPaused: !product.isActive
-                                })}
-                                className="p-2 bg-[var(--surface)]/95 backdrop-blur-sm rounded-xl shadow-[var(--shadow-strong)] border border-[var(--border)] text-red-500 hover:opacity-80 active:scale-90 transition-all"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    actions.setConfirmModal({
+                                        show: true,
+                                        type: 'product',
+                                        id: product.id,
+                                        name: product.name,
+                                        isPaused: !product.isActive
+                                    });
+                                }}
+                                className="p-2.5 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-[var(--border)] text-red-500 active:scale-90 transition-all"
                             >
                                 {state.deletingId === product.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                             </button>
@@ -88,7 +94,7 @@ export function ProductGrid({ hook }: ProductGridProps) {
                         </div>
                     </div>
 
-                    <div className="mt-4 flex-1 flex flex-col px-1">
+                    <div className="mt-3 flex-1 flex flex-col px-1 pb-1">
                         <div className="flex flex-col">
                             <h3 className="text-sm font-black text-[var(--text)] truncate">{product.name}</h3>
                             <div className="flex items-center gap-2 mt-1">

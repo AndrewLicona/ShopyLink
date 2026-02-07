@@ -86,18 +86,28 @@ export function DiscountsSection({
                             <div
                                 key={product.id}
                                 onClick={() => onProductClick(product)}
-                                className="w-[160px] sm:w-[200px] bg-gradient-to-br from-green-50 to-white dark:from-green-950/20 dark:to-[var(--bg)] rounded-2xl p-3 border-2 border-green-500/30 hover:border-green-500 hover:shadow-xl hover:shadow-green-500/10 transition-all group cursor-pointer flex-shrink-0"
+                                className="w-[160px] sm:w-[200px] bg-gradient-to-br from-green-50 to-white dark:from-green-950/20 dark:to-[var(--bg)] rounded-xl p-3 border-2 border-green-500/30 hover:border-green-500 hover:shadow-xl hover:shadow-green-500/10 transition-all group cursor-pointer flex-shrink-0"
                             >
                                 {/* Image */}
-                                <div className="aspect-square bg-white dark:bg-[var(--secondary)] rounded-xl flex items-center justify-center relative overflow-hidden mb-3">
+                                <div className="aspect-square bg-white dark:bg-[var(--secondary)]/30 flex items-center justify-center relative overflow-hidden mb-3 rounded-lg">
                                     {product.images?.[0] ? (
-                                        <Image
-                                            src={product.images[0]}
-                                            alt={product.name}
-                                            fill
-                                            className="object-cover transition-transform group-hover:scale-110 duration-500"
-                                            sizes="200px"
-                                        />
+                                        <>
+                                            {/* Ambient Blur Background */}
+                                            <Image
+                                                src={product.images[0]}
+                                                alt="Background"
+                                                fill
+                                                className="object-cover blur-2xl scale-110 opacity-30"
+                                                sizes="100px"
+                                            />
+                                            <Image
+                                                src={product.images[0]}
+                                                alt={product.name}
+                                                fill
+                                                className="object-cover relative z-10"
+                                                sizes="200px"
+                                            />
+                                        </>
                                     ) : (
                                         <ShoppingBag className="w-8 h-8 text-gray-200" />
                                     )}

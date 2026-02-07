@@ -36,7 +36,7 @@ export function CartDrawer({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex justify-end">
+        <div className="fixed inset-0 z-[100] flex justify-end">
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
             <div className="relative w-full max-w-md bg-[var(--bg)] h-full shadow-2xl flex flex-col text-[var(--text)]">
                 <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">

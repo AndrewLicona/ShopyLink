@@ -78,7 +78,7 @@ export function StoreView({ store, products, categories }: StoreViewProps) {
             {state.cart.length > 0 && !state.isCartOpen && (
                 <button
                     onClick={() => actions.setIsCartOpen(true)}
-                    className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-[var(--primary)] text-[var(--bg)] px-8 py-4 rounded-full font-black text-sm flex items-center gap-3 shadow-2xl shadow-[var(--primary)]/30 animate-in slide-in-from-bottom-5 duration-300 active:scale-95 z-50 hover:scale-105 transition-all"
+                    className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-[var(--primary)] text-[var(--bg)] px-8 py-4 rounded-full font-black text-sm flex items-center gap-3 shadow-2xl shadow-[var(--primary)]/30 animate-in slide-in-from-bottom-5 duration-300 active:scale-95 z-60 hover:scale-105 transition-all"
                 >
                     <ShoppingBag className="w-5 h-5" />
                     Ver Pedido ({state.cartCount})
