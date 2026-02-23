@@ -31,10 +31,13 @@ export default function DashboardPage() {
                 title={storeName}
                 description="Resumen de actividad de hoy."
             >
-                {/* Mobile actions are handled inside SectionHeader */}
                 <Link href="/dashboard/products?action=new">
-                    <Button variant="primary" size="md" className="p-3 rounded-2xl">
-                        <Plus className="w-6 h-6" />
+                    <Button
+                        variant="primary"
+                        leftIcon={<Plus className="w-6 h-6 md:w-5 md:h-5" />}
+                        className="p-3 md:px-6 md:py-3 rounded-2xl"
+                    >
+                        <span className="hidden md:inline">Nuevo Producto</span>
                     </Button>
                 </Link>
 
@@ -46,11 +49,6 @@ export default function DashboardPage() {
                 >
                     {copied ? <Check className="w-5 h-5 text-green-500" /> : <Share2 className="w-5 h-5 text-[var(--text)]/60" />}
                 </Button>
-                <Link href="/dashboard/products?action=new" className="hidden md:block">
-                    <Button leftIcon={<Plus className="w-5 h-5" />}>
-                        Nuevo Producto
-                    </Button>
-                </Link>
             </SectionHeader>
 
             {/* Stats Grid - Pill Format */}
