@@ -38,7 +38,7 @@ function ProductsContent() {
                 <Button
                     variant="secondary"
                     onClick={() => actions.setIsCatModalOpen(true)}
-                    className="p-3 md:p-4 rounded-xl md:rounded-2xl"
+                    className="p-3 md:p-3.5 rounded-2xl"
                     aria-label="Gestionar Categorías"
                 >
                     <Settings2 className="w-5 h-5" />
@@ -46,7 +46,7 @@ function ProductsContent() {
                 <Button
                     variant="primary"
                     onClick={actions.openCreateModal}
-                    className="p-3 md:px-8 md:py-4 rounded-xl md:rounded-2xl"
+                    className="p-3 md:px-6 md:py-3 rounded-2xl"
                     leftIcon={<Plus className="w-6 h-6 md:w-5 md:h-5" />}
                 >
                     <span className="hidden md:inline">Nuevo Producto</span>

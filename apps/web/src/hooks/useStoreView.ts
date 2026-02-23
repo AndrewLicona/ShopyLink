@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { api } from '@/services/api';
 import type { Store, Product } from '@/types/types';
 
@@ -21,7 +21,23 @@ export function useStoreView(store: Store, initialProducts: Product[]) {
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
+
+    const router = useRouter();
+    const pathname = usePathname();
     const searchParams = useSearchParams();
+
+    // Sync URL when product is selected
+    useEffect(() => {
+        const currentParams = new URLSearchParams(window.location.search);
+        if (selectedProduct) {
+            currentParams.set('p', selectedProduct.id);
+        } else {
+            currentParams.delete('p');
+        }
+        const newSearch = currentParams.toString();
+        const newUrl = `${window.location.pathname}${newSearch ? `?${newSearch}` : ''}`;
+        window.history.replaceState(null, '', newUrl);
+    }, [selectedProduct]);
 
     const [isCreatingOrder, setIsCreatingOrder] = useState(false);
     const [showNameModal, setShowNameModal] = useState(false);
