@@ -1,5 +1,3 @@
-'use client';
-
 import Image from 'next/image';
 import { ShoppingBag } from 'lucide-react';
 import type { Store } from '@/types/types';

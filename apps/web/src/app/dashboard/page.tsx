@@ -6,7 +6,8 @@ import {
     Share2,
     Check,
     DollarSign,
-    Package
+    Package,
+    FileDown
 } from 'lucide-react';
 import Link from 'next/link';
 import { formatCurrency, cn } from '@/lib/utils';
@@ -15,6 +16,7 @@ import { LoadingState } from '@/components/atoms/LoadingState';
 import { SectionHeader } from '@/components/molecules/SectionHeader';
 import { StatCard } from '@/components/molecules/StatCard';
 import { Button } from '@/components/atoms/Button';
+import { pdfService } from '@/services/pdf.service';
 
 export default function DashboardPage() {
     const { state, actions } = useDashboard();
@@ -31,6 +33,24 @@ export default function DashboardPage() {
                 title={storeName}
                 description="Resumen de actividad de hoy."
             >
+                <Button
+                    variant="secondary"
+                    onClick={() => {
+                        if (state.activeStore) {
+                            pdfService.generateCatalogPDF(
+                                state.activeStore,
+                                state.products,
+                                state.categories
+                            );
+                        }
+                    }}
+                    className="p-3 md:px-5 md:py-3 rounded-2xl flex items-center gap-2"
+                    aria-label="Descargar Catálogo PDF"
+                >
+                    <FileDown className="w-5 h-5 text-[var(--text)]/60" />
+                    <span className="hidden md:inline font-bold text-xs uppercase tracking-wider">PDF</span>
+                </Button>
+
                 <Link href="/dashboard/products?action=new">
                     <Button
                         variant="primary"
