@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { api } from '@/services/api';
 import { useStore } from '@/contexts/StoreContext';
 import { copyToClipboard } from '@/lib/clipboard';
-import type { Order, Product } from '@/types/types';
+import type { Order, Product, Category } from '@/types/types';
 
 export function useDashboard() {
     const { activeStore } = useStore();
@@ -17,6 +17,8 @@ export function useDashboard() {
         totalSales: 0
     });
     const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
 
@@ -63,14 +65,18 @@ export function useDashboard() {
 
             setLoading(true);
             try {
-                const [products, orders] = await Promise.all([
+                const [productsData, ordersData, categoriesData] = await Promise.all([
                     api.getProducts(activeStore.id),
-                    api.getOrders(activeStore.id)
+                    api.getOrders(activeStore.id),
+                    api.getCategories(activeStore.id)
                 ]);
 
-                setRecentOrders(orders.slice(0, 5));
+                setProducts(productsData);
+                setCategories(categoriesData);
+                setRecentOrders(ordersData.slice(0, 5));
 
-                const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
+                const todayStr = new Date().toLocaleDateString('en-CA');
+                const orders = ordersData;
 
                 const todayOrders = orders.filter((o: Order) => {
                     const orderDate = new Date(o.createdAt);
@@ -89,7 +95,7 @@ export function useDashboard() {
                 setStats({
                     todaySales,
                     todayOrders: todayOrders.length,
-                    totalProducts: (products as Product[]).length,
+                    totalProducts: productsData.length,
                     pendingOrders: orders.filter((o: Order) => o.status === 'PENDING').length,
                     totalOrders: orders.length,
                     totalSales
@@ -108,6 +114,8 @@ export function useDashboard() {
         state: {
             stats,
             recentOrders,
+            products,
+            categories,
             loading,
             copied,
             storeName,
