@@ -1,6 +1,6 @@
 services:
   web:
-    image: ghcr.io/andrewlicona/shopylink-web:latest
+    image: shopylink-web:latest
     build:
       context: .
       dockerfile: apps/web/Dockerfile
@@ -20,7 +20,7 @@ services:
       - shopylink-network
 
   api:
-    image: ghcr.io/andrewlicona/shopylink-api:latest
+    image: shopylink-api:latest
     build:
       context: .
       dockerfile: apps/api/Dockerfile
@@ -36,7 +36,7 @@ services:
       - shopylink-network
 
   nginx:
-    image: ghcr.io/andrewlicona/shopylink-nginx:latest
+    image: shopylink-nginx:latest
     build:
       context: ./nginx
       dockerfile: Dockerfile
