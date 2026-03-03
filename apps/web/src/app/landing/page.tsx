@@ -15,9 +15,9 @@ export default function SimplifiedLanding() {
                 <div className="max-w-7xl mx-auto h-full flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-2 group">
                         <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-50 group-hover:bg-blue-100 transition-colors">
-                            <Image src="/favicon.svg" alt="ShopyLink Logo" width={28} height={28} />
+                            <Image src="/favicon.svg" alt="ShopyLinks Logo" width={28} height={28} />
                         </div>
-                        <span className="text-xl font-black tracking-tighter">Shopy<span className="text-blue-600">Link</span></span>
+                        <span className="text-xl font-black tracking-tighter">Shopy<span className="text-blue-600">Links</span></span>
                     </Link>
 
                     <Link href="/login" className="text-sm font-black uppercase tracking-widest text-gray-400 hover:text-blue-600 transition-colors">
@@ -36,7 +36,7 @@ export default function SimplifiedLanding() {
                 <div className="relative text-center max-w-lg mx-auto">
                     <div className="flex flex-col items-center justify-center gap-4 mb-8">
                         <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-500/10 border border-blue-50 ring-8 ring-blue-50/50">
-                            <Image src="/favicon.svg" alt="ShopyLink" width={40} height={40} />
+                            <Image src="/favicon.svg" alt="ShopyLinks" width={40} height={40} />
                         </div>
                     </div>
 
@@ -69,7 +69,7 @@ export default function SimplifiedLanding() {
             {/* Basic Footer */}
             <footer className="py-10 px-6 border-t border-gray-100 bg-gray-50 mt-auto">
                 <div className="max-w-lg mx-auto text-center space-y-4">
-                    <p className="text-gray-400 text-xs font-black uppercase tracking-widest">&copy; 2026 ShopyLink • Todos los derechos reservados</p>
+                    <p className="text-gray-400 text-xs font-black uppercase tracking-widest">&copy; 2026 ShopyLinks • Todos los derechos reservados</p>
 
                 </div>
             </footer>

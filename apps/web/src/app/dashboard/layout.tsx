@@ -11,6 +11,7 @@ import {
     LogOut,
     Menu,
     ExternalLink,
+    Plus,
     X as CloseIcon
 } from 'lucide-react';
 import Image from 'next/image';
@@ -21,6 +22,7 @@ import { StoreProvider, useStore } from '@/contexts/StoreContext';
 import { cn } from '@/lib/utils';
 import { StoreSwitcher } from '@/components/molecules/StoreSwitcher';
 import { SidebarNav } from './components/SidebarNav';
+import { DashboardSkeleton } from './components/DashboardSkeleton';
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -56,6 +58,13 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         checkSession();
     }, [stores.length, storeLoading, storeError, router]);
 
+    useEffect(() => {
+        if (activeStore && activeStore.mode && activeStore.theme) {
+            localStorage.setItem('shopy-mode', activeStore.mode);
+            localStorage.setItem('shopy-theme', activeStore.theme);
+        }
+    }, [activeStore]);
+
     const menuItems = [
         { icon: LayoutDashboard, label: 'Panel', href: '/dashboard' },
         { icon: Package, label: 'Productos', href: '/dashboard/products' },
@@ -63,7 +72,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         { icon: Settings, label: 'Ajustes', href: '/dashboard/settings' },
     ];
 
-    if (storeLoading) return <div className="min-h-screen flex items-center justify-center bg-[var(--bg)] text-[var(--text)]/40 font-medium">Cargando panel...</div>;
+    if (storeLoading) return <DashboardSkeleton />;
 
     if (storeError) {
         return (
@@ -108,27 +117,27 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             </header>
 
             {/* Bottom Nav (Mobile) */}
-            <nav className="md:hidden fixed bottom-8 left-4 right-4 h-16 bg-[var(--bg)]/80 backdrop-blur-xl border border-[var(--border)] shadow-[var(--shadow-strong)] z-[50] rounded-[2rem] flex items-center justify-around px-2 overflow-hidden ring-1 ring-black/[0.03]">
+            <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[min(90%,400px)] h-16 bg-[var(--bg)]/70 backdrop-blur-2xl border border-[var(--border)] shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] z-[50] rounded-[2rem] flex items-center justify-around px-2 overflow-hidden ring-1 ring-black/[0.03]">
                 {menuItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = pathname === item.href;
                     return (
                         <Link key={item.href} href={item.href} className={cn("flex flex-col items-center justify-center p-2 rounded-2xl transition-all relative", isActive ? "text-[var(--primary)] scale-105" : "text-[var(--text)]/40 hover:text-[var(--text)]")}>
                             <Icon className={cn("w-6 h-6", isActive ? "stroke-[2.5]" : "stroke-[1.5]")} />
-                            {isActive && <span className="absolute -bottom-1 w-1 h-1 bg-[var(--primary)] rounded-full" />}
+                            {isActive && <span className="absolute -bottom-1 w-1.5 h-1.5 bg-[var(--primary)] rounded-full shadow-[0_0_8px_var(--primary)]" />}
                         </Link>
                     );
                 })}
-                <button onClick={() => setIsLogoutModalOpen(true)} className="flex flex-col items-center justify-center p-2 rounded-2xl text-red-500/60 hover:text-red-500 transition-all"><LogOut className="w-6 h-6 stroke-[1.5]" /></button>
             </nav>
 
+
             {/* Sidebar */}
-            <aside className={cn("fixed inset-y-0 left-0 w-64 bg-[var(--bg)] border-r border-[var(--border)] z-[60] transition-transform duration-300 md:translate-x-0", isMobileMenuOpen ? "translate-x-0" : "-translate-x-full")}>
+            <aside className={cn("fixed inset-y-0 left-0 w-64 bg-[var(--bg)]/60 backdrop-blur-2xl border-r border-[var(--border)] z-[60] transition-transform duration-300 md:translate-x-0", isMobileMenuOpen ? "translate-x-0" : "-translate-x-full")}>
                 <div className="flex flex-col h-full p-6 pt-10 md:pt-6">
                     <div className="md:hidden flex items-center justify-between mb-8">
                         <div className="flex items-center gap-2">
-                            <Image src="/favicon.svg" alt="ShopyLink" width={24} height={24} className="contrast-125" style={{ filter: 'var(--text-filter, none)' }} />
-                            <span className="font-extrabold text-[var(--text)] tracking-tight">ShopyLink</span>
+                            <Image src="/favicon.svg" alt="ShopyLinks" width={24} height={24} className="contrast-125" style={{ filter: 'var(--text-filter, none)' }} />
+                            <span className="font-extrabold text-[var(--text)] tracking-tight">ShopyLinks</span>
                         </div>
                         <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 hover:bg-[var(--secondary)] rounded-xl"><CloseIcon className="w-5 h-5 text-[var(--text)]/40" /></button>
                     </div>

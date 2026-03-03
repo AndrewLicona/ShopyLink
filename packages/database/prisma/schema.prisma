@@ -153,9 +153,9 @@ model Order {
     @@index([storeId])
 
     items OrderItem[]
-
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+    completedAt DateTime?
 }
 
 model OrderItem {

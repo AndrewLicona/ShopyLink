@@ -23,11 +23,16 @@ export function LoadingState({
 
     return (
         <div className={containerClasses}>
-            <div className="relative">
-                <Loader2 className="w-10 h-10 text-[var(--primary)] animate-spin" />
-                <div className="absolute inset-0 bg-[var(--primary)]/10 blur-xl rounded-full animate-pulse" />
+            <div className="relative p-8 rounded-[2rem] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow)] flex flex-col items-center gap-6">
+                <div className="relative">
+                    <Loader2 className="w-12 h-12 text-[var(--primary)] animate-spin" strokeWidth={3} />
+                    <div className="absolute inset-0 bg-[var(--primary)]/20 blur-2xl rounded-full animate-pulse" />
+                </div>
+                <div className="space-y-1 text-center">
+                    <p className="text-[var(--text)] font-black text-xs uppercase tracking-[0.2em]">{message}</p>
+                    <p className="text-[var(--text)]/20 font-bold text-[8px] uppercase tracking-widest">ShopyLinks Platform</p>
+                </div>
             </div>
-            <p className="text-[var(--text)]/40 font-bold text-xs md:text-sm uppercase tracking-widest">{message}</p>
         </div>
     );
 }

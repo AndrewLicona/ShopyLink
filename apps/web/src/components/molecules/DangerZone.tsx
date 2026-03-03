@@ -37,7 +37,7 @@ export function DangerZone({
     };
 
     return (
-        <div className="mt-8 bg-red-50/50 rounded-[2.5rem] border border-red-100/50 overflow-hidden animate-in fade-in slide-in-from-bottom-4">
+        <div className="mt-8 bg-red-500/5 rounded-[2.5rem] border-2 border-red-500/20 overflow-hidden animate-in fade-in slide-in-from-bottom-4 backdrop-blur-sm">
             <div className="p-8 md:p-12 space-y-8">
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-red-500/10 text-red-600 rounded-2xl flex items-center justify-center">
@@ -49,10 +49,10 @@ export function DangerZone({
                     </div>
                 </div>
 
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 rounded-3xl bg-white/50 border border-red-100">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-8 rounded-3xl bg-[var(--surface)] border-2 border-red-500/10 shadow-inner">
                     <div className="space-y-1">
-                        <p className="font-black text-gray-900">{actionLabel}</p>
-                        <p className="text-xs text-red-500/60 font-bold uppercase tracking-tight">
+                        <p className="font-black text-[var(--text)] text-lg tracking-tight">{actionLabel}</p>
+                        <p className="text-xs text-red-500/70 font-bold uppercase tracking-widest opacity-80">
                             {confirmationDescription}
                         </p>
                     </div>

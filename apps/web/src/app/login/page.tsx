@@ -99,7 +99,7 @@ export default function LoginPage() {
                                 className="brightness-0 invert"
                             />
                         </div>
-                        <span className="text-2xl font-black tracking-tighter">Shopy<span className="text-blue-600">Link</span></span>
+                        <span className="text-2xl font-black tracking-tighter">Shopy<span className="text-blue-600">Links</span></span>
                     </div>
                     <h1 className="text-3xl font-black text-gray-900 tracking-tight italic">¡Hola de nuevo!</h1>
                     <p className="text-gray-500 font-medium">Inicia sesión en tu panel de control</p>

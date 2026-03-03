@@ -17,7 +17,7 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
 
     if (images.length === 0) {
         return (
-            <div className="aspect-square flex items-center justify-center text-gray-100 bg-white">
+            <div className="aspect-square flex items-center justify-center text-[var(--text)]/20 bg-[var(--surface)]">
                 <ShoppingBag className="w-20 h-20" />
             </div>
         );
@@ -44,7 +44,7 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
     };
 
     return (
-        <div className="w-full h-auto flex flex-col bg-white overflow-hidden shrink-0">
+        <div className="w-full h-auto flex flex-col bg-[var(--surface)] overflow-hidden shrink-0">
             <div className="aspect-square relative w-full overflow-hidden group touch-pan-y">
                 <div
                     className="w-full h-full relative"
@@ -83,7 +83,7 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
             </div>
 
             {images.length > 1 && (
-                <div className="flex gap-2 p-3 overflow-x-auto scrollbar-hide bg-gray-50 dark:bg-black/40 border-t border-[var(--border)] scroll-smooth shrink-0">
+                <div className="flex gap-2 p-3 overflow-x-auto scrollbar-hide bg-[var(--bg)]/50 border-t border-[var(--border)] scroll-smooth shrink-0">
                     {images.map((img, idx) => (
                         <button
                             key={idx}

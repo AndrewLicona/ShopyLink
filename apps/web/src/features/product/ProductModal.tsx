@@ -111,7 +111,7 @@ export function ProductModal({
                 </div>
             )}
 
-            <div className="bg-white w-full h-full sm:h-fit md:max-w-4xl max-h-[100dvh] md:max-h-[85vh] sm:rounded-xl rounded-none shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col md:grid md:grid-cols-2 md:border border-[var(--border)] relative self-center">
+            <div className="bg-[var(--surface)] w-full h-full sm:h-fit md:max-w-4xl max-h-[100dvh] md:max-h-[85vh] sm:rounded-xl rounded-none shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col md:grid md:grid-cols-2 md:border border-[var(--border)] relative self-center">
                 <div className="md:hidden absolute top-4 right-4 z-50">
                     <button onClick={onClose} className="w-10 h-10 bg-[var(--bg)]/80 backdrop-blur-xl rounded-full flex items-center justify-center shadow-xl text-[var(--text)] border border-[var(--border)] active:scale-90 transition-all">
                         <X className="w-5 h-5" />
@@ -120,11 +120,12 @@ export function ProductModal({
 
                 <ProductImageGallery images={displayImages} productName={selectedProduct.name} />
 
-                <div className="w-full flex-1 flex flex-col min-h-0 bg-white border-t md:border-t-0 md:border-l border-[var(--border)] max-h-none md:max-h-[85vh]">
+                <div className="w-full flex-1 flex flex-col min-h-0 bg-[var(--surface)] border-t md:border-t-0 md:border-l border-[var(--border)] max-h-none md:max-h-[85vh]">
                     <div className="flex items-center justify-end gap-2 p-4 sm:p-5 pb-1 shrink-0">
                         <button
                             onClick={async () => {
-                                const url = `${window.location.origin}${window.location.pathname}?p=${selectedProduct.id}`;
+                                const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || window.location.origin;
+                                const url = `${frontendUrl}${window.location.pathname}?p=${selectedProduct.id}`;
                                 try {
                                     if (navigator.share) await navigator.share({ title: selectedProduct.name, url });
                                     else {
@@ -188,7 +189,7 @@ export function ProductModal({
                     <div className="p-5 sm:p-7 pt-3 mt-auto border-t border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur-sm z-10">
                         {getEffectivePrice() === null ? (
                             <a
-                                href={`https://wa.me/${store?.whatsappNumber?.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, me interesa: ${selectedProduct.name}\n${window.location.origin}${window.location.pathname}?p=${selectedProduct.id}`)}`}
+                                href={`https://wa.me/${store?.whatsappNumber?.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, me interesa: ${selectedProduct.name}\n${process.env.NEXT_PUBLIC_FRONTEND_URL || (typeof window !== 'undefined' ? window.location.origin : '')}${window.location.pathname}?p=${selectedProduct.id}`)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="w-full bg-green-500 text-white py-4 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-lg md:text-xl flex items-center justify-center gap-3 hover:bg-green-600 hover:scale-[1.02] transition-all shadow-xl active:scale-[0.98]"

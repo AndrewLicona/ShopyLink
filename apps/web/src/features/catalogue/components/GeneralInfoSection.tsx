@@ -31,11 +31,11 @@ export function GeneralInfoSection({ form, actions, categories }: GeneralInfoSec
                             type="button"
                             onClick={() => actions.setHasPrice(!form.hasPrice)}
                             className={cn(
-                                "relative w-8 h-4.5 rounded-full transition-all",
+                                "relative w-8 h-4.5 rounded-full transition-all border border-black/5 shadow-inner",
                                 form.hasPrice ? "bg-[var(--primary)]" : "bg-[var(--border)]"
                             )}
                         >
-                            <div className={cn("absolute top-0.75 left-0.75 w-3 h-3 bg-white rounded-full transition-all shadow-sm", form.hasPrice ? "translate-x-3.5" : "translate-x-0")} />
+                            <div className={cn("absolute top-0.75 left-0.75 w-3 h-3 bg-white rounded-full transition-all shadow-md", form.hasPrice ? "translate-x-3.5" : "translate-x-0")} />
                         </button>
                     </div>
                     <div className="relative">
@@ -62,11 +62,11 @@ export function GeneralInfoSection({ form, actions, categories }: GeneralInfoSec
                             type="button"
                             onClick={() => actions.setTrackInventory(!form.trackInventory)}
                             className={cn(
-                                "relative w-8 h-4.5 rounded-full transition-all",
+                                "relative w-8 h-4.5 rounded-full transition-all border border-black/5 shadow-inner",
                                 form.trackInventory ? "bg-[var(--primary)]" : "bg-[var(--border)]"
                             )}
                         >
-                            <div className={cn("absolute top-0.75 left-0.75 w-3 h-3 bg-white rounded-full transition-all shadow-sm", form.trackInventory ? "translate-x-3.5" : "translate-x-0")} />
+                            <div className={cn("absolute top-0.75 left-0.75 w-3 h-3 bg-white rounded-full transition-all shadow-md", form.trackInventory ? "translate-x-3.5" : "translate-x-0")} />
                         </button>
                     </div>
                     <input

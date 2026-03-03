@@ -89,7 +89,7 @@ export function VariantSelector({
                         {product.trackInventory ? 'Disponibilidad' : 'Estado'}
                     </p>
                     <div className="flex items-center gap-2">
-                        <div className={cn("w-2 h-2 rounded-full", product.trackInventory ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" : "bg-blue-500")}></div>
+                        <div className={cn("w-2 h-2 rounded-full", product.trackInventory ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-blue-500")}></div>
                         <p className="font-black text-sm text-[var(--text)]">
                             {availableStock === Infinity ? "Disponible" : `${availableStock} unid.`}
                         </p>

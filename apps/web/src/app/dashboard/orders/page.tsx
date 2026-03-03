@@ -68,7 +68,7 @@ export default function OrdersPage() {
                             onClick={() => setStatusFilter(tab.id)}
                             className={cn(
                                 "flex-1 px-4 md:px-6 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center",
-                                statusFilter === tab.id ? "bg-[var(--text)] text-white shadow-lg" : "text-[var(--text)]/40 hover:text-[var(--text)]"
+                                statusFilter === tab.id ? "bg-[var(--primary)] text-[var(--bg)] shadow-lg" : "text-[var(--text)]/40 hover:text-[var(--text)] font-bold"
                             )}
                         >
                             {tab.label}
@@ -89,72 +89,37 @@ export default function OrdersPage() {
                         </div>
                     </div>
                 ) : (
-                    <div className="p-2 md:p-0">
-                        {/* Desktop Table View */}
-                        <div className="hidden md:block overflow-x-auto">
-                            <table className="w-full text-left font-sans">
-                                <thead>
-                                    <tr className="bg-[var(--bg)] text-[var(--text)]/60 text-[10px] font-black uppercase tracking-widest border-b border-[var(--border)]">
-                                        <th className="px-8 py-5">Orden</th>
-                                        <th className="px-8 py-5">Fecha</th>
-                                        <th className="px-8 py-5">Cliente</th>
-                                        <th className="px-8 py-5 text-right">Total</th>
-                                        <th className="px-8 py-5 text-center">Estado</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-[var(--border)]">
-                                    {orders.map((order: Order) => (
-                                        <tr
-                                            key={order.id}
-                                            className="hover:bg-[var(--secondary)]/50 transition-colors group cursor-pointer"
-                                            onClick={() => setSelectedOrder(order)}
-                                        >
-                                            <td className="px-8 py-6">
-                                                <span className="font-black text-[var(--primary)] text-sm uppercase">#{order.id.slice(0, 8)}</span>
-                                            </td>
-                                            <td className="px-8 py-6">
-                                                <p className="text-xs font-bold text-[var(--text)]">{new Date(order.createdAt).toLocaleDateString()}</p>
-                                                <p className="text-[10px] text-[var(--text)]/40 font-medium uppercase">{new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                                            </td>
-                                            <td className="px-8 py-6">
-                                                <p className="font-bold text-[var(--text)] truncate max-w-[150px]">{order.customerName}</p>
-                                            </td>
-                                            <td className="px-8 py-6 text-right font-black text-[var(--text)]">{formatCurrency(order.total)}</td>
-                                            <td className="px-8 py-6 text-center">
-                                                <StatusBadge status={order.status.toLowerCase() as any} />
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {/* Mobile Card View */}
-                        <div className="md:hidden space-y-2 p-2">
-                            {orders.map((order: Order) => (
-                                <div
-                                    key={order.id}
-                                    className="bg-[var(--surface)] border border-[var(--border)] rounded-[1.5rem] p-4 space-y-3 shadow-sm active:scale-[0.98] transition-all cursor-pointer"
-                                    onClick={() => setSelectedOrder(order)}
-                                >
-                                    <div className="flex justify-between items-start">
-                                        <div className="space-y-0.5 min-w-0 flex-1">
-                                            <span className="font-black text-[var(--primary)] text-[8px] uppercase tracking-widest">#{order.id.slice(0, 8)}</span>
-                                            <p className="font-black text-[var(--text)] text-sm leading-tight truncate">{order.customerName}</p>
-                                        </div>
-                                        <StatusBadge status={order.status.toLowerCase() as any} className="scale-75 origin-top-right shrink-0" />
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 md:p-8">
+                        {orders.map((order: Order) => (
+                            <div
+                                key={order.id}
+                                className="bg-[var(--surface)] border border-[var(--border)] rounded-[2rem] p-6 space-y-4 shadow-sm hover:shadow-md hover:border-[var(--primary)]/30 active:scale-[0.99] transition-all cursor-pointer group"
+                                onClick={() => setSelectedOrder(order)}
+                            >
+                                <div className="flex justify-between items-start">
+                                    <div className="space-y-1">
+                                        <span className="font-black text-[var(--primary)] text-[10px] uppercase tracking-[0.2em] opacity-70">#{order.id.slice(0, 8)}</span>
+                                        <h3 className="font-black text-[var(--text)] text-lg leading-tight group-hover:text-[var(--primary)] transition-colors">{order.customerName}</h3>
                                     </div>
-                                    <div className="flex justify-between items-end">
-                                        <div className="text-[9px] text-[var(--text)]/40 font-bold uppercase tracking-tight">
-                                            {new Date(order.createdAt).toLocaleDateString()} • {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </div>
-                                        <div className="font-black text-[var(--text)] text-base">
+                                    <StatusBadge status={order.status.toLowerCase() as any} />
+                                </div>
+
+                                <div className="flex items-center gap-4 pt-2 border-t border-[var(--border)] border-dashed">
+                                    <div className="flex-1">
+                                        <p className="text-[9px] font-black text-[var(--text)]/20 uppercase tracking-widest mb-0.5">Fecha y Hora</p>
+                                        <p className="text-xs font-bold text-[var(--text)]/60">
+                                            {new Date(order.createdAt).toLocaleDateString()} <span className="mx-1 opacity-20">•</span> {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[9px] font-black text-[var(--text)]/20 uppercase tracking-widest mb-0.5">Total</p>
+                                        <p className="font-black text-[var(--text)] text-xl">
                                             {formatCurrency(order.total)}
-                                        </div>
+                                        </p>
                                     </div>
                                 </div>
-                            ))}
-                        </div>
+                            </div>
+                        ))}
                     </div>
                 )}
             </div>

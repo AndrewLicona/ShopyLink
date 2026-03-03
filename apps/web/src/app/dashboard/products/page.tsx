@@ -82,7 +82,7 @@ function ProductsContent() {
                                 onClick={() => actions.setStatusTab(tab)}
                                 className={cn(
                                     "flex-1 sm:w-40 px-4 md:px-6 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center",
-                                    state.statusTab === tab ? "bg-[var(--text)] text-white shadow-lg" : "text-[var(--text)]/40 hover:text-[var(--text)]"
+                                    state.statusTab === tab ? "bg-[var(--primary)] text-[var(--bg)] shadow-lg" : "text-[var(--text)]/40 hover:text-[var(--text)] font-bold"
                                 )}
                             >
                                 {tab === 'active' ? 'En venta' : 'Pausados'}
