@@ -9,7 +9,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
     if (!store) {
         return {
-            title: 'Tienda no encontrada | ShopyLink',
+            title: 'Tienda no encontrada | ShopyLinks',
         };
     }
 

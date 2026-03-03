@@ -5,7 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ShopyLink | Tu tienda en WhatsApp en minutos",
+  title: "ShopyLinks | Tu tienda en WhatsApp en minutos",
   description: "Crea tu catálogo digital, gestiona inventario y vende por WhatsApp de forma profesional.",
   icons: {
     icon: "/favicon.svg",
@@ -19,7 +19,23 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={`${inter.className} antialiased selection:bg-blue-100 selection:text-blue-900`} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const mode = localStorage.getItem('shopy-mode');
+                  const theme = localStorage.getItem('shopy-theme');
+                  if (mode) document.documentElement.setAttribute('data-mode', mode);
+                  if (theme) document.documentElement.setAttribute('data-theme', theme);
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body className={`${inter.className} antialiased selection:bg-blue-100 selection:text-blue-900 bg-[var(--bg)]`} suppressHydrationWarning>
         {children}
       </body>
     </html>

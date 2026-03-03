@@ -8,8 +8,8 @@ interface StatCardProps {
     icon: LucideIcon;
     label: string;
     value: string | number;
-    trend?: string;
-    color?: 'primary' | 'orange' | 'green' | 'red';
+    statusLabel?: string;
+    color?: 'primary' | 'orange' | 'green' | 'red' | 'teal';
     className?: string;
 }
 
@@ -17,32 +17,56 @@ export function StatCard({
     icon: Icon,
     label,
     value,
-    trend,
+    statusLabel = 'Normal',
     color = 'primary',
     className
 }: StatCardProps) {
-    const colors = {
-        primary: 'bg-blue-500/10 text-blue-600',
-        orange: 'bg-orange-500/10 text-orange-600',
-        green: 'bg-green-500/10 text-green-600',
-        red: 'bg-red-500/10 text-red-600',
+    const variants = {
+        primary: 'bg-[#1e293b] text-white', // Dark Slate
+        teal: 'bg-[#064e3b] text-white', // Deep Teal (Gallagher style)
+        green: 'bg-[#064e3b] text-white',
+        orange: 'bg-[#7c2d12] text-white', // Deep Orange
+        red: 'bg-[#7f1d1d] text-white',
+    };
+
+    const statusColors = {
+        primary: 'bg-blue-400/20 text-blue-300',
+        teal: 'bg-emerald-400/20 text-emerald-300',
+        green: 'bg-emerald-400/20 text-emerald-300',
+        orange: 'bg-orange-400/20 text-orange-300',
+        red: 'bg-rose-400/20 text-rose-300',
     };
 
     return (
         <div className={cn(
-            "p-5 md:p-6 bg-white border border-[var(--border)] rounded-[2.5rem] shadow-sm flex items-center gap-5 hover:shadow-md transition-all group min-w-0",
+            "p-5 md:p-6 rounded-2xl shadow-sm flex flex-col justify-between transition-all group min-h-[120px] md:min-h-[140px] relative overflow-hidden",
+            variants[color],
             className
         )}>
-            <div className={cn("p-4 rounded-full shrink-0 group-hover:scale-110 transition-transform shadow-sm", colors[color])}>
-                <Icon className="w-6 h-6 md:w-7 md:h-7" />
+            {/* Background Pattern/Glow */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-white/10 transition-colors" />
+
+            <div className="flex justify-between items-start z-10">
+                <div className="p-2 rounded-lg bg-white/10 shrink-0">
+                    <Icon className="w-4 h-4 md:w-5 md:h-5 text-white/80" />
+                </div>
+                <span className={cn(
+                    "text-[8px] md:text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md",
+                    statusColors[color]
+                )}>
+                    {statusLabel}
+                </span>
             </div>
-            <div className="flex flex-col min-w-0 pr-2">
-                <p className="text-[var(--text)]/40 text-[10px] md:text-xs font-black uppercase tracking-widest truncate mb-1">
+
+            <div className="mt-4 z-10">
+                <p className="text-white/60 text-[10px] md:text-xs font-black uppercase tracking-widest mb-1">
                     {label}
                 </p>
-                <p className="text-xl md:text-2xl font-black text-[var(--text)] tracking-tight whitespace-nowrap">
-                    {value}
-                </p>
+                <div className="flex items-baseline gap-2">
+                    <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">
+                        {value}
+                    </h2>
+                </div>
             </div>
         </div>
     );

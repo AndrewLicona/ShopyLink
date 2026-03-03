@@ -57,7 +57,7 @@ export async function generateMetadata({ params, searchParams }: {
             }
         };
     } catch {
-        return { title: 'ShopyLink' };
+        return { title: 'ShopyLinks' };
     }
 }
 

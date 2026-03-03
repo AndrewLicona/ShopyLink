@@ -141,7 +141,7 @@ export default function SetupPage() {
                                     Tu dirección web
                                 </label>
                                 <div className="flex items-center w-full px-5 py-4 rounded-2xl border-2 border-gray-200 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/10 bg-white transition-all overflow-hidden">
-                                    <span className="text-gray-400 font-bold text-sm whitespace-nowrap">shopylink.com/</span>
+                                    <span className="text-gray-400 font-bold text-sm whitespace-nowrap">shopylinks.shop/</span>
                                     <input
                                         type="text" required
                                         className="flex-1 ml-1 outline-none font-black text-gray-900 bg-transparent text-sm"

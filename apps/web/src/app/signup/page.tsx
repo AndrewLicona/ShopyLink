@@ -88,7 +88,7 @@ export default function SignupPage() {
                                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                         </div>
-                        <span className="text-2xl font-black tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">ShopyLink</span>
+                        <span className="text-2xl font-black tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">ShopyLinks</span>
                     </Link>
                     <h2 className="text-3xl font-extrabold text-gray-900">Empezar ahora</h2>
                     <p className="mt-2 text-gray-500">Crea tu cuenta y lanza tu tienda hoy</p>
@@ -257,7 +257,7 @@ export default function SignupPage() {
                                 </button>
 
                                 <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">
-                                    ShopyLink Security • Supabase Auth
+                                    ShopyLinks Security • Supabase Auth
                                 </p>
                             </motion.div>
                         </div>

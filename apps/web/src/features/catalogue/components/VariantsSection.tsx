@@ -81,7 +81,7 @@ export function VariantsSection({ form, actions }: VariantsSectionProps) {
                                         <button
                                             type="button"
                                             onClick={() => actions.setVariants(form.variants.filter((_, i) => i !== idx))}
-                                            className="mt-6 p-2.5 text-red-500 hover:bg-red-50 rounded-xl transition-all border border-transparent hover:border-red-100 active:scale-90"
+                                            className="mt-6 p-2.5 text-red-500 hover:bg-red-500/10 rounded-xl transition-all border border-transparent hover:border-red-500/20 active:scale-90"
                                         >
                                             <X className="w-5 h-5" />
                                         </button>
@@ -109,7 +109,7 @@ export function VariantsSection({ form, actions }: VariantsSectionProps) {
                                                             className={cn(
                                                                 "flex-1 min-w-[60px] px-2 py-1.5 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all",
                                                                 isActive
-                                                                    ? "bg-white text-[var(--text)] shadow-sm"
+                                                                    ? "bg-[var(--surface)] text-[var(--text)] shadow-sm border border-[var(--border)]"
                                                                     : "text-[var(--text)]/30 hover:text-[var(--text)]/50 font-bold"
                                                             )}
                                                         >
@@ -161,7 +161,7 @@ export function VariantsSection({ form, actions }: VariantsSectionProps) {
                                                             className={cn(
                                                                 "flex-1 min-w-[60px] px-2 py-1.5 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all",
                                                                 isActive
-                                                                    ? "bg-white text-[var(--text)] shadow-sm"
+                                                                    ? "bg-[var(--surface)] text-[var(--text)] shadow-sm border border-[var(--border)]"
                                                                     : "text-[var(--text)]/30 hover:text-[var(--text)]/50 font-bold"
                                                             )}
                                                         >

@@ -109,20 +109,13 @@ export function useStoreView(store: Store, initialProducts: Product[]) {
     };
 
     const addToCart = (product: Product) => {
-        const baseItem = cart.find(item => item.id === product.id && !item.variantId);
-        if (baseItem) {
+        const principalItem = cart.find(item => item.id === product.id && !item.variantId);
+        if (principalItem) {
             updateQuantity(product.id, 1, undefined);
             return;
         }
 
-        const existingItem = cart.find(item => item.id === product.id);
-        if (existingItem) {
-            updateQuantity(product.id, 1, existingItem.variantId);
-            return;
-        }
-
-        const firstVariantId = product.variants?.[0]?.id;
-        handleAddToCart(product, 1, firstVariantId || null);
+        handleAddToCart(product, 1, null);
     };
 
     const updateQuantity = (id: string, delta: number, variantId?: string) => {

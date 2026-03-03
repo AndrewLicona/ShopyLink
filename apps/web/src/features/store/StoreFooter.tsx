@@ -47,7 +47,7 @@ export function StoreFooter({ store }: { store: Store }) {
                 </div>
                 <div className="pt-8 border-t border-[var(--border)]">
                     <p className="text-[var(--text)]/40 text-xs font-bold uppercase tracking-tighter">
-                        © {new Date().getFullYear()} {store.name}. Impulsado por <span className="text-[var(--primary)]">ShopyLink</span>
+                        © {new Date().getFullYear()} {store.name}. Impulsado por <span className="text-[var(--primary)]">ShopyLinks</span>
                     </p>
                 </div>
             </div>

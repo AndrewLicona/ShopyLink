@@ -214,7 +214,7 @@ export class OrdersService {
       .join('\n');
 
     const frontendUrl =
-      process.env.FRONTEND_URL || 'https://shopylink.andrewlamaquina.my';
+      process.env.FRONTEND_URL || 'https://shopylinks.shop';
     const dashboardLink = `${frontendUrl}/dashboard/orders?id=${order.id}`;
 
     const text =
@@ -393,7 +393,10 @@ export class OrdersService {
       // 3. Update Status
       return tx.order.update({
         where: { id },
-        data: { status: newStatus },
+        data: {
+          status: newStatus,
+          completedAt: newStatus === OrderStatus.COMPLETED ? new Date() : null,
+        },
       });
     });
   }

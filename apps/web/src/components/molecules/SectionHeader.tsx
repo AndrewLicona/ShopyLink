@@ -17,7 +17,7 @@ export function SectionHeader({
     className
 }: SectionHeaderProps) {
     return (
-        <div className={cn("flex flex-col md:flex-row md:items-center justify-between gap-6", className)}>
+        <div className={cn("flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6", className)}>
             <div className="flex items-start justify-between w-full md:w-auto gap-4">
                 <div className="flex-1 min-w-0">
                     <h1 className="text-2xl md:text-3xl font-black text-[var(--text)] leading-tight break-words">
@@ -29,14 +29,12 @@ export function SectionHeader({
                         </p>
                     )}
                 </div>
-                {/* Mobile-only slot */}
-                <div className="md:hidden flex items-center gap-2 shrink-0">
-                    {children}
-                </div>
-            </div>
 
-            <div className="hidden md:flex items-center gap-3">
-                {children}
+                {children && (
+                    <div className="flex items-center gap-3 shrink-0">
+                        {children}
+                    </div>
+                )}
             </div>
         </div>
     );

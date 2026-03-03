@@ -53,7 +53,7 @@ export function ProductGrid({ hook }: ProductGridProps) {
                                     e.stopPropagation();
                                     actions.openEditModal(product);
                                 }}
-                                className="p-2.5 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-[var(--border)] text-[var(--text)] active:scale-90 transition-all"
+                                className="p-2.5 bg-[var(--surface)]/90 backdrop-blur-md rounded-xl shadow-lg border border-[var(--border)] text-[var(--text)] active:scale-90 transition-all hover:bg-[var(--primary)] hover:text-white hover:border-transparent"
                             >
                                 <Edit2 className="w-4 h-4" />
                             </button>
@@ -68,7 +68,7 @@ export function ProductGrid({ hook }: ProductGridProps) {
                                         isPaused: !product.isActive
                                     });
                                 }}
-                                className="p-2.5 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-[var(--border)] text-red-500 active:scale-90 transition-all"
+                                className="p-2.5 bg-[var(--surface)]/90 backdrop-blur-md rounded-xl shadow-lg border border-[var(--border)] text-red-500 active:scale-90 transition-all hover:bg-red-500 hover:text-white hover:border-transparent"
                             >
                                 {state.deletingId === product.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                             </button>
@@ -87,7 +87,7 @@ export function ProductGrid({ hook }: ProductGridProps) {
                             )}
                             <span className={cn(
                                 "px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-tighter self-start shadow-sm",
-                                product.isActive ? "bg-green-500/90 text-white" : "bg-gray-500/90 text-white"
+                                product.isActive ? "bg-green-500/20 text-green-600 border border-green-500/30" : "bg-gray-500/20 text-gray-600 border border-gray-500/30"
                             )}>
                                 {product.isActive ? 'Activo' : 'Pausa'}
                             </span>

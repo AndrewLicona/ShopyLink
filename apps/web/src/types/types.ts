@@ -80,6 +80,8 @@ export interface Order {
     total: number;
     status: 'PENDING' | 'COMPLETED' | 'CANCELLED';
     createdAt: string;
+    completedAt?: string | null;
+    updatedAt: string;
     items: OrderItem[];
 }
 
