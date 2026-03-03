@@ -68,12 +68,14 @@ else
 fi
 echo ""
 
-# 3. Pull de imágenes desde GHCR
-log_info "${PACKAGE} Descargando últimas imágenes desde GitHub Container Registry..."
-# docker login ghcr.io -u andrewlicona --password-stdin < tu_token.txt
-docker pull ghcr.io/andrewlicona/shopylink-web:latest
-docker pull ghcr.io/andrewlicona/shopylink-api:latest
-docker pull ghcr.io/andrewlicona/shopylink-nginx:latest
+# 3. Reconstruir contenedores en el servidor
+log_info "${PACKAGE} Reconstruyendo imágenes Docker localmente (esto puede tomar varios minutos)..."
+if docker compose build --no-cache; then
+    log_success "Imágenes reconstruidas exitosamente"
+else
+    log_error "Error al reconstruir las imágenes Docker"
+    exit 1
+fi
 echo ""
 
 # 4. Iniciar contenedores
