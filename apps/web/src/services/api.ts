@@ -2,7 +2,10 @@
 import { createClient } from '@/lib/supabase';
 import { Product, Store, Order, Category } from '@/types/types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const isServer = typeof window === 'undefined';
+const API_URL = isServer
+    ? (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001')
+    : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
 
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
     const supabase = createClient();

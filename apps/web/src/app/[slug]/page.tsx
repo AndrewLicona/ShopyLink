@@ -39,8 +39,7 @@ export async function generateMetadata({ params, searchParams }: {
                         description,
                         openGraph: {
                             title,
-                            description,
-                            images: product.images?.[0] ? [product.images[0]] : (store.logoUrl ? [store.logoUrl] : []),
+                            images: product.images?.[0] ? [{ url: product.images[0] }] : (store.logoUrl ? [{ url: store.logoUrl }] : []),
                         }
                     };
                 }
@@ -49,15 +48,10 @@ export async function generateMetadata({ params, searchParams }: {
             }
         }
 
-        return {
-            title: `${store.name} | Catálogo Virtual`,
-            description: `Mira el catálogo de ${store.name} y haz tu pedido por WhatsApp.`,
-            openGraph: {
-                images: store.logoUrl ? [store.logoUrl] : [],
-            }
-        };
+        // Si no hay producto, retornamos undefined para que use el de layout.tsx
+        return {};
     } catch {
-        return { title: 'ShopyLinks' };
+        return {};
     }
 }
 
