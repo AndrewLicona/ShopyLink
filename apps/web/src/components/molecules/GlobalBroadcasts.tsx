@@ -1,83 +1,114 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import { api } from '@/services/api';
-import { AlertCircle, Bell, Info, TriangleAlert, X } from 'lucide-react';
+import { AlertCircle, Bell, Info, TriangleAlert, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Broadcast {
     id: string;
     title: string;
-    message: string;
-    type: 'INFO' | 'WARNING' | 'MAINTENANCE' | 'PROMO';
+    content: string;
+    type: 'INFO' | 'WARNING' | 'PROMOTION' | 'SUCCESS';
 }
 
+const TYPE_CONFIG: Record<string, { bg: string; text: string; icon: string }> = {
+    WARNING: { bg: 'bg-amber-50  border-b border-amber-200', text: 'text-amber-800', icon: 'text-amber-500' },
+    PROMOTION: { bg: 'bg-indigo-50 border-b border-indigo-200', text: 'text-indigo-800', icon: 'text-indigo-500' },
+    SUCCESS: { bg: 'bg-emerald-50 border-b border-emerald-200', text: 'text-emerald-800', icon: 'text-emerald-600' },
+    INFO: { bg: 'bg-blue-50   border-b border-blue-200', text: 'text-blue-800', icon: 'text-blue-500' },
+};
+
+const TYPE_ICONS: Record<string, React.ReactNode> = {
+    WARNING: <TriangleAlert className="w-4 h-4 shrink-0" />,
+    PROMOTION: <Bell className="w-4 h-4 shrink-0" />,
+    SUCCESS: <Info className="w-4 h-4 shrink-0" />,
+    INFO: <Info className="w-4 h-4 shrink-0" />,
+};
+
+const INTERVAL_MS = 8000;
+
 export default function GlobalBroadcasts() {
+    const pathname = usePathname();
     const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
-    const [dismissed, setDismissed] = useState<string[]>([]);
+    const [index, setIndex] = useState(0);
+    const [dismissed, setDismissed] = useState(false);
 
     useEffect(() => {
-        const fetchBroadcasts = async () => {
+        const fetch = async () => {
             try {
-                // We need to add this method to api.ts
                 const data = await (api as any).getActiveBroadcasts();
-                setBroadcasts(data);
+                if (Array.isArray(data) && data.length > 0) {
+                    setBroadcasts(data);
+                }
             } catch (err) {
                 console.error('Error fetching broadcasts:', err);
             }
         };
-
-        fetchBroadcasts();
-        // Poll every 5 minutes
-        const interval = setInterval(fetchBroadcasts, 5 * 60 * 1000);
-        return () => clearInterval(interval);
+        fetch();
+        const poll = setInterval(fetch, 5 * 60 * 1000);
+        return () => clearInterval(poll);
     }, []);
 
-    const handleDismiss = (id: string) => {
-        setDismissed(prev => [...prev, id]);
-    };
+    // Auto-rotate
+    useEffect(() => {
+        if (broadcasts.length <= 1) return;
+        const timer = setInterval(() => {
+            setIndex(i => (i + 1) % broadcasts.length);
+        }, INTERVAL_MS);
+        return () => clearInterval(timer);
+    }, [broadcasts.length]);
 
-    const activeBroadcasts = broadcasts.filter(b => !dismissed.includes(b.id));
+    const prev = useCallback(() => setIndex(i => (i - 1 + broadcasts.length) % broadcasts.length), [broadcasts.length]);
+    const next = useCallback(() => setIndex(i => (i + 1) % broadcasts.length), [broadcasts.length]);
 
-    if (activeBroadcasts.length === 0) return null;
+    // Don't show banner on the broadcasts page itself (would duplicate content)
+    if (pathname === '/dashboard/broadcasts') return null;
+    if (dismissed || broadcasts.length === 0) return null;
+
+    const current = broadcasts[index];
+    if (!current) return null;
+    const cfg = TYPE_CONFIG[current.type] ?? TYPE_CONFIG['INFO']!;
 
     return (
-        <div className="fixed bottom-4 left-4 right-4 z-[9998] md:left-auto md:right-8 md:bottom-8 md:max-w-md space-y-3 pointer-events-none">
-            {activeBroadcasts.map(broadcast => (
-                <div
-                    key={broadcast.id}
-                    className={cn(
-                        "pointer-events-auto p-4 rounded-2xl border shadow-2xl animate-in slide-in-from-right duration-500 flex gap-4 relative overflow-hidden",
-                        broadcast.type === 'WARNING' ? "bg-amber-50 border-amber-200 text-amber-900" :
-                            broadcast.type === 'MAINTENANCE' ? "bg-red-50 border-red-200 text-red-900" :
-                                broadcast.type === 'PROMO' ? "bg-indigo-600 border-indigo-700 text-white" :
-                                    "bg-white border-slate-200 text-slate-900"
-                    )}
-                >
-                    <div className={cn(
-                        "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
-                        broadcast.type === 'PROMO' ? "bg-white/20" : "bg-white shadow-sm"
-                    )}>
-                        {broadcast.type === 'WARNING' ? <TriangleAlert className="w-5 h-5 text-amber-600" /> :
-                            broadcast.type === 'MAINTENANCE' ? <AlertCircle className="w-5 h-5 text-red-600" /> :
-                                broadcast.type === 'PROMO' ? <Bell className="w-5 h-5 text-white" /> :
-                                    <Info className="w-5 h-5 text-indigo-600" />}
-                    </div>
-                    <div className="flex-1 pr-6">
-                        <h4 className="font-black text-sm mb-1">{broadcast.title}</h4>
-                        <p className="text-xs font-medium opacity-80 leading-relaxed">{broadcast.message}</p>
-                    </div>
-                    <button
-                        onClick={() => handleDismiss(broadcast.id)}
-                        className="absolute top-3 right-3 p-1 hover:bg-black/5 rounded-lg transition-colors"
-                    >
-                        <X className="w-4 h-4" />
+        <div className={cn(
+            'relative flex items-center gap-3 px-4 py-2.5 text-sm font-medium animate-in slide-in-from-top duration-300',
+            cfg.bg, cfg.text
+        )}>
+            {/* Icon */}
+            <span className={cfg.icon}>{TYPE_ICONS[current.type]}</span>
+
+            {/* Content */}
+            <div className="flex-1 min-w-0 flex items-center gap-2 truncate">
+                {current.title && (
+                    <span className="font-black shrink-0">{current.title}:</span>
+                )}
+                <span className="opacity-90 truncate">{current.content}</span>
+            </div>
+
+            {/* Pagination controls */}
+            {broadcasts.length > 1 && (
+                <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={prev} className="p-1 hover:bg-black/5 rounded-lg transition-colors" aria-label="Anterior">
+                        <ChevronLeft className="w-4 h-4" />
                     </button>
-                    {broadcast.type === 'PROMO' && (
-                        <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-white/10 rounded-full blur-xl" />
-                    )}
+                    <span className="text-[11px] font-black opacity-50 tabular-nums">
+                        {index + 1}/{broadcasts.length}
+                    </span>
+                    <button onClick={next} className="p-1 hover:bg-black/5 rounded-lg transition-colors" aria-label="Siguiente">
+                        <ChevronRight className="w-4 h-4" />
+                    </button>
                 </div>
-            ))}
+            )}
+
+            <button
+                onClick={() => setDismissed(true)}
+                className="shrink-0 p-1 hover:bg-black/10 rounded-lg transition-colors opacity-50 hover:opacity-100"
+                aria-label="Cerrar"
+            >
+                <X className="w-4 h-4" />
+            </button>
         </div>
     );
 }

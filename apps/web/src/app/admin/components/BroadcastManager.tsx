@@ -5,10 +5,11 @@ import {
     Bell,
     X,
     Clock,
-    Loader2
+    Loader2,
+    TriangleAlert
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import React from 'react';
+import React, { useState } from 'react';
 
 export interface AdminBroadcast {
     id: string;
@@ -42,6 +43,17 @@ export function BroadcastManager({
     onDeactivateBroadcast,
     updating
 }: BroadcastManagerProps) {
+    const [confirmDeactivateId, setConfirmDeactivateId] = useState<string | null>(null);
+
+    const handleConfirmDeactivate = () => {
+        if (confirmDeactivateId) {
+            onDeactivateBroadcast(confirmDeactivateId);
+            setConfirmDeactivateId(null);
+        }
+    };
+
+    const broadcastToDeactivate = broadcasts.find(b => b.id === confirmDeactivateId);
+
     return (
         <div className="p-4 md:p-8 space-y-8">
             {/* Create Broadcast Form */}
@@ -128,7 +140,7 @@ export function BroadcastManager({
                                     {broadcast.type}
                                 </span>
                                 <button
-                                    onClick={() => onDeactivateBroadcast(broadcast.id)}
+                                    onClick={() => setConfirmDeactivateId(broadcast.id)}
                                     className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
                                 >
                                     <X className="w-4 h-4" />
@@ -158,6 +170,48 @@ export function BroadcastManager({
                     )}
                 </div>
             </div>
+            {/* Deactivate Confirmation Modal */}
+            {confirmDeactivateId && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setConfirmDeactivateId(null)} />
+                    <div className="bg-white rounded-[32px] w-full max-w-sm p-8 shadow-2xl relative z-10 animate-in zoom-in-95 duration-300 border border-slate-100">
+                        <button
+                            onClick={() => setConfirmDeactivateId(null)}
+                            className="absolute top-6 right-6 p-2 text-slate-300 hover:text-slate-500 hover:bg-slate-50 rounded-xl transition-all"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+
+                        <div className="w-16 h-16 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mb-6">
+                            <TriangleAlert className="w-8 h-8" />
+                        </div>
+
+                        <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-tight mb-2">
+                            ¿Desactivar comunicado?
+                        </h3>
+                        {broadcastToDeactivate && (
+                            <p className="text-slate-500 font-medium text-sm leading-relaxed mb-8">
+                                Estás a punto de desactivar <span className="text-slate-900 font-bold">"{broadcastToDeactivate.title}"</span>. Ya no será visible para los usuarios.
+                            </p>
+                        )}
+
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={handleConfirmDeactivate}
+                                className="w-full py-4 rounded-2xl font-black text-sm transition-all active:scale-95 shadow-xl shadow-red-600/10 bg-red-600 text-white hover:bg-red-700"
+                            >
+                                Confirmar Desactivación
+                            </button>
+                            <button
+                                onClick={() => setConfirmDeactivateId(null)}
+                                className="w-full py-4 bg-white text-slate-400 rounded-2xl font-black text-sm hover:text-slate-600 hover:bg-slate-50 transition-all"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
