@@ -13,7 +13,8 @@ import {
     ExternalLink,
     Plus,
     X as CloseIcon,
-    ShieldAlert
+    ShieldAlert,
+    Megaphone
 } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
@@ -25,7 +26,7 @@ import { StoreSwitcher } from '@/components/molecules/StoreSwitcher';
 import { SidebarNav } from './components/SidebarNav';
 import { DashboardSkeleton } from './components/DashboardSkeleton';
 import { api } from '@/services/api';
-import { AlertSystem } from '@/components/molecules/AlertSystem';
+import GlobalBroadcasts from '@/components/molecules/GlobalBroadcasts';
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -77,12 +78,16 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         }
     }, [activeStore]);
 
-    const menuItems = [
+    const desktopMenuItems = [
         { icon: LayoutDashboard, label: 'Panel', href: '/dashboard' },
         { icon: Package, label: 'Productos', href: '/dashboard/products' },
         { icon: ShoppingCart, label: 'Pedidos', href: '/dashboard/orders' },
         { icon: Settings, label: 'Ajustes', href: '/dashboard/settings' },
+        { icon: Megaphone, label: 'Comunicados', href: '/dashboard/broadcasts' },
     ];
+
+    // On mobile, hide the Comunicados item from the bottom nav
+    const mobileMenuItems = desktopMenuItems.filter(item => item.href !== '/dashboard/broadcasts');
 
     if (storeLoading) return <DashboardSkeleton />;
 
@@ -130,7 +135,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
             {/* Bottom Nav (Mobile) */}
             <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[min(90%,400px)] h-16 bg-[var(--bg)]/70 backdrop-blur-2xl border border-[var(--border)] shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] z-[50] rounded-[2rem] flex items-center justify-around px-2 overflow-hidden ring-1 ring-black/[0.03]">
-                {menuItems.map((item) => {
+                {mobileMenuItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = pathname === item.href;
                     return (
@@ -173,7 +178,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                         </div>
                     </div>
 
-                    <SidebarNav items={menuItems} pathname={pathname} onCloseMobile={() => setIsMobileMenuOpen(false)} />
+                    <SidebarNav items={desktopMenuItems} pathname={pathname} onCloseMobile={() => setIsMobileMenuOpen(false)} />
 
                     <div className="mt-auto space-y-2 pt-6 border-t border-[var(--border)]">
                         <Link href={activeStore?.slug ? `/${activeStore.slug}` : '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-black text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all w-full text-left">
@@ -193,8 +198,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
             {/* Main Content */}
             <main className="flex-1 min-w-0 pt-16 md:pt-0 pb-28 md:pb-0 md:ml-64">
+                <GlobalBroadcasts />
                 <div className="p-4 md:p-8">
-                    <AlertSystem />
                     {children}
                 </div>
             </main>

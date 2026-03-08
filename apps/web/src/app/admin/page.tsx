@@ -128,7 +128,6 @@ export default function AdminDashboard() {
     };
 
     const handleUpdatePlan = async (id: string, planType: 'FREE' | 'PRO') => {
-        if (!confirm(`¿Cambiar plan a ${planType}?`)) return;
         try {
             setUpdating(id);
             await api.updateStoreAsAdmin(id, { planType });
@@ -141,7 +140,6 @@ export default function AdminDashboard() {
     };
 
     const handleDeactivateBroadcast = async (id: string) => {
-        if (!confirm('¿Estás seguro de desactivar este comunicado?')) return;
         try {
             await api.deactivateBroadcast(id);
             await loadData();
