@@ -162,7 +162,14 @@ export function useProducts() {
         }
     };
 
+    const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+
     const openCreateModal = useCallback(() => {
+        if (activeStore?.planType === 'FREE' && products.length >= 10) {
+            setUpgradeModalOpen(true);
+            return;
+        }
+
         setEditingProduct(null);
         setName('');
         setPrice('');
@@ -179,7 +186,7 @@ export function useProducts() {
         setVariants([]);
         setBaseVariantName('Principal');
         setIsModalOpen(true);
-    }, []);
+    }, [activeStore, products.length]);
 
     const openEditModal = (product: Product) => {
         setEditingProduct(product);
@@ -310,6 +317,7 @@ export function useProducts() {
 
     return {
         state: {
+            activeStore,
             products: filteredProducts,
             allProducts: products,
             categories,
@@ -325,6 +333,7 @@ export function useProducts() {
             statusTab,
             searchTerm,
             categoryFilter,
+            upgradeModalOpen,
             // Form state
             form: {
                 name, baseVariantName, price, description, stock, imageUrls, categoryId, sku, discountPrice, isActive, trackInventory, hasPrice,
@@ -340,6 +349,7 @@ export function useProducts() {
             setStatusTab,
             setSearchTerm,
             setCategoryFilter,
+            setUpgradeModalOpen,
             setName, setBaseVariantName, setPrice, setDescription, setStock, setImageUrls, setCategoryId, setSku, setDiscountPrice, setIsActive, setTrackInventory, setHasPrice,
             setHasVariants, setVariants, setNewCatName,
             handleProductImageUpload,

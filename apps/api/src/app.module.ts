@@ -14,6 +14,11 @@ import { ProductsModule } from './features/products/products.module';
 import { OrdersModule } from './features/orders/orders.module';
 import { CategoriesModule } from './features/categories/categories.module';
 import { ProxyCompatibilityMiddleware } from './core/common/proxy.middleware';
+import { MailingModule } from './core/mailing/mailing.module';
+import { AdminLogsModule } from './core/admin-logs/admin-logs.module';
+import { BroadcastsModule } from './features/broadcasts/broadcasts.module';
+import { APP_GUARD } from '@nestjs/core';
+import { ImpersonationGuard } from './core/auth/impersonation.guard';
 
 @Module({
   imports: [
@@ -24,9 +29,18 @@ import { ProxyCompatibilityMiddleware } from './core/common/proxy.middleware';
     ProductsModule,
     OrdersModule,
     CategoriesModule,
+    MailingModule,
+    AdminLogsModule,
+    BroadcastsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ImpersonationGuard,
+    },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

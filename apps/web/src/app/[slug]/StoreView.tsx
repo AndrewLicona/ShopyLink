@@ -13,6 +13,7 @@ import { PublicProductGrid } from '@/features/store/public/PublicProductGrid';
 import { CartDrawer } from '@/features/store/public/CartDrawer';
 import { OrderModals } from '@/features/store/public/OrderModals';
 import { DiscountsSection } from '@/features/store/public/DiscountsSection';
+import { AdBanner } from '@/components/molecules/AdBanner';
 
 interface StoreViewProps {
     store: Store;
@@ -60,6 +61,8 @@ export function StoreView({ store, products, categories }: StoreViewProps) {
                     onAddToCart={actions.addToCart}
                     searchTerm={state.searchTerm}
                 />
+
+                <AdBanner planType={store.planType} />
             </main>
 
             <StoreFooter store={store} />

@@ -19,6 +19,13 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
         headers['Authorization'] = `Bearer ${session.access_token}`;
     }
 
+    if (!isServer) {
+        const impersonationToken = localStorage.getItem('impersonation_token');
+        if (impersonationToken) {
+            headers['X-Impersonate-Token'] = impersonationToken;
+        }
+    }
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
@@ -63,6 +70,27 @@ export const api = {
         method: 'DELETE',
     }),
 
+    // Admin
+    getAllStoresAsAdmin: () => fetchWithAuth('/stores/admin/all'),
+    getAdminMetrics: () => fetchWithAuth('/stores/admin/metrics'),
+    getAllUsersAsAdmin: () => fetchWithAuth('/stores/admin/users'),
+    updateStoreAsAdmin: (id: string, data: Partial<Store>) => fetchWithAuth(`/stores/admin/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+    }),
+    impersonate: (userId: string) => fetchWithAuth(`/stores/admin/impersonate/${userId}`, {
+        method: 'POST',
+    }),
+    getActiveBroadcasts: () => fetchWithAuth('/broadcasts/active'),
+    createBroadcast: (data: { title: string; content: string; type: string; expiresAt?: string }) => fetchWithAuth('/broadcasts', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }),
+    deactivateBroadcast: (id: string) => fetchWithAuth(`/broadcasts/${id}/deactivate`, {
+        method: 'PATCH',
+    }),
+    getAdminLogs: () => fetchWithAuth('/admin/logs'),
+
     // Products
     getProducts: (storeId: string, params?: Record<string, string>, options?: RequestInit) => {
         const query = new URLSearchParams({ storeId, ...params }).toString();
@@ -104,4 +132,5 @@ export const api = {
 
     // Auth
     resolveUsername: (username: string) => fetchWithAuth(`/auth/resolve-username/${username}`),
+    getProfile: () => fetchWithAuth('/auth/profile'),
 };

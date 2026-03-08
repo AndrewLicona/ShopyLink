@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import ImpersonationBanner from "@/components/molecules/ImpersonationBanner";
+import GlobalBroadcasts from "@/components/molecules/GlobalBroadcasts";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -37,6 +39,8 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.className} antialiased selection:bg-blue-100 selection:text-blue-900 bg-[var(--bg)]`} suppressHydrationWarning>
+        <ImpersonationBanner />
+        <GlobalBroadcasts />
         {children}
       </body>
     </html>

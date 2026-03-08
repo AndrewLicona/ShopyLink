@@ -35,22 +35,46 @@ function ProductsContent() {
                 title="Catálogo"
                 description="Gestiona tus productos"
             >
-                <Button
-                    variant="secondary"
-                    onClick={() => actions.setIsCatModalOpen(true)}
-                    className="p-3 md:p-3.5 rounded-2xl"
-                    aria-label="Gestionar Categorías"
-                >
-                    <Settings2 className="w-5 h-5" />
-                </Button>
-                <Button
-                    variant="primary"
-                    onClick={actions.openCreateModal}
-                    className="p-3 md:px-6 md:py-3 rounded-2xl"
-                    leftIcon={<Plus className="w-6 h-6 md:w-5 md:h-5" />}
-                >
-                    <span className="hidden md:inline">Nuevo Producto</span>
-                </Button>
+                <div className="flex flex-col md:flex-row items-end md:items-center gap-3 w-full justify-end">
+                    {/* Indicador de límite para Plan FREE */}
+                    {hook.state.activeStore?.planType === 'FREE' && (
+                        <div className="bg-[var(--surface)] border border-[var(--border)] px-4 py-2 rounded-2xl flex flex-col items-end hidden md:flex">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text)]/40 mb-1">
+                                Límite Plan Gratis
+                            </span>
+                            <div className="flex items-center justify-between w-full gap-3">
+                                <div className="h-1.5 w-24 bg-[var(--text)]/10 rounded-full overflow-hidden">
+                                    <div
+                                        className={cn("h-full rounded-full transition-all", hook.state.allProducts.length >= 10 ? 'bg-red-500' : 'bg-[var(--primary)]')}
+                                        style={{ width: `${Math.min((hook.state.allProducts.length / 10) * 100, 100)}%` }}
+                                    />
+                                </div>
+                                <span className={cn("text-xs font-black", hook.state.allProducts.length >= 10 ? 'text-red-500' : 'text-[var(--text)]')}>
+                                    {hook.state.allProducts.length}/10
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="secondary"
+                            onClick={() => actions.setIsCatModalOpen(true)}
+                            className="p-3 md:p-3.5 rounded-2xl"
+                            aria-label="Gestionar Categorías"
+                        >
+                            <Settings2 className="w-5 h-5" />
+                        </Button>
+                        <Button
+                            variant="primary"
+                            onClick={actions.openCreateModal}
+                            className="p-3 md:px-6 md:py-3 rounded-2xl"
+                            leftIcon={<Plus className="w-6 h-6 md:w-5 md:h-5" />}
+                        >
+                            <span className="hidden md:inline">Nuevo Producto</span>
+                        </Button>
+                    </div>
+                </div>
             </SectionHeader>
 
             {/* Filters bar */}
@@ -145,6 +169,47 @@ function ProductsContent() {
                     </div>
                 </div>
             )}
+            {/* Upgrade Modal */}
+            {hook.state.upgradeModalOpen && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-[var(--surface)] w-full max-w-sm rounded-[2.5rem] p-8 shadow-[var(--shadow-strong)] animate-in zoom-in-95 text-center relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500"></div>
+                        <button onClick={() => actions.setUpgradeModalOpen(false)} className="absolute top-4 right-4 p-2 text-[var(--text)]/40 hover:bg-[var(--secondary)] rounded-xl transition-colors">
+                            <X className="w-5 h-5" />
+                        </button>
+
+                        <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-orange-500/20">
+                            <AlertCircle className="w-8 h-8 text-white" />
+                        </div>
+                        <h3 className="text-2xl font-black text-[var(--text)] mb-2">¡Límite Alcanzado!</h3>
+                        <p className="text-[var(--text)]/60 font-medium mb-6 text-sm">
+                            Tu tienda está creciendo muy rápido. En el plan gratuito puedes tener hasta 10 productos.
+                        </p>
+
+                        <div className="bg-[var(--secondary)]/50 rounded-2xl p-4 mb-8 text-left border border-[var(--border)]">
+                            <h4 className="font-bold text-sm mb-2 text-[var(--text)]">Mejora a Pro (20k COP/mes) y obtén:</h4>
+                            <ul className="text-xs space-y-2 text-[var(--text)]/70 font-medium">
+                                <li className="flex items-center gap-2">✨ Productos ilimitados</li>
+                                <li className="flex items-center gap-2">🚀 Catálogo libre de anuncios</li>
+                                <li className="flex items-center gap-2">📞 Soporte prioritario por WhatsApp</li>
+                            </ul>
+                        </div>
+
+                        <Button
+                            variant="primary"
+                            onClick={() => {
+                                actions.setUpgradeModalOpen(false);
+                                // Here we can redirect to a payment page or open a WhatsApp link
+                                window.open(`https://wa.me/573000000000?text=Hola,%20quiero%20mejorar%20la%20tienda%20${hook.state.activeStore?.name}%20al%20Plan%20Pro`, '_blank');
+                            }}
+                            className="w-full py-4 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 shadow-xl shadow-orange-500/20 text-white border-0"
+                        >
+                            Mejorar a Plan Pro Ahora
+                        </Button>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 }
