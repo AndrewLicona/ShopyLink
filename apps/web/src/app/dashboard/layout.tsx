@@ -12,7 +12,8 @@ import {
     Menu,
     ExternalLink,
     Plus,
-    X as CloseIcon
+    X as CloseIcon,
+    ShieldAlert
 } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
@@ -23,6 +24,8 @@ import { cn } from '@/lib/utils';
 import { StoreSwitcher } from '@/components/molecules/StoreSwitcher';
 import { SidebarNav } from './components/SidebarNav';
 import { DashboardSkeleton } from './components/DashboardSkeleton';
+import { api } from '@/services/api';
+import { AlertSystem } from '@/components/molecules/AlertSystem';
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -34,6 +37,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     const [mounted, setMounted] = useState(false);
     const [userName, setUserName] = useState('');
     const [userAvatar, setUserAvatar] = useState('');
+    const [userRole, setUserRole] = useState('USER');
 
     useEffect(() => { setMounted(true); }, []);
     useEffect(() => { setIsMobileMenuOpen(false); }, [pathname]);
@@ -54,6 +58,14 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             setUserName(session.user.user_metadata?.full_name || '');
             setUserAvatar(session.user.user_metadata?.avatar_url || '');
             if (stores.length === 0 && !storeLoading && !storeError) router.push('/setup');
+
+            // Fetch real role
+            try {
+                const profile = await api.getProfile();
+                if (profile) setUserRole(profile.role);
+            } catch (err) {
+                console.error('Failed to fetch profile role:', err);
+            }
         };
         checkSession();
     }, [stores.length, storeLoading, storeError, router]);
@@ -168,6 +180,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                             <ExternalLink className="w-5 h-5" />
                             <span>Ver mi tienda</span>
                         </Link>
+                        {userRole === 'SUPER_ADMIN' && (
+                            <Link href="/admin" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-black text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-all w-full text-left border border-indigo-100 mb-2">
+                                <ShieldAlert className="w-5 h-5" />
+                                <span>Panel Admin</span>
+                            </Link>
+                        )}
                         <button onClick={() => setIsLogoutModalOpen(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-black text-red-500/60 hover:bg-red-500/5 hover:text-red-500 transition-all active:scale-95"><LogOut className="w-5 h-5" />Cerrar Sesión</button>
                     </div>
                 </div>
@@ -175,7 +193,10 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
             {/* Main Content */}
             <main className="flex-1 min-w-0 pt-16 md:pt-0 pb-28 md:pb-0 md:ml-64">
-                <div className="p-4 md:p-8">{children}</div>
+                <div className="p-4 md:p-8">
+                    <AlertSystem />
+                    {children}
+                </div>
             </main>
 
             {isMobileMenuOpen && <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden" onClick={() => setIsMobileMenuOpen(false)} />}

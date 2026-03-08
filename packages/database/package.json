@@ -13,11 +13,12 @@
     "devDependencies": {
         "@prisma/config": "^7.2.0",
         "@repo/typescript-config": "*",
-        "prisma": "^7.2.0",
+        "dotenv": "^16.4.7",
+        "prisma": "^7.4.2",
         "ts-node": "^1.7.1",
         "typescript": "5.9.2"
     },
     "dependencies": {
-        "@prisma/client": "^7.2.0"
+        "@prisma/client": "^7.4.2"
     }
 }

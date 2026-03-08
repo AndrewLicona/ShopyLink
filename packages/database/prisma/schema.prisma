@@ -8,16 +8,57 @@ datasource db {
     provider = "postgresql"
 }
 
+enum UserRole {
+    USER
+    SUPER_ADMIN
+}
+
+enum BroadcastType {
+    INFO
+    WARNING
+    PROMOTION
+    SUCCESS
+}
+
 // Representa a un Owner de tienda (vinculado a Supabase Auth)
 model User {
     id        String   @id @default(uuid())
     email     String   @unique
     username  String?  @unique
     name      String?
+    role      UserRole @default(USER)
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
     stores Store[]
+    logs   AdminLog[] @relation("AdminActions") // Actions performed BY this user if they are admin
+}
+
+model AdminLog {
+    id         String   @id @default(uuid())
+    adminId    String
+    admin      User     @relation("AdminActions", fields: [adminId], references: [id])
+    action     String // e.g. "UPDATE_PLAN", "IMPERSONATE", "DELETE_PRODUCT"
+    targetType String // e.g. "STORE", "USER", "PRODUCT"
+    targetId   String // ID of the affected resource
+    details    String? // JSON or string with more info
+    createdAt  DateTime @default(now())
+}
+
+model SystemBroadcast {
+    id        String        @id @default(uuid())
+    title     String
+    content   String        @db.Text
+    type      BroadcastType @default(INFO)
+    isActive  Boolean       @default(true)
+    expiresAt DateTime?
+    createdAt DateTime      @default(now())
+    updatedAt DateTime      @updatedAt
+}
+
+enum PlanType {
+    FREE
+    PRO
 }
 
 model Store {
@@ -37,10 +78,11 @@ model Store {
     theme                 String?  @default("classic")
     mode                  String?  @default("light")
     applyThemeToDashboard Boolean? @default(false)
-    deliveryEnabled       Boolean  @default(true)
-    deliveryPrice         String?  @default("Gratis")
-    createdAt             DateTime @default(now())
-    updatedAt             DateTime @updatedAt
+    deliveryEnabled       Boolean   @default(true)
+    deliveryPrice         String?   @default("Gratis")
+    planType              PlanType  @default(FREE)
+    createdAt             DateTime  @default(now())
+    updatedAt             DateTime  @updatedAt
 
     userId String
     user   User   @relation(fields: [userId], references: [id])
@@ -174,4 +216,13 @@ model OrderItem {
     variantId   String?
     variant     ProductVariant? @relation(fields: [variantId], references: [id])
     variantName String?
+}
+
+model counters {
+    id        Int     @id @default(autoincrement())
+    categoria String?
+    tags      String?
+
+    @@index([categoria])
+    @@index([tags])
 }

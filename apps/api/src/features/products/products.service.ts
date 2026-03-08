@@ -36,6 +36,16 @@ export class ProductsService {
     if (store.userId !== userId)
       throw new ForbiddenException('You do not own this store');
 
+    // Freemium Limit Check
+    if (store.planType === 'FREE') {
+      const productCount = await this.prisma.product.count({
+        where: { storeId: createProductDto.storeId }
+      });
+      if (productCount >= 10) {
+        throw new ForbiddenException('Límite de 10 productos alcanzado en el plan Gratis. Actualiza a Pro para productos ilimitados.');
+      }
+    }
+
     const { stock, sku, trackInventory, ...rest } = createProductDto;
     const generatedSku = this.generateSku(sku);
 

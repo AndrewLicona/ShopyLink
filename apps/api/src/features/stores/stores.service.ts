@@ -13,13 +13,20 @@ import {
 // So I can inject PrismaClient.
 
 import { PrismaService } from '../../core/prisma/prisma.module';
+import { MailingService } from '../../core/mailing/mailing.service';
+import { AdminLogsService } from '../../core/admin-logs/admin-logs.service';
 import { CreateStoreDto } from './dto/create-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
 import { encrypt, decrypt } from '../../core/common/encryption.util';
+import { Store } from '@prisma/client';
 
 @Injectable()
 export class StoresService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private mailing: MailingService,
+    private adminLogs: AdminLogsService
+  ) { }
 
   async create(
     userId: string,
@@ -28,15 +35,23 @@ export class StoresService {
   ) {
     await this.checkSlugAvailability(createStoreDto.slug);
 
-    // Upsert User to ensure local DB record exists
-    // We assume userId comes from Supabase Auth (UUID)
+    // For more security, we check if the user is a super admin
+    const adminEmails = process.env.SUPER_ADMIN_EMAILS
+      ? process.env.SUPER_ADMIN_EMAILS.split(',').map(e => e.trim().toLowerCase())
+      : ['andrewlicona1@gmail.com'];
+
+    const role = adminEmails.includes(userEmail.toLowerCase())
+      ? 'SUPER_ADMIN'
+      : 'USER';
+
     const user = await this.prisma.withRetry(() =>
       this.prisma.user.upsert({
         where: { id: userId },
-        update: { email: userEmail },
+        update: { email: userEmail, role: role as any },
         create: {
           id: userId,
           email: userEmail,
+          role: role as any,
         },
       }),
     );
@@ -79,6 +94,44 @@ export class StoresService {
     return stores.map((store) => this.decryptStore(store));
   }
 
+  async findAllAsAdmin() {
+    const stores = await this.prisma.withRetry(() =>
+      this.prisma.store.findMany({
+        include: {
+          user: {
+            select: { email: true, name: true }
+          },
+          _count: {
+            select: { products: true, orders: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+    );
+    return stores.map((store) => this.decryptStore(store));
+  }
+
+  async findAllUsersAsAdmin() {
+    return this.prisma.withRetry(() =>
+      this.prisma.user.findMany({
+        include: {
+          _count: {
+            select: { stores: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+    );
+  }
+
+  async findUserById(id: string) {
+    return this.prisma.withRetry(() =>
+      this.prisma.user.findUnique({
+        where: { id },
+      }),
+    );
+  }
+
   async findOneByUser(userId: string) {
     const store = await this.prisma.withRetry(() =>
       this.prisma.store.findFirst({
@@ -119,6 +172,92 @@ export class StoresService {
       return this.decryptStore(store);
     } catch (error) {
       console.error('Prisma Update Error:', error);
+      throw error;
+    }
+  }
+
+  async getMetrics() {
+    const [totalStores, totalUsers, proStores, totalProducts, totalOrders, totalAmountAgg] = await Promise.all([
+      this.prisma.store.count(),
+      this.prisma.user.count(),
+      this.prisma.store.count({ where: { planType: 'PRO' } }),
+      this.prisma.product.count(),
+      this.prisma.order.count(),
+      this.prisma.order.aggregate({
+        _sum: {
+          total: true
+        }
+      })
+    ]);
+
+    const totalRevenue = (totalAmountAgg._sum.total as any)?.toNumber() || 0;
+    const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+    const conversionRate = totalStores > 0 ? (proStores / totalStores) * 100 : 0;
+
+    // Get stores created in the last 7 days
+    const last7Days = new Date();
+    last7Days.setDate(last7Days.getDate() - 7);
+
+    const newStoresLast7Days = await this.prisma.store.count({
+      where: { createdAt: { gte: last7Days } }
+    });
+
+    return {
+      totalStores,
+      totalUsers,
+      proStores,
+      totalProducts,
+      totalOrders,
+      totalRevenue,
+      avgOrderValue,
+      conversionRate: parseFloat(conversionRate.toFixed(1)),
+      newStoresLast7Days
+    };
+  }
+
+  async updateAsAdmin(adminId: string, id: string, updateStoreDto: Partial<Store>) {
+    if (updateStoreDto.slug) {
+      await this.checkSlugAvailability(updateStoreDto.slug, id);
+    }
+
+    const data = { ...updateStoreDto };
+    if (data.whatsappNumber) {
+      data.whatsappNumber = encrypt(data.whatsappNumber);
+    }
+
+    try {
+      const store = await this.prisma.store.update({
+        where: { id }, // No ownership check
+        data,
+        include: { user: true }
+      });
+
+      // Notify Admin via Email
+      const planChange = updateStoreDto.planType ? `Cambió de plan a <b>${updateStoreDto.planType}</b>` : '';
+      await this.mailing.sendAdminNotification(
+        'Tienda Actualizada por Administrador',
+        `La tienda <b>${store.name}</b> (slug: ${store.slug}) ha sido actualizada. 
+         <br>${planChange}
+         <br>Dueño (Email): ${store.user.email}
+         <br>ID de Tienda: ${store.id}`
+      );
+
+      // Record Audit Log
+      await this.adminLogs.log(
+        adminId,
+        'UPDATE_STORE_ADMIN',
+        'STORE',
+        store.id,
+        {
+          storeName: store.name,
+          slug: store.slug,
+          changes: updateStoreDto
+        }
+      );
+
+      return this.decryptStore(store);
+    } catch (error) {
+      console.error('Prisma Admin Update Error:', error);
       throw error;
     }
   }

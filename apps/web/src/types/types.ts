@@ -18,6 +18,7 @@ export interface Store {
     applyThemeToDashboard?: boolean;
     deliveryEnabled: boolean;
     deliveryPrice?: string | null;
+    planType?: 'FREE' | 'PRO';
     userId: string;
 }
 
