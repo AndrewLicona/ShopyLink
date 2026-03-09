@@ -26,3 +26,9 @@ export function generateSlug(text: string): string {
         .replace(/^-|-$/g, '');
 }
 
+export function getAbsoluteUrl(path: string | null | undefined): string | null {
+    if (!path) return null;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    const baseUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://shopylinks.shop';
+    return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+}

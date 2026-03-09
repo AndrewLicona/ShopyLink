@@ -1,6 +1,8 @@
 import { Metadata } from 'next';
 import { api } from '@/services/api';
 
+import { getAbsoluteUrl } from '@/lib/utils';
+
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -12,6 +14,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
             title: 'Tienda no encontrada | ShopyLinks',
         };
     }
+
+    const absoluteLogoUrl = getAbsoluteUrl(store.logoUrl);
 
     return {
         title: `${store.name} | Catálogo Virtual`,
@@ -26,10 +30,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         openGraph: {
             title: store.name,
             description: store.description ?? undefined,
-            images: store.logoUrl ? [{ url: store.logoUrl }] : [],
+            images: absoluteLogoUrl ? [{ url: absoluteLogoUrl }] : [],
         },
     };
 }
+
 
 export default async function StoreLayout({
     children,

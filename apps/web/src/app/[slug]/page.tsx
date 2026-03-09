@@ -5,6 +5,8 @@ import type { Product, Category } from '@/types/types';
 import { StoreNotFound } from '@/features/store/public/StoreNotFound';
 import { formatCurrency } from '@/lib/utils';
 
+import { getAbsoluteUrl } from '@/lib/utils';
+
 export async function generateMetadata({ params, searchParams }: {
     params: Promise<{ slug: string }>,
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>
@@ -15,7 +17,6 @@ export async function generateMetadata({ params, searchParams }: {
     try {
         const store = await api.getStoreBySlug(slug, { next: { revalidate: 60 } });
 
-        // Si hay un ID de producto en la URL, intentar obtener su metadata específica
         if (typeof productId === 'string') {
             try {
                 const product = await api.getProduct(productId, { next: { revalidate: 60 } });
@@ -34,15 +35,18 @@ export async function generateMetadata({ params, searchParams }: {
                         description = `${product.name} por ${formatCurrency(price)}. ${description}`;
                     }
 
+                    const absoluteImage = product.images?.[0] ? getAbsoluteUrl(product.images[0]) : getAbsoluteUrl(store.logoUrl);
+
                     return {
                         title,
                         description,
                         openGraph: {
                             title,
-                            images: product.images?.[0] ? [{ url: product.images[0] }] : (store.logoUrl ? [{ url: store.logoUrl }] : []),
+                            images: absoluteImage ? [{ url: absoluteImage }] : [],
                         }
                     };
                 }
+
             } catch (err) {
                 console.error('Error fetching product metadata:', err);
             }
