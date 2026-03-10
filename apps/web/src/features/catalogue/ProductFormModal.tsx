@@ -41,9 +41,15 @@ export function ProductFormModal({ hook }: ProductFormModalProps) {
                 <form
                     id="product-form"
                     onSubmit={actions.handleSaveProduct}
-                    className="p-5 sm:p-8 space-y-6 flex-1 overflow-y-auto custom-scrollbar pb-32"
+                    className="p-5 sm:p-8 space-y-8 flex-1 overflow-y-auto custom-scrollbar pb-32"
                 >
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Top: Media Upload */}
+                    <MediaUploadSection
+                        imageUrls={form.imageUrls}
+                        actions={actions}
+                    />
+
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                         {/* Left Side: General Info */}
                         <GeneralInfoSection
                             form={form}
@@ -51,12 +57,8 @@ export function ProductFormModal({ hook }: ProductFormModalProps) {
                             categories={state.categories}
                         />
 
-                        {/* Right Side: Media & Variants */}
+                        {/* Right Side: Variants */}
                         <div className="space-y-8">
-                            <MediaUploadSection
-                                imageUrls={form.imageUrls}
-                                actions={actions}
-                            />
 
                             <VariantsSection
                                 form={form}
