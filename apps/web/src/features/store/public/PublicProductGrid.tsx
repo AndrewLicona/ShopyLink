@@ -1,4 +1,5 @@
 'use client';
+import React from 'react';
 
 import Image from 'next/image';
 import { ShoppingBag, Search, Plus } from 'lucide-react';
@@ -12,6 +13,7 @@ interface PublicProductGridProps {
     onProductClick: (product: Product) => void;
     onAddToCart: (product: Product) => void;
     searchTerm: string;
+    bannerNode?: React.ReactNode;
 }
 
 export function PublicProductGrid({
@@ -20,7 +22,8 @@ export function PublicProductGrid({
     cart,
     onProductClick,
     onAddToCart,
-    searchTerm
+    searchTerm,
+    bannerNode
 }: PublicProductGridProps) {
     if (products.length === 0) {
         return (
@@ -41,11 +44,11 @@ export function PublicProductGrid({
     return (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {products.map((product, index) => (
-                <div
-                    key={product.id}
-                    onClick={() => onProductClick(product)}
-                    className="bg-[var(--bg)] rounded-xl p-3 border border-[var(--border)] hover:border-[var(--primary)]/50 hover:shadow-xl transition-all group flex flex-col relative cursor-pointer"
-                >
+                <React.Fragment key={product.id}>
+                    <div
+                        onClick={() => onProductClick(product)}
+                        className="bg-[var(--bg)] rounded-xl p-3 border border-[var(--border)] hover:border-[var(--primary)]/50 hover:shadow-xl transition-all group flex flex-col relative cursor-pointer"
+                    >
                     <div className="aspect-square bg-[var(--secondary)]/30 flex items-center justify-center relative overflow-hidden rounded-lg">
                         {product.images?.[0] ? (
                             <>
@@ -155,6 +158,14 @@ export function PublicProductGrid({
                         </div>
                     </div>
                 </div>
+                    
+                {/* Render intermediate banner after 4 products (1 row on desktop, 2 rows on mobile) */}
+                {index === 3 && bannerNode && (
+                        <div className="col-span-2 lg:col-span-4 w-full">
+                            {bannerNode}
+                        </div>
+                    )}
+                </React.Fragment>
             ))}
         </div>
     );

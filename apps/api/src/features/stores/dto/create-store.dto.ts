@@ -4,6 +4,8 @@ import {
   Matches,
   IsIn,
   IsBoolean,
+  IsArray,
+  IsInt,
 } from 'class-validator';
 
 export class CreateStoreDto {
@@ -96,4 +98,33 @@ export class CreateStoreDto {
   @IsString()
   @IsOptional()
   deliveryPrice?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isPublic?: boolean;
+
+  @IsString()
+  @IsOptional()
+  marketplaceCategory?: string;
+
+  @IsString()
+  @IsOptional()
+  city?: string;
+
+  @IsString()
+  @IsOptional()
+  country?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
+
+  @IsBoolean()
+  @IsOptional()
+  globalDiscountActive?: boolean;
+
+  @IsInt()
+  @IsOptional()
+  globalDiscountPercentage?: number;
 }

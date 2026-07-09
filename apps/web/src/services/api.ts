@@ -1,11 +1,11 @@
 
 import { createClient } from '@/lib/supabase';
-import { Product, Store, Order, Category } from '@/types/types';
+import { Product, Store, Order, Category, StoreBanner } from '@/types/types';
 
 const isServer = typeof window === 'undefined';
 const API_URL = isServer
-    ? (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001')
-    : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
+    ? (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001')
+    : (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001');
 
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
     const supabase = createClient();
@@ -56,6 +56,12 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
 export const api = {
     // Stores
     getStores: () => fetchWithAuth('/stores'),
+    getMarketplaceStores: (params?: Record<string, string>) => {
+        const query = new URLSearchParams(params || {}).toString();
+        return fetchWithAuth(`/stores/marketplace/public?${query}`);
+    },
+    getActiveMarketplaceCategories: (): Promise<string[]> => fetchWithAuth('/stores/marketplace/categories'),
+    incrementStoreView: (storeId: string) => fetchWithAuth(`/stores/${storeId}/view`, { method: 'POST' }),
     getStore: (id: string, options?: RequestInit) => fetchWithAuth(`/stores/${id}`, options),
     getStoreBySlug: (slug: string, options?: RequestInit) => fetchWithAuth(`/stores/${slug}`, options),
     updateStore: (id: string, data: Partial<Store>) => fetchWithAuth(`/stores/${id}`, {
@@ -91,10 +97,33 @@ export const api = {
     }),
     getAdminLogs: () => fetchWithAuth('/admin/logs'),
 
+    // Banners
+    getBanners: (storeId: string, onlyActive?: boolean) => {
+        const url = onlyActive 
+            ? `/banners?storeId=${storeId}&onlyActive=true` 
+            : `/banners/admin?storeId=${storeId}`;
+        return fetchWithAuth(url);
+    },
+    createBanner: (data: Partial<StoreBanner>) => fetchWithAuth('/banners', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }),
+    updateBanner: (id: string, data: Partial<StoreBanner>) => fetchWithAuth(`/banners/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+    }),
+    deleteBanner: (id: string) => fetchWithAuth(`/banners/${id}`, {
+        method: 'DELETE',
+    }),
+
     // Products
     getProducts: (storeId: string, params?: Record<string, string>, options?: RequestInit) => {
         const query = new URLSearchParams({ storeId, ...params }).toString();
         return fetchWithAuth(`/products?${query}`, options);
+    },
+    getMarketplaceProducts: (params?: Record<string, string>) => {
+        const query = new URLSearchParams(params || {}).toString();
+        return fetchWithAuth(`/products/marketplace/public?${query}`);
     },
     getProduct: (id: string, options?: RequestInit) => fetchWithAuth(`/products/${id}`, options),
     createProduct: (data: Partial<Product>) => fetchWithAuth('/products', {

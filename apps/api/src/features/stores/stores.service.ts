@@ -25,8 +25,8 @@ export class StoresService {
   constructor(
     private prisma: PrismaService,
     private mailing: MailingService,
-    private adminLogs: AdminLogsService
-  ) { }
+    private adminLogs: AdminLogsService,
+  ) {}
 
   async create(
     userId: string,
@@ -37,7 +37,9 @@ export class StoresService {
 
     // For more security, we check if the user is a super admin
     const adminEmails = process.env.SUPER_ADMIN_EMAILS
-      ? process.env.SUPER_ADMIN_EMAILS.split(',').map(e => e.trim().toLowerCase())
+      ? process.env.SUPER_ADMIN_EMAILS.split(',').map((e) =>
+          e.trim().toLowerCase(),
+        )
       : ['andrewlicona1@gmail.com'];
 
     const role = adminEmails.includes(userEmail.toLowerCase())
@@ -99,11 +101,11 @@ export class StoresService {
       this.prisma.store.findMany({
         include: {
           user: {
-            select: { email: true, name: true }
+            select: { email: true, name: true },
           },
           _count: {
-            select: { products: true, orders: true }
-          }
+            select: { products: true, orders: true },
+          },
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -116,8 +118,8 @@ export class StoresService {
       this.prisma.user.findMany({
         include: {
           _count: {
-            select: { stores: true }
-          }
+            select: { stores: true },
+          },
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -154,6 +156,79 @@ export class StoresService {
       .then((store) => this.decryptStore(store));
   }
 
+  async findForMarketplace(filters: any) {
+    const { category, city, q, featured } = filters;
+
+    const whereClause: any = {
+      isPublic: true,
+      products: {
+        some: { isActive: true },
+      },
+    };
+
+    if (category) whereClause.marketplaceCategory = category;
+    if (city) whereClause.city = city;
+    if (featured) whereClause.featured = true;
+    if (q) {
+      whereClause.name = { contains: q, mode: 'insensitive' };
+    }
+
+    const stores = await this.prisma.withRetry(() =>
+      this.prisma.store.findMany({
+        where: whereClause,
+        orderBy: [
+          { featured: 'desc' },
+          { orderCount: 'desc' },
+          { viewCount: 'desc' },
+        ],
+        include: {
+          _count: {
+            select: { products: true },
+          },
+        },
+      }),
+    );
+    return stores.map((store) => this.decryptStore(store));
+  }
+
+  async getActiveMarketplaceCategories() {
+    const stores = await this.prisma.withRetry(() =>
+      this.prisma.store.findMany({
+        where: {
+          isPublic: true,
+          marketplaceCategory: { not: null },
+          products: {
+            some: { isActive: true },
+          },
+        },
+        select: { marketplaceCategory: true },
+        distinct: ['marketplaceCategory'],
+      }),
+    );
+    return stores
+      .map((s) => s.marketplaceCategory)
+      .filter((c): c is string => !!c);
+  }
+
+  async incrementViewCount(id: string) {
+    try {
+      const store = await this.prisma.withRetry(() =>
+        this.prisma.store.update({
+          where: { id },
+          data: {
+            viewCount: {
+              increment: 1,
+            },
+          },
+        }),
+      );
+      return { success: true, viewCount: store.viewCount };
+    } catch (e) {
+      // Ignore if store doesn't exist
+      return { success: false };
+    }
+  }
+
   async update(id: string, userId: string, updateStoreDto: UpdateStoreDto) {
     if (updateStoreDto.slug) {
       await this.checkSlugAvailability(updateStoreDto.slug, id);
@@ -177,7 +252,14 @@ export class StoresService {
   }
 
   async getMetrics() {
-    const [totalStores, totalUsers, proStores, totalProducts, totalOrders, totalAmountAgg] = await Promise.all([
+    const [
+      totalStores,
+      totalUsers,
+      proStores,
+      totalProducts,
+      totalOrders,
+      totalAmountAgg,
+    ] = await Promise.all([
       this.prisma.store.count(),
       this.prisma.user.count(),
       this.prisma.store.count({ where: { planType: 'PRO' } }),
@@ -185,21 +267,22 @@ export class StoresService {
       this.prisma.order.count(),
       this.prisma.order.aggregate({
         _sum: {
-          total: true
-        }
-      })
+          total: true,
+        },
+      }),
     ]);
 
     const totalRevenue = (totalAmountAgg._sum.total as any)?.toNumber() || 0;
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-    const conversionRate = totalStores > 0 ? (proStores / totalStores) * 100 : 0;
+    const conversionRate =
+      totalStores > 0 ? (proStores / totalStores) * 100 : 0;
 
     // Get stores created in the last 7 days
     const last7Days = new Date();
     last7Days.setDate(last7Days.getDate() - 7);
 
     const newStoresLast7Days = await this.prisma.store.count({
-      where: { createdAt: { gte: last7Days } }
+      where: { createdAt: { gte: last7Days } },
     });
 
     return {
@@ -211,11 +294,15 @@ export class StoresService {
       totalRevenue,
       avgOrderValue,
       conversionRate: parseFloat(conversionRate.toFixed(1)),
-      newStoresLast7Days
+      newStoresLast7Days,
     };
   }
 
-  async updateAsAdmin(adminId: string, id: string, updateStoreDto: Partial<Store>) {
+  async updateAsAdmin(
+    adminId: string,
+    id: string,
+    updateStoreDto: Partial<Store>,
+  ) {
     if (updateStoreDto.slug) {
       await this.checkSlugAvailability(updateStoreDto.slug, id);
     }
@@ -229,17 +316,19 @@ export class StoresService {
       const store = await this.prisma.store.update({
         where: { id }, // No ownership check
         data,
-        include: { user: true }
+        include: { user: true },
       });
 
       // Notify Admin via Email
-      const planChange = updateStoreDto.planType ? `Cambió de plan a <b>${updateStoreDto.planType}</b>` : '';
+      const planChange = updateStoreDto.planType
+        ? `Cambió de plan a <b>${updateStoreDto.planType}</b>`
+        : '';
       await this.mailing.sendAdminNotification(
         'Tienda Actualizada por Administrador',
         `La tienda <b>${store.name}</b> (slug: ${store.slug}) ha sido actualizada. 
          <br>${planChange}
          <br>Dueño (Email): ${store.user.email}
-         <br>ID de Tienda: ${store.id}`
+         <br>ID de Tienda: ${store.id}`,
       );
 
       // Record Audit Log
@@ -251,8 +340,8 @@ export class StoresService {
         {
           storeName: store.name,
           slug: store.slug,
-          changes: updateStoreDto
-        }
+          changes: updateStoreDto,
+        },
       );
 
       return this.decryptStore(store);

@@ -22,7 +22,7 @@ interface ProductVariantInput {
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async create(userId: string, createProductDto: CreateProductDto) {
     // Verify store ownership
@@ -39,10 +39,12 @@ export class ProductsService {
     // Freemium Limit Check
     if (store.planType === 'FREE') {
       const productCount = await this.prisma.product.count({
-        where: { storeId: createProductDto.storeId }
+        where: { storeId: createProductDto.storeId },
       });
       if (productCount >= 10) {
-        throw new ForbiddenException('Límite de 10 productos alcanzado en el plan Gratis. Actualiza a Pro para productos ilimitados.');
+        throw new ForbiddenException(
+          'Límite de 10 productos alcanzado en el plan Gratis. Actualiza a Pro para productos ilimitados.',
+        );
       }
     }
 
@@ -125,10 +127,129 @@ export class ProductsService {
     );
   }
 
-  async findOne(id: string) {
-    return this.prisma.withRetry(() =>
-      this.prisma.product.findUnique({ where: { id } }),
+  async findForMarketplace(filters: any) {
+    const { category, q, ofertas } = filters;
+
+    const whereClause: any = {
+      isActive: true,
+      store: {
+        isPublic: true,
+      },
+      AND: [
+        {
+          OR: [
+            { trackInventory: false },
+            { inventory: { stock: { gt: 0 } } },
+            {
+              variants: {
+                some: {
+                  OR: [{ trackInventory: false }, { stock: { gt: 0 } }],
+                },
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    if (ofertas === 'true') {
+      (whereClause.AND as Prisma.ProductWhereInput[]).push({
+        OR: [
+          { discountPrice: { not: null } },
+          { 
+            store: {
+              globalDiscountActive: true,
+              globalDiscountPercentage: { gt: 0 }
+            }
+          }
+        ]
+      });
+    }
+
+    if (category && category !== 'ofertas') {
+      whereClause.store = {
+        isPublic: true,
+        marketplaceCategory: category,
+      };
+    }
+
+    if (q) {
+      const terms = q.split(/\s+/).filter(Boolean);
+      if (terms.length > 0) {
+        terms.forEach((term: string) => {
+          (whereClause.AND as Prisma.ProductWhereInput[]).push({
+            OR: [
+              { name: { contains: term, mode: 'insensitive' } },
+              { description: { contains: term, mode: 'insensitive' } },
+              { store: { name: { contains: term, mode: 'insensitive' } } },
+            ],
+          });
+        });
+      }
+    }
+
+    const products = await this.prisma.withRetry(() =>
+      this.prisma.product.findMany({
+        where: whereClause,
+        include: {
+          store: {
+            select: {
+              name: true,
+              slug: true,
+              logoUrl: true,
+              city: true,
+              marketplaceCategory: true,
+              globalDiscountActive: true,
+              globalDiscountPercentage: true,
+            },
+          },
+          inventory: true,
+          variants: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 1000,
+      } as any),
     );
+
+    return products.map(product => {
+      let discountPrice = product.discountPrice;
+      const store = (product as any).store;
+      if (store && store.globalDiscountActive && store.globalDiscountPercentage > 0 && product.price) {
+        const globalDiscounted = Number(product.price) * (1 - store.globalDiscountPercentage / 100);
+        if (!discountPrice || globalDiscounted < Number(discountPrice)) {
+          discountPrice = new Prisma.Decimal(globalDiscounted) as any;
+        }
+      }
+      return {
+        ...product,
+        discountPrice
+      };
+    });
+  }
+
+  async findOne(id: string) {
+    const product = await this.prisma.withRetry(() =>
+      this.prisma.product.findUnique({
+        where: { id },
+        include: { store: true, inventory: true, variants: true },
+      }),
+    );
+
+    if (!product) return null;
+
+    let discountPrice = product.discountPrice;
+    const store = (product as any).store;
+    if (store && store.globalDiscountActive && store.globalDiscountPercentage > 0 && product.price) {
+      const globalDiscounted = Number(product.price) * (1 - store.globalDiscountPercentage / 100);
+      if (!discountPrice || globalDiscounted < Number(discountPrice)) {
+        discountPrice = new Prisma.Decimal(globalDiscounted) as any;
+      }
+    }
+
+    return {
+      ...product,
+      discountPrice
+    };
   }
 
   async update(id: string, userId: string, updateProductDto: UpdateProductDto) {

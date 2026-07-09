@@ -4,6 +4,7 @@ import React from 'react';
 import { DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useProducts } from '@/hooks/useProducts';
+import { PriceInput } from '@/components/ui/PriceInput';
 
 interface GeneralInfoSectionProps {
     form: ReturnType<typeof useProducts>['state']['form'];
@@ -39,14 +40,13 @@ export function GeneralInfoSection({ form, actions, categories }: GeneralInfoSec
                         </button>
                     </div>
                     <div className="relative">
-                        <span className={cn("absolute left-4 top-1/2 -translate-y-1/2 font-bold transition-colors", form.hasPrice ? "text-[var(--text)]/40" : "text-[var(--text)]/20")}>$</span>
-                        <input
-                            type="number"
+                        <PriceInput
                             value={form.price}
-                            onChange={(e) => actions.setPrice(e.target.value)}
+                            onChange={(val) => actions.setPrice(val)}
                             disabled={!form.hasPrice}
+                            icon="$"
                             className={cn(
-                                "w-full pl-8 pr-5 py-3.5 rounded-2xl border-2 outline-none transition-all font-bold bg-[var(--bg)]",
+                                "bg-[var(--bg)]",
                                 form.hasPrice
                                     ? "border-[var(--border)] focus:border-[var(--primary)] text-[var(--text)]"
                                     : "border-[var(--border)]/50 text-[var(--text)]/30 cursor-not-allowed opacity-50 shadow-inner"
@@ -88,14 +88,13 @@ export function GeneralInfoSection({ form, actions, categories }: GeneralInfoSec
                     <DollarSign className="w-3.5 h-3.5" /> Precio Oferta (Opcional)
                 </label>
                 <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-green-500/40 font-bold">$</span>
-                    <input
-                        type="number"
+                    <PriceInput
                         value={form.discountPrice}
-                        onChange={(e) => actions.setDiscountPrice(e.target.value)}
+                        onChange={(val) => actions.setDiscountPrice(val)}
                         disabled={!form.hasPrice}
+                        icon="$"
                         className={cn(
-                            "w-full pl-8 pr-5 py-3.5 rounded-2xl border-2 outline-none transition-all font-bold bg-green-500/5 text-green-500",
+                            "bg-green-500/5 text-green-500",
                             form.hasPrice
                                 ? "border-green-500/20 focus:border-green-500"
                                 : "border-[var(--border)]/50 text-[var(--text)]/30 cursor-not-allowed opacity-50"

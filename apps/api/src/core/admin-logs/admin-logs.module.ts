@@ -4,8 +4,8 @@ import { AdminLogsController } from './admin-logs.controller';
 
 @Global()
 @Module({
-    providers: [AdminLogsService],
-    controllers: [AdminLogsController],
-    exports: [AdminLogsService],
+  providers: [AdminLogsService],
+  controllers: [AdminLogsController],
+  exports: [AdminLogsService],
 })
-export class AdminLogsModule { }
+export class AdminLogsModule {}

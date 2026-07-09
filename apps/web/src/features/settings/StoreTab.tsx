@@ -5,7 +5,7 @@ import Image from 'next/image';
 import {
     Store as StoreIcon, Camera, Globe, Palette, Instagram, Facebook as FacebookIcon,
     Smartphone, Loader2, Save, Twitter,
-    Youtube, Truck, DollarSign
+    Youtube, Truck, DollarSign, ShoppingBag, MapPin, Search, Trash2, Percent, Info
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -19,14 +19,33 @@ interface StoreTabProps {
     hook: ReturnType<typeof useStoreSettings>;
 }
 
+const marketplaceCategories = [
+    { value: 'Ropa', label: 'Ropa y Moda' },
+    { value: 'Comida', label: 'Comida y Restaurantes' },
+    { value: 'Tecnología', label: 'Tecnología y Gadgets' },
+    { value: 'Hogar', label: 'Hogar y Decoración' },
+    { value: 'Salud', label: 'Salud y Belleza' },
+    { value: 'Muebles', label: 'Muebles' },
+    { value: 'Perfumería', label: 'Perfumería' },
+    { value: 'Joyería', label: 'Joyería' },
+    { value: 'Personalizados', label: 'Personalizados' },
+    { value: 'Sublimación', label: 'Sublimación' },
+    { value: 'Deportes', label: 'Deportes' },
+    { value: 'Servicios', label: 'Servicios Profesionales' },
+    { value: 'Otros', label: 'Otros' },
+];
+
 export function StoreTab({ hook }: StoreTabProps) {
     const { state, actions } = hook;
-    const [innerTab, setInnerTab] = useState<'info' | 'social' | 'appearance'>('info');
+    const [innerTab, setInnerTab] = useState<'info' | 'marketplace' | 'social' | 'appearance' | 'promotions'>('info');
+    const [isCategoryOpen, setIsCategoryOpen] = useState(false);
 
     const subTabs = [
         { id: 'info' as const, label: 'TIENDA & BRANDING', icon: StoreIcon },
+        { id: 'marketplace' as const, label: 'MARKETPLACE', icon: ShoppingBag, color: 'blue-500' },
         { id: 'social' as const, label: 'REDES SOCIALES', icon: Globe, color: 'pink-600' },
-        { id: 'appearance' as const, label: 'APARIENCIA', icon: Palette, color: 'yellow-500' }
+        { id: 'appearance' as const, label: 'APARIENCIA', icon: Palette, color: 'yellow-500' },
+        { id: 'promotions' as const, label: 'PROMOCIONES', icon: Percent, color: 'red-500' }
     ];
 
     return (
@@ -153,12 +172,138 @@ export function StoreTab({ hook }: StoreTabProps) {
                                             <StoreIcon className="w-16 h-16 text-[var(--text)]/20" />
                                         )}
                                     </div>
-                                    <label className="flex items-center justify-center gap-2 w-full max-w-[200px] py-4 bg-[var(--surface)] border-2 border-[var(--border)] rounded-2xl font-bold text-sm text-[var(--text)]/60 cursor-pointer hover:bg-[var(--secondary)] active:scale-95 transition-all shadow-[var(--shadow)]">
-                                        <Camera className="w-4 h-4" />
-                                        {state.logoUrl ? 'Cambiar Logo' : 'Subir Logo'}
-                                        <input type="file" className="hidden" accept="image/*" onChange={actions.handleLogoUpload} disabled={state.uploading} />
-                                    </label>
+                                    <div className="flex items-center gap-2 w-full max-w-[200px]">
+                                        <label className="flex-1 flex items-center justify-center gap-2 py-4 bg-[var(--surface)] border-2 border-[var(--border)] rounded-2xl font-bold text-sm text-[var(--text)]/60 cursor-pointer hover:bg-[var(--secondary)] active:scale-95 transition-all shadow-[var(--shadow)]">
+                                            <Camera className="w-4 h-4" />
+                                            {state.logoUrl ? 'Cambiar' : 'Subir Logo'}
+                                            <input type="file" className="hidden" accept="image/*" onChange={actions.handleLogoUpload} disabled={state.uploading} />
+                                        </label>
+                                        {state.logoUrl && (
+                                            <button
+                                                type="button"
+                                                onClick={() => actions.setLogoUrl('')}
+                                                className="w-14 h-14 bg-red-500 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all flex-shrink-0"
+                                            >
+                                                <Trash2 className="w-5 h-5" />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MARKETPLACE TAB */}
+                    {innerTab === 'marketplace' && (
+                        <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+                            <h3 className="text-sm font-black uppercase tracking-widest text-blue-600">Marketplace Público</h3>
+                            <div className="grid grid-cols-1 gap-6">
+                                <div
+                                    onClick={() => actions.setIsPublic(!state.isPublic)}
+                                    className={cn("group cursor-pointer p-6 rounded-3xl border-2 transition-all relative overflow-hidden", state.isPublic ? "border-[var(--primary)] bg-[var(--primary)]/5 shadow-md shadow-[var(--primary)]/10" : "border-[var(--border)] bg-[var(--surface)]")}
+                                >
+                                    <div className="flex items-center justify-between relative z-10">
+                                        <div className="flex items-center gap-4">
+                                            <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center transition-all", state.isPublic ? "bg-[var(--primary)] text-white scale-110 shadow-lg" : "bg-[var(--secondary)] text-[var(--text)]/20")}>
+                                                <Globe className="w-6 h-6" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className={cn("font-black text-base transition-colors", state.isPublic ? "text-[var(--text)]" : "text-[var(--text)]/40")}>Visibilidad en Marketplace</p>
+                                                <p className="text-xs text-[var(--text)]/30 font-bold uppercase">Aparecer en el directorio público</p>
+                                            </div>
+                                        </div>
+                                        <div className={cn("w-14 h-8 rounded-full transition-all flex items-center px-1", state.isPublic ? "bg-[var(--primary)]" : "bg-[var(--border)]")}>
+                                            <div className={cn("w-6 h-6 rounded-full bg-white shadow-xl transition-all transform", state.isPublic ? "translate-x-6 scale-90" : "translate-x-0 scale-75")} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {state.isPublic && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 p-6 rounded-3xl bg-[var(--bg)] border-2 border-dashed border-[var(--border)] animate-in fade-in slide-in-from-top-4">
+                                        <div>
+                                            <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1 flex items-center gap-2">
+                                                Categoría principal
+                                            </label>
+                                            <div className="relative">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                                                    className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/10 outline-none transition-all font-bold text-[var(--text)] bg-[var(--surface)] text-left flex justify-between items-center"
+                                                >
+                                                    <span>
+                                                        {marketplaceCategories.find(c => c.value === state.marketplaceCategory)?.label || 'Selecciona una categoría'}
+                                                    </span>
+                                                    <svg className={`w-5 h-5 text-[var(--text)]/40 transition-transform ${isCategoryOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                                                </button>
+
+                                                {isCategoryOpen && (
+                                                    <>
+                                                        <div 
+                                                            className="fixed inset-0 z-40" 
+                                                            onClick={() => setIsCategoryOpen(false)}
+                                                        />
+                                                        <motion.div 
+                                                            initial={{ opacity: 0, y: -10 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            exit={{ opacity: 0, y: -10 }}
+                                                            className="absolute top-full left-0 right-0 mt-2 z-50 bg-[var(--surface)] border-2 border-[var(--border)] rounded-2xl shadow-xl shadow-[var(--primary)]/10 overflow-hidden"
+                                                        >
+                                                            <div className="max-h-60 overflow-y-auto hide-scrollbar py-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        actions.setMarketplaceCategory('');
+                                                                        setIsCategoryOpen(false);
+                                                                    }}
+                                                                    className={`w-full px-5 py-3 text-left hover:bg-[var(--primary)]/5 transition-colors font-bold ${!state.marketplaceCategory ? 'text-[var(--primary)] bg-[var(--primary)]/5' : 'text-[var(--text)]/70'}`}
+                                                                >
+                                                                    Quitar categoría
+                                                                </button>
+                                                                {marketplaceCategories.map((category) => (
+                                                                    <button
+                                                                        key={category.value}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            actions.setMarketplaceCategory(category.value);
+                                                                            setIsCategoryOpen(false);
+                                                                        }}
+                                                                        className={`w-full px-5 py-3 text-left hover:bg-[var(--primary)]/5 transition-colors font-bold ${state.marketplaceCategory === category.value ? 'text-[var(--primary)] bg-[var(--primary)]/5' : 'text-[var(--text)]'}`}
+                                                                    >
+                                                                        {category.label}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </motion.div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1 flex items-center gap-2">
+                                                <MapPin className="w-4 h-4" /> Ciudad
+                                            </label>
+                                            <input
+                                                type="text"
+                                                className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/10 outline-none transition-all font-bold text-[var(--text)] bg-[var(--surface)]"
+                                                placeholder="Ej: CDMX, Bogotá, Madrid..."
+                                                value={state.city}
+                                                onChange={(e) => actions.setCity(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1 flex items-center gap-2">
+                                                <Search className="w-4 h-4" /> Tags de Búsqueda (separados por coma)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/10 outline-none transition-all font-bold text-[var(--text)] bg-[var(--surface)]"
+                                                placeholder="Ej: vegano, zapatos, envíos rápidos..."
+                                                value={state.tags.join(', ')}
+                                                onChange={(e) => actions.setTags(e.target.value.split(',').map(t => t.trim()).filter(Boolean))}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -260,6 +405,65 @@ export function StoreTab({ hook }: StoreTabProps) {
                                         Esta es una vista previa de cómo se verá tu catálogo
                                     </p>
                                 </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* PROMOTIONS TAB */}
+                    {innerTab === 'promotions' && (
+                        <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+                            <h3 className="text-sm font-black uppercase tracking-widest text-red-500">Descuentos y Promociones</h3>
+                            <div className="bg-[var(--bg)] rounded-3xl p-6 border-2 border-[var(--border)] space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <h4 className="font-black text-sm text-[var(--text)]">Descuento Global en toda la Tienda</h4>
+                                        <p className="text-xs text-[var(--text)]/60">Aplica un porcentaje de descuento masivo a todos los productos del catálogo.</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => actions.setGlobalDiscountActive(!state.globalDiscountActive)}
+                                        className={cn(
+                                            "relative w-12 h-6.5 rounded-full border border-black/5 shadow-inner transition-colors",
+                                            state.globalDiscountActive ? "bg-[var(--primary)]" : "bg-[var(--border)]"
+                                        )}
+                                    >
+                                        <div className={cn("absolute top-0.75 left-0.75 w-5 h-5 bg-white rounded-full transition-transform shadow-md", state.globalDiscountActive ? "translate-x-5.5" : "translate-x-0")} />
+                                    </button>
+                                </div>
+
+                                {state.globalDiscountActive && (
+                                    <div className="space-y-4 pt-4 border-t border-[var(--border)] animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-[var(--text)]/60 block">Porcentaje de Descuento (%)</label>
+                                            <div className="relative max-w-[200px]">
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    max="99"
+                                                    required
+                                                    value={state.globalDiscountPercentage || ''}
+                                                    onChange={(e) => {
+                                                        const val = parseInt(e.target.value) || 0;
+                                                        actions.setGlobalDiscountPercentage(Math.min(99, Math.max(0, val)));
+                                                    }}
+                                                    className="w-full pl-5 pr-10 py-3.5 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] outline-none font-bold text-[var(--text)] bg-[var(--bg)]"
+                                                    placeholder="Ej: 15"
+                                                />
+                                                <span className="absolute right-4 top-1/2 -translate-y-1/2 font-black text-sm text-[var(--text)]/40">%</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10 text-blue-600 flex items-start gap-3">
+                                            <Info className="w-5 h-5 shrink-0 mt-0.5" />
+                                            <div className="space-y-1">
+                                                <h5 className="text-xs font-black uppercase tracking-wider">Regla de Aplicación ("El descuento mayor manda")</h5>
+                                                <p className="text-[10px] font-bold leading-relaxed text-blue-600/70">
+                                                    Si un producto ya cuenta con una oferta individual configurada (ej. 30% OFF) y el descuento global de la tienda es menor (ej. 15% OFF), se mantendrá el 30% OFF porque beneficia más al comprador. Si el descuento global es mayor, se aplicará el descuento global para garantizar la mejor oferta al cliente.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

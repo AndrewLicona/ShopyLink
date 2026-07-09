@@ -31,7 +31,7 @@ interface StoreWithDetails {
 
 @Injectable()
 export class OrdersService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async create(createOrderDto: CreateOrderDto) {
     const { storeId, items, customerName, customerPhone, customerAddress } =
@@ -100,7 +100,7 @@ export class OrdersService {
     const products = (await this.prisma.withRetry(() =>
       this.prisma.product.findMany({
         where: { id: { in: uniqueProductIds }, storeId },
-        include: { inventory: true, variants: true },
+        include: { inventory: true, variants: true, store: true },
       }),
     )) as ProductWithDetails[];
 
@@ -124,7 +124,16 @@ export class OrdersService {
       const product = products.find((p) => p.id === itemDto.productId);
       if (!product) continue;
 
-      let price = Number(product.discountPrice ?? product.price);
+      let discountPrice = product.discountPrice;
+      const store = (product as any).store;
+      if (store && store.globalDiscountActive && store.globalDiscountPercentage > 0 && product.price) {
+        const globalDiscounted = Number(product.price) * (1 - store.globalDiscountPercentage / 100);
+        if (!discountPrice || globalDiscounted < Number(discountPrice)) {
+          discountPrice = new Prisma.Decimal(globalDiscounted) as any;
+        }
+      }
+
+      let price = Number(discountPrice ?? product.price);
       let sku = product.sku;
       let variantName: string | undefined = undefined;
 
@@ -213,8 +222,7 @@ export class OrdersService {
       )
       .join('\n');
 
-    const frontendUrl =
-      process.env.FRONTEND_URL || 'https://shopylinks.shop';
+    const frontendUrl = process.env.FRONTEND_URL || 'https://shopylinks.shop';
     const dashboardLink = `${frontendUrl}/dashboard/orders?id=${order.id}`;
 
     const text =
