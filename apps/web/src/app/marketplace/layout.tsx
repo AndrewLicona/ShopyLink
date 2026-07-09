@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { Search, ShoppingBag, MapPin, Store } from 'lucide-react';
@@ -31,7 +32,9 @@ export default function MarketplaceLayout({
 
                         {/* Search Bar (Desktop) */}
                         <div className="hidden md:block flex-1 max-w-2xl">
-                            <MarketplaceSearchBar />
+                            <Suspense fallback={<div className="h-12 bg-gray-100 rounded-2xl animate-pulse" />}>
+                                <MarketplaceSearchBar />
+                            </Suspense>
                         </div>
 
                         {/* Actions */}
