@@ -4,9 +4,9 @@ import { BroadcastsController } from './broadcasts.controller';
 import { PrismaModule } from '../../core/prisma/prisma.module';
 
 @Module({
-    imports: [PrismaModule],
-    providers: [BroadcastsService],
-    controllers: [BroadcastsController],
-    exports: [BroadcastsService],
+  imports: [PrismaModule],
+  providers: [BroadcastsService],
+  controllers: [BroadcastsController],
+  exports: [BroadcastsService],
 })
-export class BroadcastsModule { }
+export class BroadcastsModule {}

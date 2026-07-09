@@ -81,6 +81,22 @@ model Store {
     deliveryEnabled       Boolean   @default(true)
     deliveryPrice         String?   @default("Gratis")
     planType              PlanType  @default(FREE)
+
+    // Marketplace metadata
+    isPublic            Boolean   @default(true)
+    marketplaceCategory String?
+    city                String?
+    country             String?   @default("MX")
+    tags                String[]
+    featured            Boolean   @default(false)
+    viewCount           Int       @default(0)
+    orderCount          Int       @default(0)
+    rating              Float?
+
+    // Global discounts
+    globalDiscountActive     Boolean  @default(false)
+    globalDiscountPercentage Int      @default(0)
+
     createdAt             DateTime  @default(now())
     updatedAt             DateTime  @updatedAt
 
@@ -90,6 +106,7 @@ model Store {
     categories Category[]
     products   Product[]
     orders     Order[]
+    banners    StoreBanner[]
 
     @@index([userId])
 }
@@ -226,3 +243,22 @@ model counters {
     @@index([categoria])
     @@index([tags])
 }
+
+model StoreBanner {
+    id          String    @id @default(uuid())
+    storeId     String
+    store       Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+    title       String?
+    subtitle    String?
+    imageUrl    String?
+    linkUrl     String?
+    position    String    @default("HERO") // HERO | TOP_BAR | FLOATING | BETWEEN_PRODUCTS
+    isActive    Boolean   @default(true)
+    startsAt    DateTime?
+    endsAt      DateTime?
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+
+    @@index([storeId])
+}
+

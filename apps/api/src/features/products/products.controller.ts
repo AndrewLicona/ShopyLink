@@ -19,7 +19,7 @@ import { RequestWithUser } from '../../core/auth/interfaces/user.interface';
 
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) { }
+  constructor(private readonly productsService: ProductsService) {}
 
   @UseGuards(JwtAuthGuard)
   @Post()
@@ -37,6 +37,11 @@ export class ProductsController {
     @Query('onlyActive') onlyActive?: string,
   ): Promise<any[]> {
     return this.productsService.findAllByStore(storeId, onlyActive === 'true');
+  }
+
+  @Get('marketplace/public')
+  findForMarketplace(@Query() query: any): Promise<any[]> {
+    return this.productsService.findForMarketplace(query);
   }
 
   @Get(':id')

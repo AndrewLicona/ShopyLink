@@ -17,6 +17,7 @@ import { ProxyCompatibilityMiddleware } from './core/common/proxy.middleware';
 import { MailingModule } from './core/mailing/mailing.module';
 import { AdminLogsModule } from './core/admin-logs/admin-logs.module';
 import { BroadcastsModule } from './features/broadcasts/broadcasts.module';
+import { BannersModule } from './features/banners/banners.module';
 import { APP_GUARD } from '@nestjs/core';
 import { ImpersonationGuard } from './core/auth/impersonation.guard';
 
@@ -32,6 +33,7 @@ import { ImpersonationGuard } from './core/auth/impersonation.guard';
     MailingModule,
     AdminLogsModule,
     BroadcastsModule,
+    BannersModule,
   ],
   controllers: [AppController],
   providers: [

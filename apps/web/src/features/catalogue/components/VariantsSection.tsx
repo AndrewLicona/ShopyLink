@@ -5,6 +5,7 @@ import { X, Plus, LayoutGrid, CheckCircle2, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useProducts } from '@/hooks/useProducts';
+import { PriceInput } from '@/components/ui/PriceInput';
 
 interface VariantsSectionProps {
     form: ReturnType<typeof useProducts>['state']['form'];
@@ -120,15 +121,14 @@ export function VariantsSection({ form, actions }: VariantsSectionProps) {
                                             </div>
                                             {!(v.useParentPrice || v.price === null) && (
                                                 <div className="relative">
-                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text)]/20 font-bold text-xs">$</span>
-                                                    <input
-                                                        type="number"
+                                                    <PriceInput
                                                         value={v.price ?? ''}
-                                                        onChange={(e) => {
+                                                        onChange={(val) => {
                                                             const next = [...form.variants];
-                                                            next[idx] = { ...next[idx], price: parseFloat(e.target.value) };
+                                                            next[idx] = { ...next[idx], price: val ? parseFloat(val) : 0 };
                                                             actions.setVariants(next);
                                                         }}
+                                                        icon="$"
                                                         className="w-full pl-7 pr-3 py-2 rounded-lg border-2 border-[var(--border)] focus:border-[var(--primary)] text-xs font-bold bg-[var(--bg)] outline-none"
                                                     />
                                                 </div>

@@ -5,11 +5,11 @@ import { SuperAdminGuard } from '../auth/super-admin.guard';
 
 @Controller('admin/logs')
 export class AdminLogsController {
-    constructor(private readonly adminLogsService: AdminLogsService) { }
+  constructor(private readonly adminLogsService: AdminLogsService) {}
 
-    @Get()
-    @UseGuards(JwtAuthGuard, SuperAdminGuard)
-    async getLogs(@Query('limit') limit?: string) {
-        return this.adminLogsService.getLogs(limit ? parseInt(limit) : 50);
-    }
+  @Get()
+  @UseGuards(JwtAuthGuard, SuperAdminGuard)
+  async getLogs(@Query('limit') limit?: string) {
+    return this.adminLogsService.getLogs(limit ? parseInt(limit) : 50);
+  }
 }

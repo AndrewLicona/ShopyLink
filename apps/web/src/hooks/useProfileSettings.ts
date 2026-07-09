@@ -92,6 +92,17 @@ export function useProfileSettings() {
         }
     };
 
+    const handleRemoveAvatar = async () => {
+        setAvatarUrl('');
+        try {
+            const supabase = createClient();
+            await supabase.auth.updateUser({ data: { avatar_url: '' } });
+            setSuccess('Avatar eliminado correctamente.');
+        } catch (err: unknown) {
+            setError((err as Error)?.message || 'Error al eliminar el avatar.');
+        }
+    };
+
     const handleChangePassword = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
         if (newPassword !== confirmPassword) {
@@ -137,6 +148,7 @@ export function useProfileSettings() {
             setShowConfirmPassword,
             handleUpdateProfile,
             handleAvatarUpload,
+            handleRemoveAvatar,
             handleChangePassword,
             setError,
             setSuccess

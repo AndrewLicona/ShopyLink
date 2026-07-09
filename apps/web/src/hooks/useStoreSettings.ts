@@ -40,6 +40,16 @@ export function useStoreSettings() {
     const [mode, setMode] = useState('light');
     const [applyToDashboard, setApplyToDashboard] = useState(false);
 
+    // Marketplace
+    const [isPublic, setIsPublic] = useState(true);
+    const [marketplaceCategory, setMarketplaceCategory] = useState('');
+    const [city, setCity] = useState('');
+    const [tags, setTags] = useState<string[]>([]);
+    
+    // Global discounts
+    const [globalDiscountActive, setGlobalDiscountActive] = useState(false);
+    const [globalDiscountPercentage, setGlobalDiscountPercentage] = useState(0);
+
     // Deletion
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleteConfirmationName, setDeleteConfirmationName] = useState('');
@@ -65,6 +75,12 @@ export function useStoreSettings() {
             setApplyToDashboard(activeStore.applyThemeToDashboard || false);
             setDeliveryEnabled(activeStore.deliveryEnabled ?? true);
             setDeliveryPrice(activeStore.deliveryPrice || 'Gratis');
+            setIsPublic(activeStore.isPublic ?? true);
+            setMarketplaceCategory(activeStore.marketplaceCategory || '');
+            setCity(activeStore.city || '');
+            setTags(activeStore.tags || []);
+            setGlobalDiscountActive(activeStore.globalDiscountActive ?? false);
+            setGlobalDiscountPercentage(activeStore.globalDiscountPercentage ?? 0);
             setLoading(false);
         }
     }, [activeStore]);
@@ -93,7 +109,13 @@ export function useStoreSettings() {
                 mode,
                 applyThemeToDashboard: applyToDashboard,
                 deliveryEnabled,
-                deliveryPrice
+                deliveryPrice,
+                isPublic,
+                marketplaceCategory,
+                city,
+                tags,
+                globalDiscountActive,
+                globalDiscountPercentage
             });
             await refreshStores();
             setSuccess('Tienda actualizada con éxito.');
@@ -159,8 +181,10 @@ export function useStoreSettings() {
             instagramUrl, facebookUrl, tiktokUrl, twitterUrl, pinterestUrl, youtubeUrl,
             deliveryEnabled, deliveryPrice,
             theme, mode, applyToDashboard,
+            isPublic, marketplaceCategory, city, tags,
             isDeleteModalOpen, deleteConfirmationName, deleting,
-            suggestedSlug
+            suggestedSlug,
+            globalDiscountActive, globalDiscountPercentage
         },
         actions: {
             setName: handleNameChange,
@@ -179,6 +203,12 @@ export function useStoreSettings() {
             setTheme,
             setMode,
             setApplyToDashboard,
+            setIsPublic,
+            setMarketplaceCategory,
+            setCity,
+            setTags,
+            setGlobalDiscountActive,
+            setGlobalDiscountPercentage,
             setIsDeleteModalOpen,
             setDeleteConfirmationName,
             setSuggestedSlug,

@@ -11,7 +11,8 @@ import {
   NotFoundException,
   UsePipes,
   ValidationPipe,
-  Req
+  Req,
+  Query,
 } from '@nestjs/common';
 import { Request as ExpressRequest } from 'express';
 import * as jwt from 'jsonwebtoken';
@@ -29,8 +30,8 @@ export class StoresController {
   constructor(
     private readonly storesService: StoresService,
     private readonly configService: ConfigService,
-    private readonly adminLogs: AdminLogsService
-  ) { }
+    private readonly adminLogs: AdminLogsService,
+  ) {}
 
   @UseGuards(JwtAuthGuard, SuperAdminGuard)
   @Get('admin/all')
@@ -52,7 +53,11 @@ export class StoresController {
 
   @Patch('admin/:id')
   @UseGuards(JwtAuthGuard, SuperAdminGuard)
-  async updateAsAdmin(@Param('id') id: string, @Body() updateStoreDto: any, @Req() req: any) {
+  async updateAsAdmin(
+    @Param('id') id: string,
+    @Body() updateStoreDto: any,
+    @Req() req: any,
+  ) {
     const adminId = req.user.sub;
     return this.storesService.updateAsAdmin(adminId, id, updateStoreDto);
   }
@@ -69,7 +74,8 @@ export class StoresController {
       throw new NotFoundException('Usuario a suplantar no encontrado');
     }
 
-    const secret = this.configService.get<string>('JWT_SECRET') || 'fallback_secret';
+    const secret =
+      this.configService.get<string>('JWT_SECRET') || 'fallback_secret';
 
     const payload = {
       sub: userId,
@@ -77,7 +83,7 @@ export class StoresController {
       impersonatorId: adminId,
       role: 'USER',
       iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + (60 * 60), // 1 hour
+      exp: Math.floor(Date.now() / 1000) + 60 * 60, // 1 hour
     };
 
     console.log('[Impersonate] Generating token for payload:', payload);
@@ -85,13 +91,9 @@ export class StoresController {
     const impersonationToken = jwt.sign(payload, secret);
 
     // Record Audit Log
-    await this.adminLogs.log(
-      adminId,
-      'IMPERSONATE_USER',
-      'USER',
-      userId,
-      { timestamp: new Date().toISOString() }
-    );
+    await this.adminLogs.log(adminId, 'IMPERSONATE_USER', 'USER', userId, {
+      timestamp: new Date().toISOString(),
+    });
 
     return {
       message: 'Impersonation session created',
@@ -130,6 +132,21 @@ export class StoresController {
   @Get('favicon.ico')
   handleFavicon(): void {
     return; // Returns 200 by default, or we can use @HttpCode(204)
+  }
+
+  @Get('marketplace/public')
+  findForMarketplace(@Query() query: any): Promise<any[]> {
+    return this.storesService.findForMarketplace(query);
+  }
+
+  @Get('marketplace/categories')
+  getActiveMarketplaceCategories(): Promise<string[]> {
+    return this.storesService.getActiveMarketplaceCategories();
+  }
+
+  @Post(':id/view')
+  incrementViewCount(@Param('id') id: string): Promise<any> {
+    return this.storesService.incrementViewCount(id);
   }
 
   @Get(':slug')

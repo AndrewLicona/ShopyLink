@@ -14,7 +14,8 @@ import {
     Plus,
     X as CloseIcon,
     ShieldAlert,
-    Megaphone
+    Megaphone,
+    Layers
 } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
@@ -82,12 +83,13 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         { icon: LayoutDashboard, label: 'Panel', href: '/dashboard' },
         { icon: Package, label: 'Productos', href: '/dashboard/products' },
         { icon: ShoppingCart, label: 'Pedidos', href: '/dashboard/orders' },
+        { icon: Layers, label: 'Banners', href: '/dashboard/banners' },
         { icon: Settings, label: 'Ajustes', href: '/dashboard/settings' },
         { icon: Megaphone, label: 'Comunicados', href: '/dashboard/broadcasts' },
     ];
 
-    // On mobile, hide the Comunicados item from the bottom nav
-    const mobileMenuItems = desktopMenuItems.filter(item => item.href !== '/dashboard/broadcasts');
+    // On mobile, hide the Comunicados and Banners item from the bottom nav
+    const mobileMenuItems = desktopMenuItems.filter(item => item.href !== '/dashboard/broadcasts' && item.href !== '/dashboard/banners');
 
     if (storeLoading) return <DashboardSkeleton />;
 

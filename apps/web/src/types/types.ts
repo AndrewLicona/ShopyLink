@@ -19,6 +19,18 @@ export interface Store {
     deliveryEnabled: boolean;
     deliveryPrice?: string | null;
     planType?: 'FREE' | 'PRO';
+    
+    // Marketplace metadata
+    isPublic?: boolean;
+    marketplaceCategory?: string | null;
+    city?: string | null;
+    country?: string | null;
+    tags?: string[];
+    featured?: boolean;
+    viewCount?: number;
+    orderCount?: number;
+    globalDiscountActive?: boolean;
+    globalDiscountPercentage?: number;
     userId: string;
 }
 
@@ -63,6 +75,7 @@ export interface Product {
     trackInventory: boolean;
     inventory?: Inventory | null;
     variants?: ProductVariant[];
+    store?: Store;
 }
 
 export interface OrderItem {
@@ -85,4 +98,20 @@ export interface Order {
     updatedAt: string;
     items: OrderItem[];
 }
+
+export interface StoreBanner {
+    id: string;
+    storeId: string;
+    title?: string | null;
+    subtitle?: string | null;
+    imageUrl?: string | null;
+    linkUrl?: string | null;
+    position: 'HERO' | 'TOP_BAR' | 'FLOATING' | 'BETWEEN_PRODUCTS';
+    isActive: boolean;
+    startsAt?: string | null;
+    endsAt?: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
 

@@ -4,7 +4,8 @@ import { ShoppingBag } from 'lucide-react';
 import { StoreFooter } from '@/features/store/StoreFooter';
 import { ProductModal } from '@/features/product/ProductModal';
 import { useStoreView } from '@/hooks/useStoreView';
-import type { Store, Product, Category } from '@/types/types';
+import type { Store, Product, Category, StoreBanner } from '@/types/types';
+import { useMemo } from 'react';
 
 // Modular Components
 import { StoreHeader } from '@/features/store/public/StoreHeader';
@@ -14,25 +15,47 @@ import { CartDrawer } from '@/features/store/public/CartDrawer';
 import { OrderModals } from '@/features/store/public/OrderModals';
 import { DiscountsSection } from '@/features/store/public/DiscountsSection';
 import { AdBanner } from '@/components/molecules/AdBanner';
+import { PublicBanners } from '@/features/store/public/PublicBanners';
 
 interface StoreViewProps {
     store: Store;
     products: Product[];
     categories: Category[];
+    banners: StoreBanner[];
 }
 
-export function StoreView({ store, products, categories }: StoreViewProps) {
+export function StoreView({ store, products: rawProducts, categories, banners = [] }: StoreViewProps) {
+    const products = useMemo(() => {
+        return rawProducts.map(product => {
+            let discountPrice = product.discountPrice;
+            if (store.globalDiscountActive && store.globalDiscountPercentage && store.globalDiscountPercentage > 0 && product.price) {
+                const globalDiscounted = Number(product.price) * (1 - store.globalDiscountPercentage / 100);
+                if (!discountPrice || globalDiscounted < Number(discountPrice)) {
+                    discountPrice = globalDiscounted;
+                }
+            }
+            return {
+                ...product,
+                discountPrice: discountPrice ? Number(discountPrice) : null
+            };
+        });
+    }, [rawProducts, store.globalDiscountActive, store.globalDiscountPercentage]);
+
     const { state, actions } = useStoreView(store, products);
 
     return (
         <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col pb-20">
+            <PublicBanners banners={banners} position="TOP_BAR" store={store} />
+            
             <StoreHeader
                 store={store}
                 cartCount={state.cartCount}
                 onOpenCart={() => actions.setIsCartOpen(true)}
             />
 
-            <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+            <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+                <PublicBanners banners={banners} position="HERO" store={store} />
+                
                 <CategoryBar
                     categories={categories}
                     activeCategory={state.categoryFilter}
@@ -60,6 +83,7 @@ export function StoreView({ store, products, categories }: StoreViewProps) {
                     onProductClick={actions.setSelectedProduct}
                     onAddToCart={actions.addToCart}
                     searchTerm={state.searchTerm}
+                    bannerNode={<PublicBanners banners={banners} position="BETWEEN_PRODUCTS" store={store} />}
                 />
 
                 <AdBanner planType={store.planType} />

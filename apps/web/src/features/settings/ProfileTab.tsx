@@ -1,6 +1,6 @@
 'use client';
 
-import { Camera, Loader2, Save, User as UserIcon, Lock, Eye, EyeOff } from 'lucide-react';
+import { Camera, Loader2, Save, User as UserIcon, Lock, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -35,6 +35,16 @@ export function ProfileTab({ hook }: ProfileTabProps) {
                                     <Camera className="w-6 h-6" />
                                     <input type="file" className="hidden" accept="image/*" onChange={actions.handleAvatarUpload} disabled={state.uploading} />
                                 </label>
+                                {state.avatarUrl && (
+                                    <button
+                                        type="button"
+                                        onClick={actions.handleRemoveAvatar}
+                                        disabled={state.uploading}
+                                        className="absolute -bottom-2 -left-2 w-12 h-12 bg-red-500 text-white rounded-2xl shadow-[var(--shadow-strong)] flex items-center justify-center cursor-pointer hover:scale-110 active:scale-90 transition-all border-4 border-[var(--surface)]"
+                                    >
+                                        <Trash2 className="w-5 h-5" />
+                                    </button>
+                                )}
                             </div>
                             <div className="text-center space-y-1">
                                 <p className="font-black text-xl text-[var(--text)]">@{state.username}</p>

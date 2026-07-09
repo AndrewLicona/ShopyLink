@@ -68,10 +68,11 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
             next: { revalidate: 60 }
         });
 
-        // Fetch products and categories - Server side
-        const [productsData, categoriesData] = await Promise.all([
+        // Fetch products, categories and banners - Server side
+        const [productsData, categoriesData, bannersData] = await Promise.all([
             api.getProducts(storeData.id, { onlyActive: 'true' }, { next: { revalidate: 60 } }),
-            api.getCategories(storeData.id)
+            api.getCategories(storeData.id),
+            api.getBanners(storeData.id, true).catch(() => [])
         ]);
 
         const activeProducts = productsData.filter((p: Product) => {
@@ -109,6 +110,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
                 store={storeData}
                 products={activeProducts}
                 categories={visibleCategories}
+                banners={bannersData}
             />
         );
 
