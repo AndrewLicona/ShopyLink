@@ -269,18 +269,37 @@ export default function BannersPage() {
                                             )}
                                         </label>
 
-                                        {/* Recomendación de Banner */}
-                                        <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10 text-blue-600 space-y-1 mt-3">
+                                        <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10 text-blue-600 space-y-2 mt-3">
                                             <div className="flex items-center gap-2">
                                                 <Info className="w-4 h-4 shrink-0" />
                                                 <span className="text-xs font-black uppercase tracking-wider">Recomendación para {state.form.position}</span>
                                             </div>
-                                            <p className="text-[10px] font-bold leading-relaxed text-blue-600/70">
-                                                {state.form.position === 'HERO' 
-                                                    ? 'Para que el banner Hero se vea perfecto en computadoras y móviles, usa imágenes panorámicas rectangulares (ej. 1200x525px o 1920x840px, relación 16:7 o 21:7) de menos de 500KB.'
-                                                    : 'Para que el banner intercalado resalte correctamente dentro del catálogo, te recomendamos usar un banner panorámico muy ancho (ej. 1200x300px, relación 4:1) de menos de 300KB.'
-                                                }
-                                            </p>
+                                            {state.form.position === 'HERO' ? (
+                                                <div className="space-y-1 text-blue-600/70">
+                                                    <p className="text-[10px] font-bold leading-relaxed">
+                                                        El banner Hero ocupa todo el ancho de la tienda. Para que se vea nítido en PC y móvil usa:
+                                                    </p>
+                                                    <ul className="text-[10px] font-bold space-y-0.5 pl-3 list-disc">
+                                                        <li><span className="text-blue-600">Tamaño ideal:</span> 1920 × 800 px  o  1200 × 500 px</li>
+                                                        <li><span className="text-blue-600">Relación de aspecto:</span> ~16:6.5 (panorámico)</li>
+                                                        <li><span className="text-blue-600">Peso máximo:</span> 500 KB — usa WebP o JPG comprimido</li>
+                                                    </ul>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-1 text-blue-600/70">
+                                                    <p className="text-[10px] font-bold leading-relaxed">
+                                                        El banner intercalado aparece entre las secciones de productos. Para que se vea bien en PC y móvil usa:
+                                                    </p>
+                                                    <ul className="text-[10px] font-bold space-y-0.5 pl-3 list-disc">
+                                                        <li><span className="text-blue-600">Tamaño ideal:</span> 1920 × 600 px  o  1200 × 375 px</li>
+                                                        <li><span className="text-blue-600">Relación de aspecto:</span> ~16:5 (muy panorámico)</li>
+                                                        <li><span className="text-blue-600">Peso máximo:</span> 300 KB — usa WebP o JPG comprimido</li>
+                                                    </ul>
+                                                    <p className="text-[10px] font-bold text-blue-500/60 italic mt-1">
+                                                        💡 El texto del título se superpone en la parte izquierda de la imagen.
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 )}

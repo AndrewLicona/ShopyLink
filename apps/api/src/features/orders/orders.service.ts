@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.module';
+import { RedisService } from '../../core/cache/redis.service';
 import { OrderStatus } from '@repo/database';
 import { createHash } from 'crypto';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -31,7 +32,10 @@ interface StoreWithDetails {
 
 @Injectable()
 export class OrdersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cache: RedisService,
+  ) {}
 
   async create(createOrderDto: CreateOrderDto) {
     const { storeId, items, customerName, customerPhone, customerAddress } =
@@ -291,7 +295,7 @@ export class OrdersService {
 
     if (oldStatus === newStatus) return order;
 
-    return this.prisma.$transaction(async (tx: PrismaService) => {
+    const updatedOrder = await this.prisma.$transaction(async (tx: PrismaService) => {
       // 1. DEDUCT STOCK if moving to COMPLETED
       if (
         newStatus === OrderStatus.COMPLETED &&
@@ -407,5 +411,21 @@ export class OrdersService {
         },
       });
     });
+
+    await this.invalidateStoreCaches(order.storeId);
+    return updatedOrder;
+  }
+
+  private async invalidateStoreCaches(storeId: string) {
+    const store = await this.prisma.store.findUnique({
+      where: { id: storeId },
+      select: { slug: true },
+    });
+
+    if (store?.slug) {
+      await this.cache.del(`publicStore:${store.slug}`, `publicStorePage:${store.slug}`);
+    }
+
+    await this.cache.incr('cache:marketplace:version');
   }
 }

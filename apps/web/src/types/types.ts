@@ -4,6 +4,7 @@ export interface Store {
     slug: string;
     autoGenerateSlug?: boolean;
     logoUrl?: string | null;
+    bannerUrl?: string | null;
     primaryColor?: string | null;
     description?: string | null;
     whatsappNumber?: string | null;

@@ -15,6 +15,8 @@ import {
 import { PrismaService } from '../../core/prisma/prisma.module';
 import { MailingService } from '../../core/mailing/mailing.service';
 import { AdminLogsService } from '../../core/admin-logs/admin-logs.service';
+import { RedisService } from '../../core/cache/redis.service';
+import { hashCacheKey } from '../../core/cache/cache.util';
 import { CreateStoreDto } from './dto/create-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
 import { encrypt, decrypt } from '../../core/common/encryption.util';
@@ -26,6 +28,7 @@ export class StoresService {
     private prisma: PrismaService,
     private mailing: MailingService,
     private adminLogs: AdminLogsService,
+    private cache: RedisService,
   ) {}
 
   async create(
@@ -72,6 +75,9 @@ export class StoresService {
         data,
       }),
     );
+
+    await this.invalidateStoreCachesBySlug(store.slug);
+    await this.bumpMarketplaceVersion();
 
     return this.decryptStore(store);
   }
@@ -144,70 +150,82 @@ export class StoresService {
   }
 
   async findOneBySlug(slug: string) {
-    return this.prisma
-      .withRetry(() =>
+    const cacheKey = this.publicStoreKey(slug);
+
+    return this.cache.getOrSetJson(cacheKey, 300, async () => {
+      const store = await this.prisma.withRetry(() =>
         this.prisma.store.findUnique({
           where: { slug },
           include: {
             categories: true,
           },
         }),
-      )
-      .then((store) => this.decryptStore(store));
+      );
+
+      return this.decryptStore(store);
+    });
   }
 
   async findForMarketplace(filters: any) {
     const { category, city, q, featured } = filters;
+    const cacheKey = await this.marketplaceStoresKey(filters);
 
-    const whereClause: any = {
-      isPublic: true,
-      products: {
-        some: { isActive: true },
-      },
-    };
-
-    if (category) whereClause.marketplaceCategory = category;
-    if (city) whereClause.city = city;
-    if (featured) whereClause.featured = true;
-    if (q) {
-      whereClause.name = { contains: q, mode: 'insensitive' };
-    }
-
-    const stores = await this.prisma.withRetry(() =>
-      this.prisma.store.findMany({
-        where: whereClause,
-        orderBy: [
-          { featured: 'desc' },
-          { orderCount: 'desc' },
-          { viewCount: 'desc' },
-        ],
-        include: {
-          _count: {
-            select: { products: true },
-          },
+    return this.cache.getOrSetJson(cacheKey, 180, async () => {
+      const whereClause: any = {
+        isPublic: true,
+        products: {
+          some: { isActive: true },
         },
-      }),
-    );
-    return stores.map((store) => this.decryptStore(store));
+      };
+
+      if (category) whereClause.marketplaceCategory = category;
+      if (city) whereClause.city = city;
+      if (featured) whereClause.featured = true;
+      if (q) {
+        whereClause.name = { contains: q, mode: 'insensitive' };
+      }
+
+      const stores = await this.prisma.withRetry(() =>
+        this.prisma.store.findMany({
+          where: whereClause,
+          orderBy: [
+            { featured: 'desc' },
+            { orderCount: 'desc' },
+            { viewCount: 'desc' },
+          ],
+          include: {
+            _count: {
+              select: { products: true },
+            },
+          },
+        }),
+      );
+
+      return stores.map((store) => this.decryptStore(store));
+    });
   }
 
   async getActiveMarketplaceCategories() {
-    const stores = await this.prisma.withRetry(() =>
-      this.prisma.store.findMany({
-        where: {
-          isPublic: true,
-          marketplaceCategory: { not: null },
-          products: {
-            some: { isActive: true },
+    const cacheKey = await this.marketplaceCategoriesKey();
+
+    return this.cache.getOrSetJson(cacheKey, 600, async () => {
+      const stores = await this.prisma.withRetry(() =>
+        this.prisma.store.findMany({
+          where: {
+            isPublic: true,
+            marketplaceCategory: { not: null },
+            products: {
+              some: { isActive: true },
+            },
           },
-        },
-        select: { marketplaceCategory: true },
-        distinct: ['marketplaceCategory'],
-      }),
-    );
-    return stores
-      .map((s) => s.marketplaceCategory)
-      .filter((c): c is string => !!c);
+          select: { marketplaceCategory: true },
+          distinct: ['marketplaceCategory'],
+        }),
+      );
+      return stores
+        .map((s) => s.marketplaceCategory)
+        .filter((c): c is string => !!c);
+    });
   }
 
   async incrementViewCount(id: string) {
@@ -230,6 +248,8 @@ export class StoresService {
   }
 
   async update(id: string, userId: string, updateStoreDto: UpdateStoreDto) {
+    const previousStore = await this.ensureStoreOwnership(id, userId);
+
     if (updateStoreDto.slug) {
       await this.checkSlugAvailability(updateStoreDto.slug, id);
     }
@@ -241,9 +261,12 @@ export class StoresService {
 
     try {
       const store = await this.prisma.store.update({
-        where: { id, userId }, // Ensure ownership
+        where: { id },
         data,
       });
+      await this.invalidateStoreCachesBySlug(previousStore.slug);
+      await this.invalidateStoreCachesBySlug(store.slug);
+      await this.bumpMarketplaceVersion();
       return this.decryptStore(store);
     } catch (error) {
       console.error('Prisma Update Error:', error);
@@ -303,6 +326,10 @@ export class StoresService {
     id: string,
     updateStoreDto: Partial<Store>,
   ) {
+    const previousStore = await this.prisma.store.findUnique({
+      where: { id },
+    });
+
     if (updateStoreDto.slug) {
       await this.checkSlugAvailability(updateStoreDto.slug, id);
     }
@@ -344,6 +371,12 @@ export class StoresService {
         },
       );
 
+      if (previousStore?.slug) {
+        await this.invalidateStoreCachesBySlug(previousStore.slug);
+      }
+      await this.invalidateStoreCachesBySlug(store.slug);
+      await this.bumpMarketplaceVersion();
+
       return this.decryptStore(store);
     } catch (error) {
       console.error('Prisma Admin Update Error:', error);
@@ -352,10 +385,16 @@ export class StoresService {
   }
 
   async remove(id: string, userId: string) {
-    // Delete store - cascading deletes in DB should handle relations
-    return this.prisma.store.delete({
-      where: { id, userId },
+    const store = await this.ensureStoreOwnership(id, userId);
+
+    await this.prisma.store.delete({
+      where: { id },
     });
+
+    await this.invalidateStoreCachesBySlug(store.slug);
+    await this.bumpMarketplaceVersion();
+
+    return store;
   }
 
   private async checkSlugAvailability(slug: string, excludeId?: string) {
@@ -384,5 +423,118 @@ export class StoresService {
       throw new ForbiddenException('You do not own this store');
     }
     return store;
+  }
+
+  async getPublicStorePage(slug: string) {
+    const cacheKey = this.publicStorePageKey(slug);
+
+    return this.cache.getOrSetJson(cacheKey, 120, async () => {
+      const store = await this.prisma.withRetry(() =>
+        this.prisma.store.findUnique({
+          where: { slug },
+          include: {
+            categories: true,
+          },
+        }),
+      );
+
+      if (!store) {
+        return null;
+      }
+
+      const [products, banners] = await Promise.all([
+        this.prisma.withRetry(() =>
+          this.prisma.product.findMany({
+            where: {
+              storeId: store.id,
+              isActive: true,
+            },
+            include: {
+              inventory: true,
+              variants: true,
+            },
+            orderBy: { createdAt: 'desc' },
+          }),
+        ),
+        this.prisma.withRetry(() =>
+          this.prisma.storeBanner.findMany({
+            where: {
+              storeId: store.id,
+              isActive: true,
+            },
+            orderBy: { createdAt: 'desc' },
+          }),
+        ),
+      ]);
+
+      const activeProducts = this.filterVisibleProducts(products as any);
+      const activeCategoryIds = new Set(activeProducts.map((p: any) => p.categoryId));
+      const visibleCategories = store.categories.filter((c) =>
+        activeCategoryIds.has(c.id),
+      );
+
+      return {
+        store: this.decryptStore(store),
+        products: activeProducts,
+        categories: visibleCategories,
+        banners,
+      };
+    });
+  }
+
+  private filterVisibleProducts(products: any[]) {
+    return products.filter((p) => {
+      if (!p.isActive) return false;
+      if (p.trackInventory === false) return true;
+
+      if (p.variants && p.variants.length > 0) {
+        const isBaseAvailable = (p.inventory?.stock ?? 0) > 0;
+        const hasAvailableVariant = p.variants.some((v: any) => {
+          if (v.trackInventory === false) return true;
+
+          const stock = v.useParentStock ? (p.inventory?.stock ?? 0) : (v.stock ?? 0);
+          return stock > 0;
+        });
+
+        return isBaseAvailable || hasAvailableVariant;
+      }
+
+      return (p.inventory?.stock ?? 0) > 0;
+    });
+  }
+
+  private publicStoreKey(slug: string) {
+    return `publicStore:${slug}`;
+  }
+
+  private publicStorePageKey(slug: string) {
+    return `publicStorePage:${slug}`;
+  }
+
+  private marketplaceVersionKey() {
+    return 'cache:marketplace:version';
+  }
+
+  private async marketplaceVersion() {
+    const version = await this.cache.get<string>(this.marketplaceVersionKey());
+    return version || '1';
+  }
+
+  private async bumpMarketplaceVersion() {
+    await this.cache.incr(this.marketplaceVersionKey());
+  }
+
+  private async invalidateStoreCachesBySlug(slug: string) {
+    await this.cache.del(this.publicStoreKey(slug), this.publicStorePageKey(slug));
+  }
+
+  private async marketplaceStoresKey(filters: Record<string, unknown>) {
+    const version = await this.marketplaceVersion();
+    return `marketplace:stores:v${version}:${hashCacheKey('stores', filters)}`;
+  }
+
+  private async marketplaceCategoriesKey() {
+    const version = await this.marketplaceVersion();
+    return `marketplace:categories:v${version}`;
   }
 }

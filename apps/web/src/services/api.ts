@@ -64,6 +64,7 @@ export const api = {
     incrementStoreView: (storeId: string) => fetchWithAuth(`/stores/${storeId}/view`, { method: 'POST' }),
     getStore: (id: string, options?: RequestInit) => fetchWithAuth(`/stores/${id}`, options),
     getStoreBySlug: (slug: string, options?: RequestInit) => fetchWithAuth(`/stores/${slug}`, options),
+    getPublicStorePage: (slug: string, options?: RequestInit) => fetchWithAuth(`/stores/public/${slug}`, options),
     updateStore: (id: string, data: Partial<Store>) => fetchWithAuth(`/stores/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(data),

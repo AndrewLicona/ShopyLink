@@ -3,11 +3,9 @@ import { api } from '@/services/api';
 
 import { getAbsoluteUrl } from '@/lib/utils';
 
-export const dynamic = 'force-dynamic';
-
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
     const resolvedParams = await params;
-    const store = await api.getStoreBySlug(resolvedParams.slug, { cache: 'no-store' }).catch(() => null);
+    const store = await api.getStoreBySlug(resolvedParams.slug, { next: { revalidate: 300 } }).catch(() => null);
 
     if (!store) {
         return {
@@ -44,7 +42,7 @@ export default async function StoreLayout({
     params: Promise<{ slug: string }>;
 }) {
     const resolvedParams = await params;
-    const store = await api.getStoreBySlug(resolvedParams.slug, { cache: 'no-store' }).catch(() => null);
+    const store = await api.getStoreBySlug(resolvedParams.slug, { next: { revalidate: 300 } }).catch(() => null);
 
     return (
         <div

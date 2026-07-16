@@ -4,6 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.module';
+import { RedisService } from '../../core/cache/redis.service';
+import { hashCacheKey } from '../../core/cache/cache.util';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Prisma } from '@repo/database';
@@ -22,7 +24,10 @@ interface ProductVariantInput {
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cache: RedisService,
+  ) {}
 
   async create(userId: string, createProductDto: CreateProductDto) {
     // Verify store ownership
@@ -51,7 +56,7 @@ export class ProductsService {
     const { stock, sku, trackInventory, ...rest } = createProductDto;
     const generatedSku = this.generateSku(sku);
 
-    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const product = await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const data: Prisma.ProductUncheckedCreateInput = {
         name: rest.name,
         description: rest.description,
@@ -92,6 +97,9 @@ export class ProductsService {
         include: { inventory: true, variants: true },
       });
     });
+
+    await this.invalidateCatalogCaches(createProductDto.storeId);
+    return product;
   }
 
   async updateStock(productId: string, userId: string, stock: number) {
@@ -105,11 +113,14 @@ export class ProductsService {
     if (product.store.userId !== userId)
       throw new ForbiddenException('You do not own this product');
 
-    return this.prisma.inventory.upsert({
+    const result = await this.prisma.inventory.upsert({
       where: { productId },
       create: { productId, stock },
       update: { stock },
     });
+
+    await this.invalidateCatalogCaches(product.store.id);
+    return result;
   }
 
   async findAllByStore(storeId: string, onlyActive = false) {
@@ -129,101 +140,110 @@ export class ProductsService {
 
   async findForMarketplace(filters: any) {
     const { category, q, ofertas } = filters;
+    const cacheKey = await this.marketplaceCacheKey(filters);
 
-    const whereClause: any = {
-      isActive: true,
-      store: {
-        isPublic: true,
-      },
-      AND: [
-        {
-          OR: [
-            { trackInventory: false },
-            { inventory: { stock: { gt: 0 } } },
-            {
-              variants: {
-                some: {
-                  OR: [{ trackInventory: false }, { stock: { gt: 0 } }],
+    return this.cache.getOrSetJson(cacheKey, 180, async () => {
+      const whereClause: any = {
+        isActive: true,
+        store: {
+          isPublic: true,
+        },
+        AND: [
+          {
+            OR: [
+              { trackInventory: false },
+              { inventory: { stock: { gt: 0 } } },
+              {
+                variants: {
+                  some: {
+                    OR: [{ trackInventory: false }, { stock: { gt: 0 } }],
+                  },
                 },
+              },
+            ],
+          },
+        ],
+      };
+
+      if (ofertas === 'true') {
+        (whereClause.AND as Prisma.ProductWhereInput[]).push({
+          OR: [
+            { discountPrice: { not: null } },
+            {
+              store: {
+                globalDiscountActive: true,
+                globalDiscountPercentage: { gt: 0 },
               },
             },
           ],
-        },
-      ],
-    };
-
-    if (ofertas === 'true') {
-      (whereClause.AND as Prisma.ProductWhereInput[]).push({
-        OR: [
-          { discountPrice: { not: null } },
-          { 
-            store: {
-              globalDiscountActive: true,
-              globalDiscountPercentage: { gt: 0 }
-            }
-          }
-        ]
-      });
-    }
-
-    if (category && category !== 'ofertas') {
-      whereClause.store = {
-        isPublic: true,
-        marketplaceCategory: category,
-      };
-    }
-
-    if (q) {
-      const terms = q.split(/\s+/).filter(Boolean);
-      if (terms.length > 0) {
-        terms.forEach((term: string) => {
-          (whereClause.AND as Prisma.ProductWhereInput[]).push({
-            OR: [
-              { name: { contains: term, mode: 'insensitive' } },
-              { description: { contains: term, mode: 'insensitive' } },
-              { store: { name: { contains: term, mode: 'insensitive' } } },
-            ],
-          });
         });
       }
-    }
 
-    const products = await this.prisma.withRetry(() =>
-      this.prisma.product.findMany({
-        where: whereClause,
-        include: {
-          store: {
-            select: {
-              name: true,
-              slug: true,
-              logoUrl: true,
-              city: true,
-              marketplaceCategory: true,
-              globalDiscountActive: true,
-              globalDiscountPercentage: true,
-            },
-          },
-          inventory: true,
-          variants: true,
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 1000,
-      } as any),
-    );
+      if (category && category !== 'ofertas') {
+        whereClause.store = {
+          isPublic: true,
+          marketplaceCategory: category,
+        };
+      }
 
-    return products.map(product => {
-      let discountPrice = product.discountPrice;
-      const store = (product as any).store;
-      if (store && store.globalDiscountActive && store.globalDiscountPercentage > 0 && product.price) {
-        const globalDiscounted = Number(product.price) * (1 - store.globalDiscountPercentage / 100);
-        if (!discountPrice || globalDiscounted < Number(discountPrice)) {
-          discountPrice = new Prisma.Decimal(globalDiscounted) as any;
+      if (q) {
+        const terms = q.split(/\s+/).filter(Boolean);
+        if (terms.length > 0) {
+          terms.forEach((term: string) => {
+            (whereClause.AND as Prisma.ProductWhereInput[]).push({
+              OR: [
+                { name: { contains: term, mode: 'insensitive' } },
+                { description: { contains: term, mode: 'insensitive' } },
+                { store: { name: { contains: term, mode: 'insensitive' } } },
+              ],
+            });
+          });
         }
       }
-      return {
-        ...product,
-        discountPrice
-      };
+
+      const products = await this.prisma.withRetry(() =>
+        this.prisma.product.findMany({
+          where: whereClause,
+          include: {
+            store: {
+              select: {
+                name: true,
+                slug: true,
+                logoUrl: true,
+                city: true,
+                marketplaceCategory: true,
+                globalDiscountActive: true,
+                globalDiscountPercentage: true,
+              },
+            },
+            inventory: true,
+            variants: true,
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 1000,
+        } as any),
+      );
+
+      return products.map((product) => {
+        let discountPrice = product.discountPrice;
+        const store = (product as any).store;
+        if (
+          store &&
+          store.globalDiscountActive &&
+          store.globalDiscountPercentage > 0 &&
+          product.price
+        ) {
+          const globalDiscounted =
+            Number(product.price) * (1 - store.globalDiscountPercentage / 100);
+          if (!discountPrice || globalDiscounted < Number(discountPrice)) {
+            discountPrice = new Prisma.Decimal(globalDiscounted) as any;
+          }
+        }
+        return {
+          ...product,
+          discountPrice,
+        };
+      });
     });
   }
 
@@ -267,7 +287,7 @@ export class ProductsService {
 
     const finalSku = this.generateSku(sku, product.sku || undefined);
 
-    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const updated = await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       if (stock !== undefined) {
         await tx.inventory.upsert({
           where: { productId: id },
@@ -304,6 +324,9 @@ export class ProductsService {
         include: { inventory: true, variants: true },
       });
     });
+
+    await this.invalidateCatalogCaches(product.store.id);
+    return updated;
   }
 
   async remove(id: string, userId: string) {
@@ -317,7 +340,9 @@ export class ProductsService {
     if (product.store.userId !== userId)
       throw new ForbiddenException('You do not own this product');
 
-    return this.prisma.product.delete({ where: { id } });
+    const result = await this.prisma.product.delete({ where: { id } });
+    await this.invalidateCatalogCaches(product.store.id);
+    return result;
   }
 
   private generateSku(sku?: string, currentSku?: string): string {
@@ -373,5 +398,32 @@ export class ProductsService {
         });
       }
     }
+  }
+
+  private async invalidateCatalogCaches(storeId: string) {
+    const store = await this.prisma.store.findUnique({
+      where: { id: storeId },
+      select: { slug: true },
+    });
+
+    if (store?.slug) {
+      await this.cache.del(`publicStore:${store.slug}`, `publicStorePage:${store.slug}`);
+    }
+
+    await this.cache.incr(this.marketplaceVersionKey());
+  }
+
+  private marketplaceVersionKey() {
+    return 'cache:marketplace:version';
+  }
+
+  private async marketplaceVersion() {
+    const version = await this.cache.get<string>(this.marketplaceVersionKey());
+    return version || '1';
+  }
+
+  private async marketplaceCacheKey(filters: Record<string, unknown>) {
+    const version = await this.marketplaceVersion();
+    return `marketplace:products:v${version}:${hashCacheKey('products', filters)}`;
   }
 }

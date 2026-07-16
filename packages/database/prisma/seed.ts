@@ -5,18 +5,8 @@ const prisma = new PrismaClient();
 async function main() {
     console.log('🌱 Starting seed...');
 
-    // Fetch all stores
-    const stores = await prisma.store.findMany({
-        orderBy: { createdAt: 'asc' },
-    });
-
-    if (stores.length < 3) {
-        console.log('⚠️  Need at least 3 stores. Found:', stores.length);
-        console.log('Please create at least 3 stores before running this seed.');
-        return;
-    }
-
-    console.log(`Found ${stores.length} stores`);
+    const stores = await ensureDemoStores();
+    console.log(`Found ${stores.length} demo stores`);
 
     // Store 1: Fashion Store
     await seedFashionStore(prisma, stores[0].id);
@@ -28,6 +18,153 @@ async function main() {
     await seedFoodStore(prisma, stores[2].id);
 
     console.log('✅ Seed completed!');
+}
+
+async function ensureDemoStores() {
+    const existingStores = await prisma.store.findMany({
+        orderBy: { createdAt: 'asc' },
+    });
+
+    if (existingStores.length >= 3) {
+        return existingStores.slice(0, 3);
+    }
+
+    const owners = await Promise.all([
+        prisma.user.upsert({
+            where: { email: 'andrew@shopylink.local' },
+            update: { name: 'Andrew Licona', role: 'SUPER_ADMIN' },
+            create: {
+                email: 'andrew@shopylink.local',
+                name: 'Andrew Licona',
+                role: 'SUPER_ADMIN',
+            },
+        }),
+        prisma.user.upsert({
+            where: { email: 'fashion@shopylink.local' },
+            update: { name: 'Fashion Owner', role: 'USER' },
+            create: {
+                email: 'fashion@shopylink.local',
+                name: 'Fashion Owner',
+                role: 'USER',
+            },
+        }),
+        prisma.user.upsert({
+            where: { email: 'tech@shopylink.local' },
+            update: { name: 'Tech Owner', role: 'USER' },
+            create: {
+                email: 'tech@shopylink.local',
+                name: 'Tech Owner',
+                role: 'USER',
+            },
+        }),
+        prisma.user.upsert({
+            where: { email: 'food@shopylink.local' },
+            update: { name: 'Food Owner', role: 'USER' },
+            create: {
+                email: 'food@shopylink.local',
+                name: 'Food Owner',
+                role: 'USER',
+            },
+        }),
+    ]);
+
+    const stores = await Promise.all([
+        prisma.store.upsert({
+            where: { slug: 'moda-urbana' },
+            update: {
+                name: 'Moda Urbana',
+                description: 'Tienda demo de ropa y accesorios',
+                userId: owners[1].id,
+                logoUrl:
+                    'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=400',
+                marketplaceCategory: 'Ropa',
+                city: 'Bogota',
+                country: 'CO',
+                tags: ['moda', 'ropa', 'accesorios'],
+                featured: true,
+                isPublic: true,
+            },
+            create: {
+                name: 'Moda Urbana',
+                slug: 'moda-urbana',
+                description: 'Tienda demo de ropa y accesorios',
+                userId: owners[1].id,
+                logoUrl:
+                    'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=400',
+                marketplaceCategory: 'Ropa',
+                city: 'Bogota',
+                country: 'CO',
+                tags: ['moda', 'ropa', 'accesorios'],
+                featured: true,
+                isPublic: true,
+                planType: 'FREE',
+            },
+        }),
+        prisma.store.upsert({
+            where: { slug: 'tecnologia-al-dia' },
+            update: {
+                name: 'Tecnologia al Dia',
+                description: 'Tienda demo de tecnologia y gadgets',
+                userId: owners[2].id,
+                logoUrl:
+                    'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=400',
+                marketplaceCategory: 'Tecnologia',
+                city: 'Medellin',
+                country: 'CO',
+                tags: ['tech', 'gadgets', 'electronica'],
+                featured: true,
+                isPublic: true,
+            },
+            create: {
+                name: 'Tecnologia al Dia',
+                slug: 'tecnologia-al-dia',
+                description: 'Tienda demo de tecnologia y gadgets',
+                userId: owners[2].id,
+                logoUrl:
+                    'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=400',
+                marketplaceCategory: 'Tecnologia',
+                city: 'Medellin',
+                country: 'CO',
+                tags: ['tech', 'gadgets', 'electronica'],
+                featured: true,
+                isPublic: true,
+                planType: 'PRO',
+            },
+        }),
+        prisma.store.upsert({
+            where: { slug: 'sabor-casero' },
+            update: {
+                name: 'Sabor Casero',
+                description: 'Tienda demo de comidas y bebidas',
+                userId: owners[3].id,
+                logoUrl:
+                    'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400',
+                marketplaceCategory: 'Comida',
+                city: 'Cali',
+                country: 'CO',
+                tags: ['comida', 'bebidas', 'snacks'],
+                featured: false,
+                isPublic: true,
+            },
+            create: {
+                name: 'Sabor Casero',
+                slug: 'sabor-casero',
+                description: 'Tienda demo de comidas y bebidas',
+                userId: owners[3].id,
+                logoUrl:
+                    'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400',
+                marketplaceCategory: 'Comida',
+                city: 'Cali',
+                country: 'CO',
+                tags: ['comida', 'bebidas', 'snacks'],
+                featured: false,
+                isPublic: true,
+                planType: 'FREE',
+            },
+        }),
+    ]);
+
+    return stores;
 }
 
 async function seedFashionStore(prisma: PrismaClient, storeId: string) {

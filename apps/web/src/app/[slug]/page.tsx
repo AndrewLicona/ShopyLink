@@ -1,7 +1,6 @@
 import { StoreView } from './StoreView';
 import { api } from '@/services/api';
 import { Metadata } from 'next';
-import type { Product, Category } from '@/types/types';
 import { StoreNotFound } from '@/features/store/public/StoreNotFound';
 import { formatCurrency } from '@/lib/utils';
 
@@ -15,7 +14,7 @@ export async function generateMetadata({ params, searchParams }: {
     const { p: productId } = await searchParams;
 
     try {
-        const store = await api.getStoreBySlug(slug, { next: { revalidate: 60 } });
+        const store = await api.getStoreBySlug(slug, { next: { revalidate: 300 } });
 
         if (typeof productId === 'string') {
             try {
@@ -63,54 +62,16 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
     const { slug } = await params;
 
     try {
-        // Fetch store by slug (public endpoint) - Server side
-        const storeData = await api.getStoreBySlug(slug, {
-            next: { revalidate: 60 }
+        const publicPage = await api.getPublicStorePage(slug, {
+            next: { revalidate: 120 }
         });
-
-        // Fetch products, categories and banners - Server side
-        const [productsData, categoriesData, bannersData] = await Promise.all([
-            api.getProducts(storeData.id, { onlyActive: 'true' }, { next: { revalidate: 60 } }),
-            api.getCategories(storeData.id),
-            api.getBanners(storeData.id, true).catch(() => [])
-        ]);
-
-        const activeProducts = productsData.filter((p: Product) => {
-            if (!p.isActive) return false;
-
-            // Si el producto no trackea inventario, siempre es visible
-            if (p.trackInventory === false) return true;
-
-            // Si tiene variantes, verificar disponibilidad granular
-            if (p.variants && p.variants.length > 0) {
-                // El producto es visible si el base tiene stock O alguna variante tiene stock
-                const isBaseAvailable = (p.inventory?.stock ?? 0) > 0;
-
-                const hasAvailableVariant = p.variants.some(v => {
-                    // Una variante es visible si no trackea stock OR (tiene stock > 0)
-                    if (v.trackInventory === false) return true;
-
-                    const stock = v.useParentStock ? (p.inventory?.stock ?? 0) : (v.stock ?? 0);
-                    return stock > 0;
-                });
-
-                return isBaseAvailable || hasAvailableVariant;
-            }
-
-            // Producto simple: debe tener stock > 0
-            return (p.inventory?.stock ?? 0) > 0;
-        });
-
-        // Filter categories: Only show categories that have at least one active product
-        const activeCategoryIds = new Set(activeProducts.map((p: Product) => p.categoryId));
-        const visibleCategories = categoriesData.filter((c: Category) => activeCategoryIds.has(c.id));
 
         return (
             <StoreView
-                store={storeData}
-                products={activeProducts}
-                categories={visibleCategories}
-                banners={bannersData}
+                store={publicPage.store}
+                products={publicPage.products}
+                categories={publicPage.categories}
+                banners={publicPage.banners}
             />
         );
 

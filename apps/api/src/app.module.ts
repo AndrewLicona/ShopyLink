@@ -20,6 +20,7 @@ import { BroadcastsModule } from './features/broadcasts/broadcasts.module';
 import { BannersModule } from './features/banners/banners.module';
 import { APP_GUARD } from '@nestjs/core';
 import { ImpersonationGuard } from './core/auth/impersonation.guard';
+import { CacheModule } from './core/cache/cache.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { ImpersonationGuard } from './core/auth/impersonation.guard';
     AdminLogsModule,
     BroadcastsModule,
     BannersModule,
+    CacheModule,
   ],
   controllers: [AppController],
   providers: [
