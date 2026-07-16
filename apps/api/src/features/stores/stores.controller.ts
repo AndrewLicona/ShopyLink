@@ -149,6 +149,13 @@ export class StoresController {
     return this.storesService.incrementViewCount(id);
   }
 
+  @Get('public/:slug')
+  async getPublicStorePage(@Param('slug') slug: string): Promise<any> {
+    const page = await this.storesService.getPublicStorePage(slug);
+    if (!page) throw new NotFoundException('Store not found');
+    return page;
+  }
+
   @Get(':slug')
   async findOne(@Param('slug') slug: string): Promise<any> {
     const store = await this.storesService.findOneBySlug(slug);

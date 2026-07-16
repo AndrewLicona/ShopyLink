@@ -31,7 +31,17 @@ services:
       - SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - FRONTEND_URL=${FRONTEND_URL}
       - PORT=3001
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
       # Agrega aquí otras variables de entorno necesarias para la API
+    networks:
+      - shopylink-network
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
     networks:
       - shopylink-network
 
@@ -52,3 +62,6 @@ services:
 networks:
   shopylink-network:
     driver: bridge
+
+volumes:
+  redis_data:

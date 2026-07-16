@@ -4,11 +4,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.module';
+import { RedisService } from '../../core/cache/redis.service';
 import { CreateBannerDto } from './dto/create-banner.dto';
 
 @Injectable()
 export class BannersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cache: RedisService,
+  ) {}
 
   private async verifyStoreOwnership(storeId: string, userId: string) {
     const store = await this.prisma.withRetry(() =>
@@ -33,7 +37,7 @@ export class BannersService {
 
     const { startsAt, endsAt, ...rest } = createBannerDto;
 
-    return this.prisma.withRetry(() =>
+    const banner = await this.prisma.withRetry(() =>
       this.prisma.storeBanner.create({
         data: {
           ...rest,
@@ -42,6 +46,9 @@ export class BannersService {
         },
       }),
     );
+
+    await this.invalidateStoreCaches(createBannerDto.storeId);
+    return banner;
   }
 
   async findAll(storeId: string, onlyActive = false) {
@@ -106,22 +113,41 @@ export class BannersService {
       data.endsAt = endsAt ? new Date(endsAt) : null;
     }
 
-    return this.prisma.withRetry(() =>
+    const updated = await this.prisma.withRetry(() =>
       this.prisma.storeBanner.update({
         where: { id },
         data,
       }),
     );
+
+    await this.invalidateStoreCaches(banner.storeId);
+    return updated;
   }
 
   async remove(id: string, userId: string) {
     const banner = await this.findOne(id);
     await this.verifyStoreOwnership(banner.storeId, userId);
 
-    return this.prisma.withRetry(() =>
+    const removed = await this.prisma.withRetry(() =>
       this.prisma.storeBanner.delete({
         where: { id },
       }),
     );
+
+    await this.invalidateStoreCaches(banner.storeId);
+    return removed;
+  }
+
+  private async invalidateStoreCaches(storeId: string) {
+    const store = await this.prisma.store.findUnique({
+      where: { id: storeId },
+      select: { slug: true },
+    });
+
+    if (store?.slug) {
+      await this.cache.del(`publicStore:${store.slug}`, `publicStorePage:${store.slug}`);
+    }
+
+    await this.cache.incr('cache:marketplace:version');
   }
 }

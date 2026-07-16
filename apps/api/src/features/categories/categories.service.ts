@@ -4,11 +4,15 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.module';
+import { RedisService } from '../../core/cache/redis.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 
 @Injectable()
 export class CategoriesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cache: RedisService,
+  ) {}
 
   async create(userId: string, createCategoryDto: CreateCategoryDto) {
     // Verify store ownership
@@ -22,9 +26,12 @@ export class CategoriesService {
     if (store.userId !== userId)
       throw new ForbiddenException('You do not own this store');
 
-    return this.prisma.category.create({
+    const category = await this.prisma.category.create({
       data: createCategoryDto,
     });
+
+    await this.invalidateStoreCaches(createCategoryDto.storeId);
+    return category;
   }
 
   async findAllByStore(storeId: string) {
@@ -52,8 +59,24 @@ export class CategoriesService {
     if (category.store.userId !== userId)
       throw new ForbiddenException('You do not own this store');
 
-    return this.prisma.category.delete({
+    const removed = await this.prisma.category.delete({
       where: { id },
     });
+
+    await this.invalidateStoreCaches(category.storeId);
+    return removed;
+  }
+
+  private async invalidateStoreCaches(storeId: string) {
+    const store = await this.prisma.store.findUnique({
+      where: { id: storeId },
+      select: { slug: true },
+    });
+
+    if (store?.slug) {
+      await this.cache.del(`publicStore:${store.slug}`, `publicStorePage:${store.slug}`);
+    }
+
+    await this.cache.incr('cache:marketplace:version');
   }
 }
