@@ -71,6 +71,8 @@ services:
 networks:
   shopylink-network:
     driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: "1400"
 
 volumes:
   redis_data:
