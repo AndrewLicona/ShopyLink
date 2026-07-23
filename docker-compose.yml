@@ -4,6 +4,7 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      network: host
       args:
         NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
@@ -24,6 +25,7 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
+      network: host
     restart: always
     environment:
       - DATABASE_URL=${DATABASE_URL}
@@ -50,6 +52,7 @@ services:
     build:
       context: ./nginx
       dockerfile: Dockerfile
+      network: host
     restart: always
     ports:
       - "${APP_PORT:-3200}:80"
