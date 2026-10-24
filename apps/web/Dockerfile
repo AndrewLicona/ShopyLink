@@ -60,9 +60,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/next.config.js ./apps/web/next.config.js
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
 
-EXPOSE 3000
+EXPOSE 8191
 
-ENV PORT 3000
+ENV PORT 8191
 ENV HOSTNAME "0.0.0.0"
 
 CMD ["node", "apps/web/server.js"]
