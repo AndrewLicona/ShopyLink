@@ -6,7 +6,7 @@ import ImpersonationBanner from "@/components/molecules/ImpersonationBanner";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:8191'),
   title: "ShopyLinks | Tu tienda en WhatsApp en minutos",
   description: "Crea tu catálogo digital, gestiona inventario y vende por WhatsApp de forma profesional.",
   icons: {
