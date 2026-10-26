@@ -1,31 +1,24 @@
 services:
   web:
     image: shopylink-web:latest
-    network_mode: host
     build:
       context: .
       dockerfile: apps/web/Dockerfile
-      network: host
-      args:
-        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-        NEXT_PUBLIC_FRONTEND_URL: ${FRONTEND_URL}
     restart: always
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
       - DATABASE_URL=${DATABASE_URL}
       - NEXTAUTH_URL=${NEXTAUTH_URL}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      - INTERNAL_API_URL=http://127.0.0.1:3001/api
+      - INTERNAL_API_URL=http://api:3001/api
+    networks:
+      - shopynet
 
   api:
     image: shopylink-api:latest
-    network_mode: host
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-      network: host
     restart: always
     environment:
       - DATABASE_URL=${DATABASE_URL}
@@ -33,28 +26,36 @@ services:
       - SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - FRONTEND_URL=${FRONTEND_URL}
       - PORT=3001
-      - REDIS_URL=${REDIS_URL:-redis://127.0.0.1:6379/0}
-      # Agrega aquí otras variables de entorno necesarias para la API
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+    networks:
+      - shopynet
 
   redis:
     image: redis:7-alpine
-    network_mode: host
     restart: always
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
+    networks:
+      - shopynet
 
   nginx:
     image: shopylink-nginx:latest
-    network_mode: host
     build:
       context: ./nginx
       dockerfile: Dockerfile
-      network: host
+    ports:
+      - "3200:3200"
     restart: always
     depends_on:
       - web
       - api
+    networks:
+      - shopynet
+
+networks:
+  shopynet:
+    driver: bridge
 
 volumes:
   redis_data:
