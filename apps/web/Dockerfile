@@ -1,5 +1,11 @@
 FROM node:20-alpine AS base
 
+# Configure npm for resilient downloads globally
+RUN npm config set fetch-retries 10 && \
+    npm config set fetch-retry-mintimeout 30000 && \
+    npm config set fetch-retry-maxtimeout 300000 && \
+    npm config set fetch-timeout 600000
+
 # Phase 1: Prune
 FROM base AS pruner
 RUN apk add --no-cache libc6-compat
@@ -13,7 +19,7 @@ FROM base AS builder
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
-# Build args
+# Build args if needed in future
 # RUN npm install -g prisma@7.2.0 (Removed to avoid WASM module errors)
 
 # Copy lockfile and package.json's of isolated subworkspace
@@ -22,10 +28,7 @@ COPY --from=pruner /app/out/package-lock.json ./package-lock.json
 
 # Install dependencies
 ENV CI=true
-RUN npm config set fetch-retries 5 && \
-    npm config set fetch-retry-mintimeout 20000 && \
-    npm config set fetch-retry-maxtimeout 120000 && \
-    npm install --no-audit --no-fund
+RUN npm ci --no-audit --no-fund
 
 # Build the project
 COPY --from=pruner /app/out/full/ .
