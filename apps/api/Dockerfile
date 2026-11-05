@@ -48,24 +48,6 @@ RUN npm ci --omit=dev --no-audit --no-fund
 # Copy generated Prisma client (the actual artifacts)
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
-# Phase 2.6: Migrator (one-shot container)
-# Applies the Prisma migrations that are still pending. It NEVER drops, resets or
-# truncates the database: `migrate deploy` only executes the SQL files that have
-# not been applied yet, so existing rows are always preserved.
-FROM base AS migrator
-RUN apk add --no-cache libc6-compat openssl
-WORKDIR /app
-COPY --from=pruner /app/out/json/ .
-COPY --from=pruner /app/out/package-lock.json ./package-lock.json
-ENV CI=true
-RUN npm ci --no-audit --no-fund
-COPY --from=pruner /app/out/full/ .
-WORKDIR /app/packages/database
-# Bounded retry: a transient connection issue is retried, but a persistent
-# failure exits with code 1 so the deploy FAILS VISIBELY in Dokploy instead of
-# hanging forever and silently blocking the API container.
-CMD ["sh", "-c", "i=0; until npx prisma migrate deploy; do i=$((i+1)); if [ $i -ge 5 ]; then echo '>>> MIGRATION FAILED after 5 attempts'; exit 1; fi; echo \">>> Migration failed (attempt $i), retrying in 15s...\"; sleep 15; done"]
-
 # Phase 3: Runner
 FROM base AS runner
 WORKDIR /app
