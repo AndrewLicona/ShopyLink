@@ -127,4 +127,24 @@ export class CreateStoreDto {
   @IsInt()
   @IsOptional()
   globalDiscountPercentage?: number;
+
+  @IsString()
+  @IsOptional()
+  bannerUrl?: string;
+
+  @IsString()
+  @IsOptional()
+  primaryColor?: string;
+
+  @IsString()
+  @IsOptional()
+  referenceLocation?: string;
+
+  @IsString()
+  @IsOptional()
+  mapsUrl?: string;
+
+  @IsOptional()
+  businessHours?: Record<string, { open: string; close: string } | null>;
 }
+

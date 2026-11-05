@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -53,6 +53,8 @@ export function useProducts() {
     const [trackInventory, setTrackInventory] = useState(true);
     const [hasPrice, setHasPrice] = useState(true);
     const [baseVariantName, setBaseVariantName] = useState('Principal');
+    const [itemType, setItemType] = useState<'product' | 'service'>('product');
+    const [pricingMode, setPricingMode] = useState<'fixed' | 'from' | 'hourly' | 'quote'>('fixed');
 
     // Form state - Variants
     const [hasVariants, setHasVariants] = useState(false);
@@ -185,6 +187,8 @@ export function useProducts() {
         setHasVariants(false);
         setVariants([]);
         setBaseVariantName('Principal');
+        setItemType('product');
+        setPricingMode('fixed');
         setIsModalOpen(true);
     }, [activeStore, products.length]);
 
@@ -211,6 +215,8 @@ export function useProducts() {
             setVariants([]);
         }
         setBaseVariantName(product.baseVariantName || 'Principal');
+        setItemType(product.itemType || 'product');
+        setPricingMode((product.pricingMode as any) || 'fixed');
         setIsModalOpen(true);
     };
 
@@ -245,6 +251,8 @@ export function useProducts() {
             isActive,
             trackInventory,
             baseVariantName,
+            itemType,
+            pricingMode,
             variants: processedVariants
         };
 
@@ -336,7 +344,7 @@ export function useProducts() {
             upgradeModalOpen,
             // Form state
             form: {
-                name, baseVariantName, price, description, stock, imageUrls, categoryId, sku, discountPrice, isActive, trackInventory, hasPrice,
+                name, baseVariantName, itemType, pricingMode, price, description, stock, imageUrls, categoryId, sku, discountPrice, isActive, trackInventory, hasPrice,
                 hasVariants, variants, newCatName
             }
         },
@@ -350,7 +358,7 @@ export function useProducts() {
             setSearchTerm,
             setCategoryFilter,
             setUpgradeModalOpen,
-            setName, setBaseVariantName, setPrice, setDescription, setStock, setImageUrls, setCategoryId, setSku, setDiscountPrice, setIsActive, setTrackInventory, setHasPrice,
+            setName, setBaseVariantName, setItemType, setPricingMode, setPrice, setDescription, setStock, setImageUrls, setCategoryId, setSku, setDiscountPrice, setIsActive, setTrackInventory, setHasPrice,
             setHasVariants, setVariants, setNewCatName,
             handleProductImageUpload,
             handleVariantImageUpload,

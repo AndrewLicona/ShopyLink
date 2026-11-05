@@ -6,6 +6,9 @@ export interface Store {
     logoUrl?: string | null;
     bannerUrl?: string | null;
     primaryColor?: string | null;
+    referenceLocation?: string | null;
+    mapsUrl?: string | null;
+    businessHours?: Record<string, { open: string; close: string } | null> | null;
     description?: string | null;
     whatsappNumber?: string | null;
     instagramUrl?: string | null;
@@ -77,6 +80,8 @@ export interface Product {
     inventory?: Inventory | null;
     variants?: ProductVariant[];
     store?: Store;
+    itemType?: 'product' | 'service';
+    pricingMode?: 'fixed' | 'from' | 'hourly' | 'quote' | null;
 }
 
 export interface OrderItem {

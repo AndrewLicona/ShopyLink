@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
@@ -20,6 +20,7 @@ export function useStoreView(store: Store, initialProducts: Product[]) {
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [categoryFilter, setCategoryFilter] = useState('all');
+    const [itemTypeFilter, setItemTypeFilter] = useState<'all' | 'product' | 'service'>('all');
     const [searchTerm, setSearchTerm] = useState('');
 
     const router = useRouter();
@@ -80,7 +81,7 @@ export function useStoreView(store: Store, initialProducts: Product[]) {
             const newTotalQty = currentQty + quantity;
 
             if (trackStock && newTotalQty > finalStock) {
-                showMessage(`¡Lo sentimos! Solo hay ${finalStock} unidades disponibles.`);
+                showMessage(`Â¡Lo sentimos! Solo hay ${finalStock} unidades disponibles.`);
                 return prev;
             }
 
@@ -145,13 +146,18 @@ export function useStoreView(store: Store, initialProducts: Product[]) {
         }).filter(item => item.quantity > 0));
     };
 
+    const hasProducts = useMemo(() => initialProducts.some(p => !p.itemType || p.itemType === 'product'), [initialProducts]);
+    const hasServices = useMemo(() => initialProducts.some(p => p.itemType === 'service'), [initialProducts]);
+    const showTypeTabs = hasProducts && hasServices;
+
     const filteredProducts = useMemo(() => {
         return initialProducts.filter(p => {
             const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesCategory = categoryFilter === 'all' || p.categoryId === categoryFilter;
-            return matchesSearch && matchesCategory;
+            const matchesType = itemTypeFilter === 'all' || (p.itemType || 'product') === itemTypeFilter;
+            return matchesSearch && matchesCategory && matchesType;
         });
-    }, [initialProducts, searchTerm, categoryFilter]);
+    }, [initialProducts, searchTerm, categoryFilter, itemTypeFilter]);
 
     const cartTotal = useMemo(() => {
         return cart.reduce((total, item) => total + item.price * item.quantity, 0);
@@ -218,7 +224,7 @@ export function useStoreView(store: Store, initialProducts: Product[]) {
             if (err instanceof Error) {
                 if (err.message.includes('Insufficient stock')) {
                     const productName = err.message.split(': ')[1] || 'un producto';
-                    message = `¡Lo sentimos! No hay suficiente stock disponible para: ${productName}. Por favor, reduce la cantidad e intenta de nuevo.`;
+                    message = `Â¡Lo sentimos! No hay suficiente stock disponible para: ${productName}. Por favor, reduce la cantidad e intenta de nuevo.`;
                 } else {
                     message = err.message;
                 }
@@ -254,6 +260,10 @@ export function useStoreView(store: Store, initialProducts: Product[]) {
             selectedProduct,
             isCartOpen,
             categoryFilter,
+            itemTypeFilter,
+            hasProducts,
+            hasServices,
+            showTypeTabs,
             searchTerm,
             isCreatingOrder,
             showNameModal,
@@ -270,6 +280,7 @@ export function useStoreView(store: Store, initialProducts: Product[]) {
             setSelectedProduct,
             setIsCartOpen,
             setCategoryFilter,
+            setItemTypeFilter,
             setSearchTerm,
             setCustomerName,
             setCustomerAddress,

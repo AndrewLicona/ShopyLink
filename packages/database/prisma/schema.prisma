@@ -75,6 +75,11 @@ model Store {
   autoGenerateSlug      Boolean  @default(true)
   description           String?
   logoUrl               String?
+  bannerUrl             String?
+  primaryColor          String?
+  referenceLocation     String?
+  mapsUrl               String?
+  businessHours         Json?
   whatsappNumber        String?
   instagramUrl          String?
   facebookUrl           String?

@@ -56,6 +56,42 @@ export function StoreView({ store, products: rawProducts, categories, banners = 
             <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
                 <PublicBanners banners={banners} position="HERO" store={store} />
                 
+                {/* Pestañas para alternar Productos vs Servicios si el comercio ofrece ambos */}
+                {state.showTypeTabs && (
+                    <div className="flex items-center gap-2 border-b border-[var(--border)] pb-2 overflow-x-auto">
+                        <button
+                            onClick={() => actions.setItemTypeFilter('all')}
+                            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${
+                                state.itemTypeFilter === 'all'
+                                    ? 'bg-[var(--primary)] text-[var(--bg)] shadow-md shadow-[var(--primary)]/20'
+                                    : 'text-[var(--text)]/60 hover:text-[var(--text)] hover:bg-[var(--secondary)]'
+                            }`}
+                        >
+                            Todo
+                        </button>
+                        <button
+                            onClick={() => actions.setItemTypeFilter('product')}
+                            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${
+                                state.itemTypeFilter === 'product'
+                                    ? 'bg-[var(--primary)] text-[var(--bg)] shadow-md shadow-[var(--primary)]/20'
+                                    : 'text-[var(--text)]/60 hover:text-[var(--text)] hover:bg-[var(--secondary)]'
+                            }`}
+                        >
+                            Productos
+                        </button>
+                        <button
+                            onClick={() => actions.setItemTypeFilter('service')}
+                            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${
+                                state.itemTypeFilter === 'service'
+                                    ? 'bg-[var(--primary)] text-[var(--bg)] shadow-md shadow-[var(--primary)]/20'
+                                    : 'text-[var(--text)]/60 hover:text-[var(--text)] hover:bg-[var(--secondary)]'
+                            }`}
+                        >
+                            Servicios
+                        </button>
+                    </div>
+                )}
+
                 <CategoryBar
                     categories={categories}
                     activeCategory={state.categoryFilter}
@@ -84,6 +120,7 @@ export function StoreView({ store, products: rawProducts, categories, banners = 
                     onAddToCart={actions.addToCart}
                     searchTerm={state.searchTerm}
                     bannerNode={<PublicBanners banners={banners} position="BETWEEN_PRODUCTS" store={store} />}
+                    whatsappNumber={store.whatsappNumber}
                 />
 
                 <AdBanner planType={store.planType} />
