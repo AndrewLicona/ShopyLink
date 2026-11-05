@@ -77,7 +77,7 @@ export default function TiendasClient() {
             {loading ? (
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {[1, 2, 3].map((item) => (
-                        <div key={item} className="h-80 animate-pulse rounded-3xl bg-gray-100" />
+                        <div key={item} className="h-28 animate-pulse rounded-2xl bg-gray-100" />
                     ))}
                 </div>
             ) : filtered.length > 0 ? (

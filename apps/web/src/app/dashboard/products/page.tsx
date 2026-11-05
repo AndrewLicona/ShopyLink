@@ -14,6 +14,9 @@ import {
     AlertCircle,
     X,
     Loader2,
+    PackageCheck,
+    Megaphone,
+    MessageCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LoadingState } from '@/components/atoms/LoadingState';
@@ -189,9 +192,9 @@ function ProductsContent() {
                         <div className="bg-[var(--secondary)]/50 rounded-2xl p-4 mb-8 text-left border border-[var(--border)]">
                             <h4 className="font-bold text-sm mb-2 text-[var(--text)]">Mejora a Pro (20k COP/mes) y obtén:</h4>
                             <ul className="text-xs space-y-2 text-[var(--text)]/70 font-medium">
-                                <li className="flex items-center gap-2">✨ Productos ilimitados</li>
-                                <li className="flex items-center gap-2">🚀 Catálogo libre de anuncios</li>
-                                <li className="flex items-center gap-2">📞 Soporte prioritario por WhatsApp</li>
+                                <li className="flex items-center gap-2"><PackageCheck className="w-4 h-4 shrink-0" /> Productos ilimitados</li>
+                                <li className="flex items-center gap-2"><Megaphone className="w-4 h-4 shrink-0" /> Catálogo libre de anuncios</li>
+                                <li className="flex items-center gap-2"><MessageCircle className="w-4 h-4 shrink-0" /> Soporte prioritario por WhatsApp</li>
                             </ul>
                         </div>
 

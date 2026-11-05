@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import QRCode from 'qrcode';
-import { Download, Printer, QrCode, Loader2, Lightbulb, Store as StoreIcon } from 'lucide-react';
+import { Download, Printer, QrCode, Loader2, Lightbulb, MapPin, Store as StoreIcon } from 'lucide-react';
 import { useStore } from '@/contexts/StoreContext';
 import { renderPosterToPng } from '@/lib/poster';
 
@@ -42,7 +42,6 @@ export default function QRPosterPage() {
                 storeUrl,
                 referenceLocation: activeStore.referenceLocation,
                 logoUrl: activeStore.logoUrl,
-                primaryColor: activeStore.primaryColor,
             });
             const link = document.createElement('a');
             link.download = `afiche-qr-${activeStore.slug || 'tienda'}.png`;
@@ -158,7 +157,7 @@ export default function QRPosterPage() {
                         </h2>
                         {activeStore.referenceLocation && (
                             <p className="text-xs text-slate-500 font-bold">
-                                📍 {activeStore.referenceLocation}
+                                <MapPin className="inline w-3.5 h-3.5 -mt-0.5" /> {activeStore.referenceLocation}
                             </p>
                         )}
                     </div>

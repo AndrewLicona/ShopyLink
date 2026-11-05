@@ -7,8 +7,6 @@ export interface PosterOptions {
     storeUrl: string;
     referenceLocation?: string | null;
     logoUrl?: string | null;
-    /** Brand colour, e.g. "#2563eb" */
-    primaryColor?: string | null;
 }
 
 /** Loads an image, optionally with CORS enabled so the canvas stays exportable. */
@@ -91,7 +89,7 @@ export async function renderPosterToPng(options: PosterOptions): Promise<string>
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('No se pudo crear el lienzo del afiche');
 
-    const [pr, pg, pb] = hexToRgb(options.primaryColor || '#2563eb');
+    const [pr, pg, pb] = hexToRgb('#2563eb');
 
     // Background
     ctx.fillStyle = '#ffffff';
@@ -146,7 +144,7 @@ export async function renderPosterToPng(options: PosterOptions): Promise<string>
         cursorY += 10;
         ctx.fillStyle = '#64748b';
         ctx.font = '700 34px Inter, Arial, sans-serif';
-        ctx.fillText(`📍 ${options.referenceLocation}`, W / 2, cursorY);
+        ctx.fillText(options.referenceLocation, W / 2, cursorY);
         cursorY += 60;
     }
 

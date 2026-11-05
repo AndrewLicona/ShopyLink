@@ -48,8 +48,8 @@ export function DiscountsSection({
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg shadow-green-500/20">
-                        <Tag className="w-5 h-5 text-white" />
+                    <div className="w-10 h-10 bg-[var(--secondary)] rounded-2xl flex items-center justify-center">
+                        <Tag className="w-5 h-5 text-[var(--text)]/50" />
                     </div>
                     <div>
                         <h2 className="text-xl font-black text-[var(--text)]">

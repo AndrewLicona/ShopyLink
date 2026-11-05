@@ -15,7 +15,8 @@ import {
     X,
     Laptop,
     Smartphone,
-    Info
+    Info,
+    Lightbulb
 } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
@@ -296,7 +297,7 @@ export default function BannersPage() {
                                                         <li><span className="text-blue-600">Peso máximo:</span> 300 KB — usa WebP o JPG comprimido</li>
                                                     </ul>
                                                     <p className="text-[10px] font-bold text-blue-500/60 italic mt-1">
-                                                        💡 El texto del título se superpone en la parte izquierda de la imagen.
+                                                        <Lightbulb className="inline w-3.5 h-3.5 -mt-0.5" /> El texto del título se superpone en la parte izquierda de la imagen.
                                                     </p>
                                                 </div>
                                             )}
