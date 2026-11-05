@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable,
   ConflictException,
   NotFoundException,
@@ -254,7 +254,9 @@ export class StoresService {
       await this.checkSlugAvailability(updateStoreDto.slug, id);
     }
 
-    const data = { ...updateStoreDto };
+    const data: any = { ...updateStoreDto };
+    delete data.userId;
+    delete data.user;
     if (data.whatsappNumber) {
       data.whatsappNumber = encrypt(data.whatsappNumber);
     }
@@ -334,7 +336,9 @@ export class StoresService {
       await this.checkSlugAvailability(updateStoreDto.slug, id);
     }
 
-    const data = { ...updateStoreDto };
+    const data: any = { ...updateStoreDto };
+    delete data.userId;
+    delete data.user;
     if (data.whatsappNumber) {
       data.whatsappNumber = encrypt(data.whatsappNumber);
     }
