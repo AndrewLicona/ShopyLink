@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Sun, Moon, Palette, Check } from 'lucide-react';
+import { Sun, Moon, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AppearanceSettingsProps {

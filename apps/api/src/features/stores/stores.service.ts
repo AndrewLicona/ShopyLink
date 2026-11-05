@@ -198,6 +198,7 @@ export class StoresService {
               select: { products: true },
             },
           },
+          take: 200,
         }),
       );
 
@@ -487,24 +488,10 @@ export class StoresService {
   }
 
   private filterVisibleProducts(products: any[]) {
-    return products.filter((p) => {
-      if (!p.isActive) return false;
-      if (p.trackInventory === false) return true;
-
-      if (p.variants && p.variants.length > 0) {
-        const isBaseAvailable = (p.inventory?.stock ?? 0) > 0;
-        const hasAvailableVariant = p.variants.some((v: any) => {
-          if (v.trackInventory === false) return true;
-
-          const stock = v.useParentStock ? (p.inventory?.stock ?? 0) : (v.stock ?? 0);
-          return stock > 0;
-        });
-
-        return isBaseAvailable || hasAvailableVariant;
-      }
-
-      return (p.inventory?.stock ?? 0) > 0;
-    });
+    // Products without stock stay visible on purpose: the storefront renders them
+    // with the "Por encargo" badge, so the customer can request them via WhatsApp
+    // instead of the item silently disappearing from the catalogue.
+    return products.filter((p) => p.isActive);
   }
 
   private publicStoreKey(slug: string) {

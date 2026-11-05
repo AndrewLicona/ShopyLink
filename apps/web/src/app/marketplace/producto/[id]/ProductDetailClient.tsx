@@ -5,19 +5,42 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Store as StoreIcon, ShoppingBag, ArrowLeft, ShieldCheck, MapPin, ExternalLink, MessageCircle } from 'lucide-react';
+import { Store as StoreIcon, ShoppingBag, ArrowLeft, ShieldCheck, MapPin, ExternalLink, MessageCircle, CheckCircle2, Clock } from 'lucide-react';
 import { api } from '@/services/api';
+import { useCart } from '@/contexts/CartContext';
 import { Product } from '@/types/types';
 import { formatCurrency } from '@/lib/utils';
+import { isProductAvailable } from '@/lib/pricing';
 
 export default function ProductDetailClient() {
     const params = useParams();
     const router = useRouter();
     const id = params.id as string;
 
+    const { addItem } = useCart();
+
     const [product, setProduct] = useState<Product | null>(null);
     const [loading, setLoading] = useState(true);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [added, setAdded] = useState(false);
+
+    const handleAddToCart = () => {
+        if (!product) return;
+        const image = product.images?.[0] || product.variants?.[0]?.images?.[0];
+        addItem({
+            id: product.id,
+            name: product.name,
+            price: Number(product.discountPrice || product.price || 0),
+            image,
+            storeId: product.storeId,
+            storeName: product.store?.name || 'Tienda',
+            storeSlug: product.store?.slug || '',
+            itemType: product.itemType || 'product',
+            quantity: 1,
+        });
+        setAdded(true);
+        setTimeout(() => setAdded(false), 2000);
+    };
 
     useEffect(() => {
         const fetchProduct = async () => {
@@ -69,6 +92,8 @@ export default function ProductDetailClient() {
     
     const displayPrice = product.discountPrice || product.price || 0;
     const isPriceHidden = displayPrice === 0 || displayPrice === null;
+    const available = isProductAvailable(product);
+    const isService = product.itemType === 'service';
 
     return (
         <div className="bg-gray-50 min-h-screen pb-24 pt-8">
@@ -156,6 +181,15 @@ export default function ProductDetailClient() {
                                         )}
                                     </div>
                                 )}
+
+                                {!available && !isPriceHidden && (
+                                    <div className="mt-4 inline-flex items-center gap-2 bg-amber-50 text-amber-700 border border-amber-200 px-4 py-2.5 rounded-xl">
+                                        <Clock className="w-4 h-4" />
+                                        <span className="text-sm font-black">
+                                            Producto por encargo — contacta al comercio para confirmar disponibilidad
+                                        </span>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="prose prose-blue text-gray-600 font-medium mb-10 max-w-none">
@@ -182,28 +216,55 @@ export default function ProductDetailClient() {
 
                             {/* Call to action */}
                             <div className="mt-auto pt-8 border-t border-gray-200">
-                                <Link 
-                                    href={`/${product.store.slug}?p=${product.id}`}
-                                    className={`w-full py-5 rounded-[1.5rem] font-black text-lg flex items-center justify-center gap-3 transition-all hover:scale-105 active:scale-95 shadow-xl ${
-                                        isPriceHidden 
-                                        ? 'bg-gradient-to-r from-gray-800 to-gray-900 text-white shadow-gray-900/20' 
-                                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-600/30'
-                                    }`}
-                                >
-                                    {isPriceHidden ? (
-                                        <>
-                                            <MessageCircle className="w-6 h-6" />
-                                            Consultar precio
-                                        </>
-                                    ) : (
-                                        <>
-                                            <ShoppingBag className="w-6 h-6" />
-                                            Comprar en {product.store.name}
-                                        </>
+                                <div className="flex flex-col sm:flex-row gap-3">
+                                    {!isPriceHidden && available && !isService && (
+                                        <button
+                                            onClick={handleAddToCart}
+                                            className={`flex-1 py-5 rounded-[1.5rem] font-black text-lg flex items-center justify-center gap-3 transition-all hover:scale-105 active:scale-95 shadow-xl ${
+                                                added
+                                                    ? 'bg-emerald-500 text-white shadow-emerald-500/30'
+                                                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-600/30'
+                                            }`}
+                                        >
+                                            {added ? (
+                                                <>
+                                                    <CheckCircle2 className="w-6 h-6" />
+                                                    Agregado al carrito
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <ShoppingBag className="w-6 h-6" />
+                                                    Agregar al carrito
+                                                </>
+                                            )}
+                                        </button>
                                     )}
-                                </Link>
+
+                                    <Link
+                                        href={`/${product.store.slug}?p=${product.id}`}
+                                        className={`${isPriceHidden ? 'w-full' : 'flex-1'} py-5 rounded-[1.5rem] font-black text-lg flex items-center justify-center gap-3 transition-all hover:scale-105 active:scale-95 shadow-xl ${
+                                            isPriceHidden
+                                                ? 'bg-gradient-to-r from-gray-800 to-gray-900 text-white shadow-gray-900/20'
+                                                : 'bg-white border-2 border-gray-200 text-gray-900 hover:border-blue-300'
+                                        }`}
+                                    >
+                                        {isPriceHidden ? (
+                                            <>
+                                                <MessageCircle className="w-6 h-6" />
+                                                Consultar precio
+                                            </>
+                                        ) : (
+                                            <>
+                                                <ExternalLink className="w-5 h-5" />
+                                                Comprar en {product.store.name}
+                                            </>
+                                        )}
+                                    </Link>
+                                </div>
                                 <p className="text-center text-xs font-bold text-gray-400 mt-4 uppercase tracking-widest">
-                                    Serás redirigido a la tienda oficial
+                                    {isPriceHidden
+                                        ? 'Contacta al comercio para más información'
+                                        : 'Agrega al carrito para seguir comprando en el marketplace'}
                                 </p>
                             </div>
                         </div>

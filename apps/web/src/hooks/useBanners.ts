@@ -41,12 +41,12 @@ export function useBanners() {
         try {
             const data = await api.getBanners(storeId, false);
             setBanners(data);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Error fetching banners:', err);
             setErrorAlert({
                 show: true,
                 title: 'Error de carga',
-                message: err.message || 'No se pudieron cargar los banners.'
+                message: (err as Error)?.message || 'No se pudieron cargar los banners.'
             });
         } finally {
             setLoading(false);
@@ -94,12 +94,12 @@ export function useBanners() {
         try {
             const publicUrl = await storage.uploadImage(file, `banners/${storeId}`);
             setImageUrl(publicUrl);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Error uploading image:', err);
             setErrorAlert({
                 show: true,
                 title: 'Error de subida',
-                message: err.message || 'Error al subir la imagen a Supabase Storage.'
+                message: (err as Error)?.message || 'Error al subir la imagen a Supabase Storage.'
             });
         } finally {
             setUploading(false);
@@ -133,12 +133,12 @@ export function useBanners() {
             }
             setIsModalOpen(false);
             fetchBanners();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Error saving banner:', err);
             setErrorAlert({
                 show: true,
                 title: 'Error al guardar',
-                message: err.message || 'No se pudo guardar el banner.'
+                message: (err as Error)?.message || 'No se pudo guardar el banner.'
             });
         } finally {
             setSaving(false);
@@ -151,7 +151,7 @@ export function useBanners() {
             // Optimistic update
             setBanners(prev => prev.map(b => b.id === banner.id ? { ...b, isActive: !b.isActive } : b));
             await api.updateBanner(banner.id, { isActive: !banner.isActive });
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Error toggling banner status:', err);
             // Revert state
             fetchBanners();
@@ -165,12 +165,12 @@ export function useBanners() {
             await api.deleteBanner(confirmDeleteId);
             setConfirmDeleteId(null);
             fetchBanners();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Error deleting banner:', err);
             setErrorAlert({
                 show: true,
                 title: 'Error al eliminar',
-                message: err.message || 'No se pudo eliminar el banner.'
+                message: (err as Error)?.message || 'No se pudo eliminar el banner.'
             });
         }
     };

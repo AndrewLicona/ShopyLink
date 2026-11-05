@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../../core/prisma/prisma.module';
 import { RedisService } from '../../core/cache/redis.service';
 import { hashCacheKey } from '../../core/cache/cache.util';
+import { decrypt } from '../../core/common/encryption.util';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Prisma } from '@repo/database';
@@ -68,6 +69,8 @@ export class ProductsService {
         trackInventory: trackInventory ?? true,
         storeId: rest.storeId,
         categoryId: rest.categoryId,
+        itemType: rest.itemType ?? 'product',
+        pricingMode: rest.pricingMode ?? null,
       };
 
       if (rest.baseVariantName) {
@@ -142,27 +145,20 @@ export class ProductsService {
     const { category, q, ofertas } = filters;
     const cacheKey = await this.marketplaceCacheKey(filters);
 
+    // Pagination — keeps the marketplace payload small and the UI fast.
+    const limit = Math.min(
+      Math.max(Number(filters.limit) || 60, 1),
+      120,
+    );
+    const offset = Math.max(Number(filters.offset) || 0, 0);
+
     return this.cache.getOrSetJson(cacheKey, 180, async () => {
       const whereClause: any = {
         isActive: true,
         store: {
           isPublic: true,
         },
-        AND: [
-          {
-            OR: [
-              { trackInventory: false },
-              { inventory: { stock: { gt: 0 } } },
-              {
-                variants: {
-                  some: {
-                    OR: [{ trackInventory: false }, { stock: { gt: 0 } }],
-                  },
-                },
-              },
-            ],
-          },
-        ],
+        AND: [],
       };
 
       if (ofertas === 'true') {
@@ -214,13 +210,15 @@ export class ProductsService {
                 marketplaceCategory: true,
                 globalDiscountActive: true,
                 globalDiscountPercentage: true,
+                whatsappNumber: true,
               },
             },
             inventory: true,
             variants: true,
           },
           orderBy: { createdAt: 'desc' },
-          take: 1000,
+          skip: offset,
+          take: limit,
         } as any),
       );
 
@@ -241,6 +239,7 @@ export class ProductsService {
         }
         return {
           ...product,
+          store: store ? { ...store, whatsappNumber: decrypt(store.whatsappNumber) } : store,
           discountPrice,
         };
       });
@@ -311,6 +310,8 @@ export class ProductsService {
         trackInventory:
           trackInventory !== undefined ? trackInventory : undefined,
         categoryId: productData.categoryId,
+        itemType: productData.itemType,
+        pricingMode: productData.pricingMode,
       };
 
       if (productData.baseVariantName) {

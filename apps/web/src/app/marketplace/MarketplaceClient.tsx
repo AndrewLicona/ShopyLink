@@ -1,13 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Store as StoreIcon, Star, MapPin, ShoppingBag, ArrowRight, TrendingUp, Sparkles, Search, Flame } from 'lucide-react';
+import { Store as StoreIcon, Star, MapPin, ShoppingBag, ArrowRight, TrendingUp, Sparkles, Search, Flame, Loader2 } from 'lucide-react';
 import { api } from '@/services/api';
 import { Product, Store } from '@/types/types';
 import { formatCurrency } from '@/lib/utils';
+import { MarketplaceProductCard } from '@/features/marketplace/MarketplaceProductCard';
+
+const PAGE_SIZE = 40;
 
 const allCategories = [
     { id: 'all', label: 'Todo' },
@@ -30,21 +33,29 @@ export default function MarketplaceClient() {
     const [stores, setStores] = useState<Store[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(false);
+    const [offset, setOffset] = useState(0);
     const [activeCategory, setActiveCategory] = useState<string>('all');
     const [activeCategories, setActiveCategories] = useState<{ id: string, label: string }[]>([]);
+
+    const buildParams = useCallback((extra: Record<string, string | number> = {}) => {
+        const params: Record<string, string | number> = { ...extra };
+        if (activeCategory !== 'all') {
+            if (activeCategory === 'ofertas') {
+                params.ofertas = 'true';
+            } else {
+                params.category = activeCategory;
+            }
+        }
+        return params;
+    }, [activeCategory]);
 
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const params: Record<string, string> = {};
-                if (activeCategory !== 'all') {
-                    if (activeCategory === 'ofertas') {
-                        params.ofertas = 'true';
-                    } else {
-                        params.category = activeCategory;
-                    }
-                }
+                const params = buildParams({ limit: PAGE_SIZE, offset: 0 });
                 const [storesData, productsData, activeCategoriesIds, offersCheck] = await Promise.all([
                     api.getMarketplaceStores({ ...params, featured: 'true' }),
                     api.getMarketplaceProducts(params),
@@ -53,6 +64,8 @@ export default function MarketplaceClient() {
                 ]);
                 setStores(storesData);
                 setProducts(productsData);
+                setOffset(productsData.length);
+                setHasMore(productsData.length === PAGE_SIZE);
 
                 const hasOffers = offersCheck && offersCheck.length > 0;
 
@@ -71,7 +84,26 @@ export default function MarketplaceClient() {
         };
 
         fetchData();
-    }, [activeCategory]);
+    }, [buildParams]);
+
+    const loadMore = async () => {
+        setLoadingMore(true);
+        try {
+            const data = (await api.getMarketplaceProducts(
+                buildParams({ limit: PAGE_SIZE, offset }),
+            )) as Product[];
+            setProducts((prev) => {
+                const seen = new Set(prev.map((p) => p.id));
+                return [...prev, ...data.filter((p) => !seen.has(p.id))];
+            });
+            setOffset((prev) => prev + data.length);
+            setHasMore(data.length === PAGE_SIZE);
+        } catch (error) {
+            console.error('Error loading more products:', error);
+        } finally {
+            setLoadingMore(false);
+        }
+    };
 
     const featuredStores = stores.filter(s => s.featured).slice(0, 3); // Max 3 featured stores
 
@@ -226,11 +258,26 @@ export default function MarketplaceClient() {
                             ))}
                         </div>
                     ) : products.length > 0 ? (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                            {products.map((product, i) => (
-                                <ProductCard key={product.id} product={product} index={i} />
-                            ))}
-                        </div>
+                        <>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                                {products.map((product, i) => (
+                                    <MarketplaceProductCard key={product.id} product={product} index={i} />
+                                ))}
+                            </div>
+
+                            {hasMore && (
+                                <div className="flex justify-center mt-12">
+                                    <button
+                                        onClick={loadMore}
+                                        disabled={loadingMore}
+                                        className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-sm hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-60 disabled:active:scale-100 flex items-center gap-3 shadow-lg shadow-blue-600/20"
+                                    >
+                                        {loadingMore && <Loader2 className="w-4 h-4 animate-spin" />}
+                                        {loadingMore ? 'Cargando...' : 'Cargar más productos'}
+                                    </button>
+                                </div>
+                            )}
+                        </>
                     ) : (
                         <div className="text-center py-20 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
                             <ShoppingBag className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -244,68 +291,6 @@ export default function MarketplaceClient() {
     );
 }
 
-function ProductCard({ product, index }: { product: Product, index: number }) {
-    const imageUrl = product.images?.[0] || product.variants?.[0]?.images?.[0];
-    
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05, duration: 0.4 }}
-        >
-            {/* Link to the product detail page within the marketplace */}
-            <Link href={`/marketplace/producto/${product.id}`} className="block group h-full">
-                <div className={`relative h-full bg-white rounded-2xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col ${product.discountPrice ? 'border-2 border-emerald-500 hover:border-emerald-400' : 'border border-gray-100 hover:border-blue-200'}`}>
-                    <div className="w-full relative aspect-square bg-white flex items-center justify-center overflow-hidden">
-                        {imageUrl ? (
-                            <>
-                                {/* Blurred Background to fill empty spaces */}
-                                <img src={imageUrl} alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover blur-xl opacity-30 scale-110" />
-                                {/* Main Image, uncropped */}
-                                <img src={imageUrl} alt={product.name} className="relative z-10 w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-500" />
-                            </>
-                        ) : (
-                            <div className="relative z-10 py-16">
-                                <ShoppingBag className="w-8 h-8 text-gray-200" />
-                            </div>
-                        )}
-                        {product.discountPrice && (
-                            <div className="absolute top-3 left-3 bg-emerald-500 text-white px-2 py-1 rounded-lg text-[10px] font-black shadow-md z-20 uppercase tracking-wide">
-                                Oferta
-                            </div>
-                        )}
-                    </div>
-                    
-                    <div className="p-4 flex-1 flex flex-col">
-                        <div className="text-[10px] font-black text-blue-600 mb-1.5 uppercase tracking-wider flex items-center gap-1">
-                            <StoreIcon className="w-3 h-3" />
-                            <span className="truncate">{product.store?.name || 'Tienda'}</span>
-                        </div>
-                        <h3 className="text-sm font-black text-gray-900 group-hover:text-blue-600 transition-colors leading-snug mb-3">
-                            {product.name}
-                        </h3>
-                        <div className="flex items-center gap-2 mb-4 mt-auto">
-                            {(!product.discountPrice && !product.price) ? (
-                                <span className="text-sm font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">Precio a consultar</span>
-                            ) : (
-                                <>
-                                    <span className="text-xl font-black text-gray-900">
-                                        {formatCurrency(product.discountPrice || product.price || 0)}
-                                    </span>
-                                    {product.discountPrice && (
-                                        <span className="text-sm font-bold text-gray-400 line-through">
-                                            {formatCurrency(product.price || 0)}
-                                        </span>
-                                    )}
-                                </>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </Link>
-        </motion.div>
-    );
-}
 
 function StoreCard({ store, index, featured = false }: { store: Store, index: number, featured?: boolean }) {
     return (

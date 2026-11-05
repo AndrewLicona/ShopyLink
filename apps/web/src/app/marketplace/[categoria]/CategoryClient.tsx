@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
-import { motion } from 'framer-motion';
-import { MapPin, Star, Filter, ArrowLeft, SlidersHorizontal, Store as StoreIcon, ShoppingBag } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import { ArrowLeft, ShoppingBag, Loader2 } from 'lucide-react';
 import { api } from '@/services/api';
 import { Product } from '@/types/types';
+import { MarketplaceProductCard } from '@/features/marketplace/MarketplaceProductCard';
+
+const PAGE_SIZE = 40;
 
 export default function CategoryClient() {
     const params = useParams();
@@ -18,24 +18,46 @@ export default function CategoryClient() {
 
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(false);
+    const [offset, setOffset] = useState(0);
+
+    const fetchResults = useCallback(async () => {
+        setLoading(true);
+        try {
+            const data = (await api.getMarketplaceProducts({ category, limit: PAGE_SIZE, offset: 0 })) as Product[];
+            setProducts(data);
+            setOffset(data.length);
+            setHasMore(data.length === PAGE_SIZE);
+        } catch (error) {
+            console.error('Error fetching category results:', error);
+        } finally {
+            setLoading(false);
+        }
+    }, [category]);
 
     useEffect(() => {
-        const fetchResults = async () => {
-            setLoading(true);
-            try {
-                const data = await api.getMarketplaceProducts({ category });
-                setProducts(data);
-            } catch (error) {
-                console.error('Error fetching category results:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         if (category) {
             fetchResults();
         }
-    }, [category]);
+    }, [category, fetchResults]);
+
+    const loadMore = async () => {
+        setLoadingMore(true);
+        try {
+            const data = (await api.getMarketplaceProducts({ category, limit: PAGE_SIZE, offset })) as Product[];
+            setProducts((prev) => {
+                const seen = new Set(prev.map((p) => p.id));
+                return [...prev, ...data.filter((p) => !seen.has(p.id))];
+            });
+            setOffset((prev) => prev + data.length);
+            setHasMore(data.length === PAGE_SIZE);
+        } catch (error) {
+            console.error('Error loading more products:', error);
+        } finally {
+            setLoadingMore(false);
+        }
+    };
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pb-24">
@@ -60,11 +82,26 @@ export default function CategoryClient() {
                     ))}
                 </div>
             ) : products.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                    {products.map((product, i) => (
-                        <ProductCard key={product.id} product={product} index={i} />
-                    ))}
-                </div>
+                <>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                        {products.map((product, i) => (
+                            <MarketplaceProductCard key={product.id} product={product} index={i} />
+                        ))}
+                    </div>
+
+                    {hasMore && (
+                        <div className="flex justify-center mt-12">
+                            <button
+                                onClick={loadMore}
+                                disabled={loadingMore}
+                                className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-sm hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-60 disabled:active:scale-100 flex items-center gap-3 shadow-lg shadow-blue-600/20"
+                            >
+                                {loadingMore && <Loader2 className="w-4 h-4 animate-spin" />}
+                                {loadingMore ? 'Cargando...' : 'Cargar más productos'}
+                            </button>
+                        </div>
+                    )}
+                </>
             ) : (
                 <div className="text-center py-20 bg-white rounded-[3rem] border-2 border-dashed border-gray-200 shadow-sm">
                     <ShoppingBag className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -76,60 +113,5 @@ export default function CategoryClient() {
                 </div>
             )}
         </div>
-    );
-}
-
-function ProductCard({ product, index }: { product: Product, index: number }) {
-    const imageUrl = product.images?.[0] || product.variants?.[0]?.images?.[0];
-    
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05, duration: 0.4 }}
-        >
-            <Link href={`/marketplace/producto/${product.id}`} className="block group h-full">
-                <div className={`relative h-full bg-white rounded-3xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col ${product.discountPrice ? 'border-2 border-emerald-500 hover:border-emerald-400' : 'border border-gray-100 hover:border-blue-100'}`}>
-                    <div className="h-40 sm:h-48 w-full relative bg-gray-50 flex items-center justify-center overflow-hidden">
-                        {imageUrl ? (
-                            <Image src={imageUrl} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
-                        ) : (
-                            <ShoppingBag className="w-8 h-8 text-gray-300" />
-                        )}
-                        {product.discountPrice && (
-                            <div className="absolute top-3 left-3 bg-emerald-500 text-white px-2 py-1 rounded-lg text-[10px] font-black shadow-md z-10 uppercase tracking-wide">
-                                Oferta
-                            </div>
-                        )}
-                    </div>
-                    
-                    <div className="p-4 flex-1 flex flex-col">
-                        <div className="text-[10px] font-black text-blue-500 mb-1.5 uppercase tracking-wider flex items-center gap-1">
-                            <StoreIcon className="w-3 h-3" />
-                            <span className="truncate">{product.store?.name || 'Tienda'}</span>
-                        </div>
-                        <h3 className="text-sm font-black text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug mb-3">
-                            {product.name}
-                        </h3>
-                        <div className="flex items-center gap-2 mb-4 mt-auto">
-                            {(!product.discountPrice && !product.price) ? (
-                                <span className="text-sm font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">Precio a consultar</span>
-                            ) : (
-                                <>
-                                    <span className="text-xl font-black text-gray-900">
-                                        {formatCurrency(product.discountPrice || product.price || 0)}
-                                    </span>
-                                    {product.discountPrice && (
-                                        <span className="text-sm font-bold text-gray-400 line-through">
-                                            {formatCurrency(product.price || 0)}
-                                        </span>
-                                    )}
-                                </>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </Link>
-        </motion.div>
     );
 }

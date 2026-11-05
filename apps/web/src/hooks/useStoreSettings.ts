@@ -26,6 +26,7 @@ export function useStoreSettings() {
     const [primaryColor, setPrimaryColor] = useState('');
     const [referenceLocation, setReferenceLocation] = useState('');
     const [mapsUrl, setMapsUrl] = useState('');
+    const [businessHours, setBusinessHours] = useState<Record<string, { open: string; close: string } | null>>({});
 
     // Social Media
     const [instagramUrl, setInstagramUrl] = useState('');
@@ -72,6 +73,7 @@ export function useStoreSettings() {
             setPrimaryColor(activeStore.primaryColor || '');
             setReferenceLocation(activeStore.referenceLocation || '');
             setMapsUrl(activeStore.mapsUrl || '');
+            setBusinessHours(activeStore.businessHours || {});
             setInstagramUrl(activeStore.instagramUrl || '');
             setFacebookUrl(activeStore.facebookUrl || '');
             setTiktokUrl(activeStore.tiktokUrl || '');
@@ -111,6 +113,7 @@ export function useStoreSettings() {
                 primaryColor,
                 referenceLocation,
                 mapsUrl,
+                businessHours,
                 instagramUrl,
                 facebookUrl,
                 tiktokUrl,
@@ -208,7 +211,7 @@ export function useStoreSettings() {
         state: {
             loading, saving, uploading, success, error,
             name, slug, autoGenerateSlug, whatsapp, logoUrl,
-            bannerUrl, primaryColor, referenceLocation, mapsUrl,
+            bannerUrl, primaryColor, referenceLocation, mapsUrl, businessHours,
             instagramUrl, facebookUrl, tiktokUrl, twitterUrl, pinterestUrl, youtubeUrl,
             deliveryEnabled, deliveryPrice,
             theme, mode, applyToDashboard,
@@ -227,6 +230,7 @@ export function useStoreSettings() {
             setPrimaryColor,
             setReferenceLocation,
             setMapsUrl,
+            setBusinessHours,
             setInstagramUrl,
             setFacebookUrl,
             setTiktokUrl,

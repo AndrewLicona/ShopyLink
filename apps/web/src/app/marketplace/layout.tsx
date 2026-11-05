@@ -3,6 +3,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { Search, ShoppingBag, MapPin, Store } from 'lucide-react';
 import { MarketplaceSearchBar } from '@/components/molecules/MarketplaceSearchBar';
+import { MarketplaceCartButton } from '@/components/molecules/MarketplaceCartButton';
 
 export const metadata: Metadata = {
     title: 'Marketplace | ShopyLink',
@@ -38,10 +39,11 @@ export default function MarketplaceLayout({
                         </div>
 
                         {/* Actions */}
-                        <div className="flex items-center gap-4 shrink-0">
+                        <div className="flex items-center gap-3 sm:gap-4 shrink-0">
                             <Link href="/login" className="hidden sm:flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors">
                                 Crear Tienda
                             </Link>
+                            <MarketplaceCartButton />
                             <Link href="/dashboard" className="flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-800 transition-all hover:scale-105 active:scale-95 shadow-md">
                                 <Store className="w-4 h-4" />
                                 <span className="hidden sm:inline">Mi Panel</span>

@@ -216,7 +216,7 @@ export function useProducts() {
         }
         setBaseVariantName(product.baseVariantName || 'Principal');
         setItemType(product.itemType || 'product');
-        setPricingMode((product.pricingMode as any) || 'fixed');
+        setPricingMode(product.pricingMode || 'fixed');
         setIsModalOpen(true);
     };
 

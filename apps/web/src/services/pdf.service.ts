@@ -1,5 +1,4 @@
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import type { Store, Product, Category } from '../types/types';
 import { formatCurrency } from '../lib/utils';
 
@@ -38,8 +37,6 @@ export const pdfService = {
         const contentWidth = pageWidth - (margin * 2);
 
         // Colors
-        const primaryColor = [37, 99, 235] as const; // Default Blue
-        const secondaryColor = [243, 244, 246] as const;
         const textColor = [17, 24, 39] as const;
         const accentColor = [220, 38, 38] as const; // For Sales
 
@@ -74,8 +71,10 @@ export const pdfService = {
             categoriesWithProducts.push({
                 id: 'none',
                 name: 'Otros Productos',
+                slug: 'otros',
+                storeId: '',
                 products: uncategorizedItems
-            } as any);
+            });
         }
 
         let firstPage = true;
@@ -264,6 +263,8 @@ export const pdfService = {
         }
 
         // Clean Footer
+        // jsPDF does not expose getNumberOfPages() in its public typings.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const totalPgs = (doc as any).internal.getNumberOfPages();
         for (let i = 1; i <= totalPgs; i++) {
             doc.setPage(i);
