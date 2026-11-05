@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import { api } from '@/services/api';
 import { getAbsoluteUrl } from '@/lib/utils';
-import { hexToRgb } from '@/lib/colorUtils';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
     const resolvedParams = await params;
@@ -43,16 +42,10 @@ export default async function StoreLayout({
     const resolvedParams = await params;
     const store = await api.getStoreBySlug(resolvedParams.slug, { next: { revalidate: 300 } }).catch(() => null);
 
-    const customStyles: React.CSSProperties = store?.primaryColor ? {
-        '--primary': store.primaryColor,
-        '--primary-rgb': hexToRgb(store.primaryColor),
-    } as React.CSSProperties : {};
-
     return (
         <div
             data-theme={store?.theme || 'classic'}
             data-mode={store?.mode || 'light'}
-            style={customStyles}
             className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-300"
         >
             {children}

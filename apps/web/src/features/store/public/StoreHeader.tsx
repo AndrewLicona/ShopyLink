@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { ShoppingBag, MapPin, ExternalLink } from 'lucide-react';
+import { ShoppingBag, MapPin, ExternalLink, Store as StoreIcon } from 'lucide-react';
 import type { Store } from '@/types/types';
 import { isStoreOpen } from '@/lib/businessHours';
 
@@ -14,21 +14,6 @@ export function StoreHeader({ store, cartCount, onOpenCart }: StoreHeaderProps) 
 
     return (
         <header className="bg-[var(--bg)] border-b border-[var(--border)] sticky top-0 z-50">
-            {/* Portada Superior / Banner si existe */}
-            {store?.bannerUrl && (
-                <div className="relative w-full h-28 sm:h-36 md:h-44 overflow-hidden bg-[var(--secondary)]">
-                    <Image
-                        src={store.bannerUrl}
-                        alt={`Portada de ${store.name}`}
-                        fill
-                        className="object-cover"
-                        sizes="100vw"
-                        priority
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg)]/80 via-transparent to-transparent" />
-                </div>
-            )}
-
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between min-h-20 py-3 gap-3">
                     <div className="flex items-center gap-3 min-w-0">
@@ -42,7 +27,7 @@ export function StoreHeader({ store, cartCount, onOpenCart }: StoreHeaderProps) 
                                     sizes="48px"
                                 />
                             ) : (
-                                <span className="text-xl">🏪</span>
+                                <StoreIcon className="w-5 h-5 text-[var(--text)]/30" />
                             )}
                         </div>
                         <div className="min-w-0">
@@ -51,7 +36,7 @@ export function StoreHeader({ store, cartCount, onOpenCart }: StoreHeaderProps) 
                             </h1>
                             <div className="flex items-center gap-2 flex-wrap mt-0.5">
                                 <p className={`text-[10px] font-black uppercase tracking-widest flex items-center gap-1 ${open ? 'text-green-600' : 'text-gray-400'}`}>
-                                    <span className={`w-1.5 h-1.5 rounded-full ${open ? 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-gray-400'}`} />
+                                    <span className={`w-1.5 h-1.5 rounded-full ${open ? 'bg-green-500' : 'bg-gray-400'}`} />
                                     {open ? 'Abierto ahora' : 'Cerrado'}
                                 </p>
                                 {store?.referenceLocation && (

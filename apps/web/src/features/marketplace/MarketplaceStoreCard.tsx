@@ -3,11 +3,14 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { MapPin, Star, Store as StoreIcon } from 'lucide-react';
+import { MapPin, Store as StoreIcon } from 'lucide-react';
 import { Store } from '@/types/types';
 
 /**
- * Store card used across the marketplace (home feed and the stores listing).
+ * Store card used across the marketplace (stores listing).
+ *
+ * Minimal by design: only the store logo identifies the business, no cover
+ * banner and no coloured badges.
  */
 export function MarketplaceStoreCard({
     store,
@@ -20,97 +23,54 @@ export function MarketplaceStoreCard({
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: Math.min(index, 6) * 0.06, duration: 0.45 }}
+            transition={{ delay: Math.min(index, 6) * 0.06, duration: 0.4 }}
             className="h-full"
         >
             <Link
                 href={`/marketplace/tienda/${store.slug}`}
-                className="group flex h-full flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-900/5"
+                className="group flex h-full items-start gap-4 rounded-2xl border border-gray-200 bg-white p-5 transition-all duration-300 hover:border-gray-300 hover:shadow-lg hover:shadow-gray-900/5"
             >
-                {/* Cover */}
-                <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600">
-                    {store.bannerUrl ? (
+                {/* Logo */}
+                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-gray-100 bg-gray-50">
+                    {store.logoUrl ? (
                         <Image
-                            src={store.bannerUrl}
-                            alt={`Banner de ${store.name}`}
+                            src={store.logoUrl}
+                            alt={store.name}
                             fill
-                            className="object-cover transition-transform duration-700 group-hover:scale-105"
-                            sizes="(max-width: 768px) 100vw, 33vw"
+                            className="object-contain p-1.5 transition-transform duration-500 group-hover:scale-105"
+                            sizes="56px"
                         />
                     ) : (
-                        /* No banner: clean branded cover, the logo lives in the body */
-                        <div
-                            aria-hidden
-                            className="absolute inset-0 opacity-[0.12]"
-                            style={{
-                                backgroundImage:
-                                    'radial-gradient(circle, white 1.5px, transparent 1.5px)',
-                                backgroundSize: '22px 22px',
-                            }}
-                        />
-                    )}
-
-                    {store.featured && (
-                        <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-amber-600 shadow-sm">
-                            <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
-                            Destacada
-                        </span>
+                        <div className="flex h-full w-full items-center justify-center text-gray-300">
+                            <StoreIcon className="h-6 w-6" />
+                        </div>
                     )}
                 </div>
 
                 {/* Body */}
-                <div className="flex flex-1 flex-col px-5 pb-5">
-                    <div className="relative -mt-8 mb-3 h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-4 border-white bg-white shadow-md">
-                        {store.logoUrl ? (
-                            <Image
-                                src={store.logoUrl}
-                                alt={store.name}
-                                fill
-                                className="object-contain p-1.5"
-                                sizes="64px"
-                            />
-                        ) : (
-                            <div className="flex h-full w-full items-center justify-center text-gray-300">
-                                <StoreIcon className="h-6 w-6" />
-                            </div>
-                        )}
-                    </div>
-
-                    <h3 className="truncate text-base font-black text-gray-900 transition-colors group-hover:text-blue-600">
+                <div className="min-w-0 flex-1">
+                    <h3 className="truncate text-[15px] font-black text-gray-900 transition-colors group-hover:text-gray-600">
                         {store.name}
                     </h3>
 
-                    <p className="mt-1 truncate text-xs font-bold uppercase tracking-wider text-gray-400">
+                    <p className="mt-0.5 truncate text-[11px] font-bold uppercase tracking-wider text-gray-400">
                         {store.marketplaceCategory || 'Variedades'}
                     </p>
 
-                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold text-gray-500">
                         {store.city && (
-                            <span className="inline-flex items-center gap-1.5 rounded-lg bg-gray-100 px-2.5 py-1 text-[11px] font-bold text-gray-600">
-                                <MapPin className="h-3 w-3 text-blue-500" />
+                            <span className="inline-flex items-center gap-1">
+                                <MapPin className="h-3.5 w-3.5 text-gray-300" />
                                 {store.city.trim()}
                             </span>
                         )}
-                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700">
-                            {productCount}{' '}
-                            {productCount === 1 ? 'producto' : 'productos'}
+                        <span className="text-gray-300">·</span>
+                        <span>
+                            {productCount} {productCount === 1 ? 'producto' : 'productos'}
                         </span>
                     </div>
-
-                    {store.tags && store.tags.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-1.5">
-                            {store.tags.slice(0, 3).map((tag, tagIndex) => (
-                                <span
-                                    key={`${tag}-${tagIndex}`}
-                                    className="rounded-md bg-gray-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-gray-500"
-                                >
-                                    {tag}
-                                </span>
-                            ))}
-                        </div>
-                    )}
                 </div>
             </Link>
         </motion.div>

@@ -198,7 +198,7 @@ export function MarketplaceProductCard({
                         ) : !available ? (
                             <Link
                                 href={`/marketplace/producto/${product.id}`}
-                                className="flex h-11 w-11 items-center justify-center rounded-full bg-amber-500 text-white shadow-lg shadow-amber-500/30 transition-all hover:scale-110 hover:bg-amber-600 active:scale-95"
+                                className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-gray-400 shadow-lg shadow-gray-900/10 ring-1 ring-gray-200 transition-all hover:scale-110 hover:bg-gray-50 hover:text-gray-700 active:scale-95"
                                 aria-label={`Pedir ${product.name} por encargo`}
                                 title="Pedir por encargo"
                             >
