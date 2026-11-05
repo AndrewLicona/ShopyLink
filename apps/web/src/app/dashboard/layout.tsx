@@ -1,4 +1,4 @@
-
+﻿
 'use client';
 
 import Link from 'next/link';
@@ -15,7 +15,8 @@ import {
     X as CloseIcon,
     ShieldAlert,
     Megaphone,
-    Layers
+    Layers,
+    QrCode
 } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
@@ -84,6 +85,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         { icon: Package, label: 'Productos', href: '/dashboard/products' },
         { icon: ShoppingCart, label: 'Pedidos', href: '/dashboard/orders' },
         { icon: Layers, label: 'Banners', href: '/dashboard/banners' },
+        { icon: QrCode, label: 'Código QR', href: '/dashboard/qr' },
         { icon: Settings, label: 'Ajustes', href: '/dashboard/settings' },
         { icon: Megaphone, label: 'Comunicados', href: '/dashboard/broadcasts' },
     ];

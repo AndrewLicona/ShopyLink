@@ -121,6 +121,35 @@ export function StoreTab({ hook }: StoreTabProps) {
 
                                     <PhoneInput label="WhatsApp pedidos" value={state.whatsapp} onChange={actions.setWhatsapp} placeholder="300 123 4567" />
 
+                                    {/* Referencia Local */}
+                                    <div className="space-y-4 pt-4 border-t border-[var(--border)]">
+                                        <div>
+                                            <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1 flex items-center gap-2">
+                                                <MapPin className="w-4 h-4 text-[var(--primary)]" />
+                                                Referencia de ubicación local
+                                            </label>
+                                            <input
+                                                type="text"
+                                                className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/10 outline-none transition-all font-bold text-[var(--text)] bg-[var(--bg)]"
+                                                placeholder="Ej: A 2 cuadras de la plaza principal"
+                                                value={state.referenceLocation}
+                                                onChange={(e) => actions.setReferenceLocation(e.target.value)}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">
+                                                Enlace a Google Maps (opcional)
+                                            </label>
+                                            <input
+                                                type="url"
+                                                className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/10 outline-none transition-all font-medium text-[var(--text)] bg-[var(--bg)]"
+                                                placeholder="https://maps.google.com/..."
+                                                value={state.mapsUrl}
+                                                onChange={(e) => actions.setMapsUrl(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+
                                     <div className="pt-4 border-t border-[var(--border)]">
                                         <div
                                             onClick={() => actions.setDeliveryEnabled(!state.deliveryEnabled)}
@@ -185,6 +214,67 @@ export function StoreTab({ hook }: StoreTabProps) {
                                                 className="w-14 h-14 bg-red-500 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all flex-shrink-0"
                                             >
                                                 <Trash2 className="w-5 h-5" />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Portada / Banner */}
+                                <div className="space-y-4">
+                                    <h4 className="text-xs font-black uppercase tracking-widest text-[var(--text)]/50">Portada Superior (Banner)</h4>
+                                    <div className="relative w-full h-32 bg-[var(--secondary)]/30 rounded-3xl border-2 border-dashed border-[var(--border)] overflow-hidden flex items-center justify-center">
+                                        {state.bannerUrl ? (
+                                            <Image src={state.bannerUrl} alt="Banner" fill className="object-cover" sizes="400px" />
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center gap-2 text-[var(--text)]/30">
+                                                <Camera className="w-6 h-6" />
+                                                <span className="text-xs font-bold">Sin portada configurada</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <label className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-[var(--surface)] border-2 border-[var(--border)] rounded-2xl font-bold text-xs text-[var(--text)]/60 cursor-pointer hover:bg-[var(--secondary)] active:scale-95 transition-all shadow-sm">
+                                            <Camera className="w-3.5 h-3.5" />
+                                            {state.bannerUrl ? 'Cambiar Portada' : 'Subir Portada'}
+                                            <input type="file" className="hidden" accept="image/*" onChange={actions.handleBannerUpload} disabled={state.uploading} />
+                                        </label>
+                                        {state.bannerUrl && (
+                                            <button
+                                                type="button"
+                                                onClick={() => actions.setBannerUrl('')}
+                                                className="px-4 py-3.5 bg-red-500 text-white rounded-2xl text-xs font-black hover:scale-105 active:scale-95 transition-all"
+                                            >
+                                                Quitar
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Color Principal */}
+                                <div className="space-y-3 pt-2 border-t border-[var(--border)]">
+                                    <label className="text-xs font-black uppercase tracking-widest text-[var(--text)]/50 block">
+                                        Color de Marca / Botones
+                                    </label>
+                                    <div className="flex items-center gap-3 p-4 bg-[var(--bg)] border-2 border-[var(--border)] rounded-2xl">
+                                        <input
+                                            type="color"
+                                            value={state.primaryColor || '#6366f1'}
+                                            onChange={(e) => actions.setPrimaryColor(e.target.value)}
+                                            className="w-10 h-10 rounded-xl cursor-pointer border-0 bg-transparent shrink-0"
+                                        />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="font-black text-sm text-[var(--text)] truncate">
+                                                {state.primaryColor || 'Color por defecto del tema'}
+                                            </p>
+                                            <p className="text-[10px] text-[var(--text)]/40 font-bold uppercase tracking-wider">Acento de botones y detalles</p>
+                                        </div>
+                                        {state.primaryColor && (
+                                            <button
+                                                type="button"
+                                                onClick={() => actions.setPrimaryColor('')}
+                                                className="text-xs font-bold text-[var(--text)]/40 hover:text-red-500 transition-colors shrink-0"
+                                            >
+                                                Restablecer
                                             </button>
                                         )}
                                     </div>

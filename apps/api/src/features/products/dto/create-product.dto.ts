@@ -74,7 +74,16 @@ export class CreateProductDto {
   @Type(() => ProductVariantDto)
   @IsOptional()
   variants?: ProductVariantDto[];
+
+  @IsString()
+  @IsOptional()
+  itemType?: string;
+
+  @IsString()
+  @IsOptional()
+  pricingMode?: string;
 }
+
 
 export class ProductVariantDto {
   @IsString()

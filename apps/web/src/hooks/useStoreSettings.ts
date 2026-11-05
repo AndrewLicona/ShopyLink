@@ -22,6 +22,10 @@ export function useStoreSettings() {
     const [autoGenerateSlug, setAutoGenerateSlug] = useState(true);
     const [whatsapp, setWhatsapp] = useState('');
     const [logoUrl, setLogoUrl] = useState('');
+    const [bannerUrl, setBannerUrl] = useState('');
+    const [primaryColor, setPrimaryColor] = useState('');
+    const [referenceLocation, setReferenceLocation] = useState('');
+    const [mapsUrl, setMapsUrl] = useState('');
 
     // Social Media
     const [instagramUrl, setInstagramUrl] = useState('');
@@ -64,6 +68,10 @@ export function useStoreSettings() {
             setSlug(activeStore.slug || '');
             setWhatsapp(activeStore.whatsappNumber || '');
             setLogoUrl(activeStore.logoUrl || '');
+            setBannerUrl(activeStore.bannerUrl || '');
+            setPrimaryColor(activeStore.primaryColor || '');
+            setReferenceLocation(activeStore.referenceLocation || '');
+            setMapsUrl(activeStore.mapsUrl || '');
             setInstagramUrl(activeStore.instagramUrl || '');
             setFacebookUrl(activeStore.facebookUrl || '');
             setTiktokUrl(activeStore.tiktokUrl || '');
@@ -99,6 +107,10 @@ export function useStoreSettings() {
                 slug,
                 whatsappNumber: whatsapp,
                 logoUrl,
+                bannerUrl,
+                primaryColor,
+                referenceLocation,
+                mapsUrl,
                 instagramUrl,
                 facebookUrl,
                 tiktokUrl,
@@ -150,6 +162,24 @@ export function useStoreSettings() {
         }
     };
 
+    const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploading(true);
+        setError(null);
+        try {
+            const url = await storage.uploadImage(file, 'banners');
+            setBannerUrl(url);
+            setSuccess('Banner subido correctamente.');
+        } catch (err: unknown) {
+            setError('Error al subir el banner.');
+            console.error(err);
+        } finally {
+            setUploading(false);
+        }
+    };
+
     const handleDeleteStore = async () => {
         if (!activeStore || deleteConfirmationName !== activeStore.name) return;
 
@@ -178,6 +208,7 @@ export function useStoreSettings() {
         state: {
             loading, saving, uploading, success, error,
             name, slug, autoGenerateSlug, whatsapp, logoUrl,
+            bannerUrl, primaryColor, referenceLocation, mapsUrl,
             instagramUrl, facebookUrl, tiktokUrl, twitterUrl, pinterestUrl, youtubeUrl,
             deliveryEnabled, deliveryPrice,
             theme, mode, applyToDashboard,
@@ -192,6 +223,10 @@ export function useStoreSettings() {
             setAutoGenerateSlug,
             setWhatsapp,
             setLogoUrl,
+            setBannerUrl,
+            setPrimaryColor,
+            setReferenceLocation,
+            setMapsUrl,
             setInstagramUrl,
             setFacebookUrl,
             setTiktokUrl,
@@ -214,6 +249,7 @@ export function useStoreSettings() {
             setSuggestedSlug,
             handleUpdateStore,
             handleLogoUpload,
+            handleBannerUpload,
             handleDeleteStore
         }
     };
