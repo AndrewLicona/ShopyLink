@@ -20,7 +20,10 @@ services:
       - shopynet
 
   migrate:
-    image: shopylink-api:latest
+    # Own image tag on purpose: sharing "shopylink-api:latest" with the api
+    # service would let the migrator image overwrite the API image and make the
+    # API container start the migration command instead of the Nest server.
+    image: shopylink-migrate:latest
     build:
       context: .
       dockerfile: apps/api/Dockerfile
@@ -40,7 +43,12 @@ services:
     restart: always
     depends_on:
       migrate:
-        condition: service_completed_successfully
+        # service_started (NOT service_completed_successfully): with the strict
+        # condition a failing migration container aborts the whole `compose up`
+        # and takes the web + api containers down with it. Starting in parallel
+        # keeps the site online; the migration is idempotent so it can safely
+        # finish a moment later.
+        condition: service_started
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - JWT_SECRET=${JWT_SECRET}
