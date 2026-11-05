@@ -15,6 +15,7 @@ export default function CategoryClient() {
     // In Next.js router, param might be URI encoded
     const rawCategory = params.categoria as string;
     const category = decodeURIComponent(rawCategory);
+    const isOffers = category.toLowerCase() === 'ofertas';
 
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
@@ -25,7 +26,10 @@ export default function CategoryClient() {
     const fetchResults = useCallback(async () => {
         setLoading(true);
         try {
-            const data = (await api.getMarketplaceProducts({ category, limit: PAGE_SIZE, offset: 0 })) as Product[];
+            const filter: Record<string, string | number> = isOffers
+                ? { ofertas: 'true', limit: PAGE_SIZE, offset: 0 }
+                : { category, limit: PAGE_SIZE, offset: 0 };
+            const data = (await api.getMarketplaceProducts(filter)) as Product[];
             setProducts(data);
             setOffset(data.length);
             setHasMore(data.length === PAGE_SIZE);
@@ -34,7 +38,7 @@ export default function CategoryClient() {
         } finally {
             setLoading(false);
         }
-    }, [category]);
+    }, [category, isOffers]);
 
     useEffect(() => {
         if (category) {
@@ -45,7 +49,10 @@ export default function CategoryClient() {
     const loadMore = async () => {
         setLoadingMore(true);
         try {
-            const data = (await api.getMarketplaceProducts({ category, limit: PAGE_SIZE, offset })) as Product[];
+            const filter: Record<string, string | number> = isOffers
+                ? { ofertas: 'true', limit: PAGE_SIZE, offset }
+                : { category, limit: PAGE_SIZE, offset };
+            const data = (await api.getMarketplaceProducts(filter)) as Product[];
             setProducts((prev) => {
                 const seen = new Set(prev.map((p) => p.id));
                 return [...prev, ...data.filter((p) => !seen.has(p.id))];
@@ -67,10 +74,12 @@ export default function CategoryClient() {
                 </Link>
                 <div>
                     <h1 className="text-3xl font-black text-gray-900 capitalize">
-                        {category}
+                        {isOffers ? 'Ofertas' : category}
                     </h1>
                     <p className="text-gray-500 font-medium mt-1">
-                        Descubre los mejores productos en la categoría {category}
+                        {isOffers
+                            ? 'Productos con descuento activo en este momento'
+                            : `Descubre los mejores productos en la categoría ${category}`}
                     </p>
                 </div>
             </div>
@@ -106,7 +115,11 @@ export default function CategoryClient() {
                 <div className="text-center py-20 bg-white rounded-[3rem] border-2 border-dashed border-gray-200 shadow-sm">
                     <ShoppingBag className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                     <h3 className="text-2xl font-black text-gray-900 mb-2">No hay productos aquí</h3>
-                    <p className="text-gray-500 font-medium">Aún no hay productos en la categoría "{category}".</p>
+                    <p className="text-gray-500 font-medium">
+                        {isOffers
+                            ? 'No hay ofertas activas en este momento.'
+                            : `Aún no hay productos en la categoría "${category}".`}
+                    </p>
                     <Link href="/marketplace" className="mt-6 inline-block bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-blue-700 transition-colors">
                         Explorar todo
                     </Link>

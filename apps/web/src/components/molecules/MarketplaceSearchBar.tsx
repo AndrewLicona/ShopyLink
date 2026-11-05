@@ -8,16 +8,17 @@ export function MarketplaceSearchBar() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const initialQuery = searchParams.get('q') || '';
-    
+
     const [query, setQuery] = useState(initialQuery);
     const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
     // Sync input with URL if it changes externally
     useEffect(() => {
-        if (searchParams.get('q') !== query && searchParams.get('q') !== null) {
-            setQuery(searchParams.get('q') || '');
+        const urlQuery = searchParams.get('q');
+        if (urlQuery !== null && urlQuery !== query) {
+            setQuery(urlQuery);
         }
-    }, [searchParams]);
+    }, [searchParams, query]);
 
     const handleSearch = (newQuery: string) => {
         setQuery(newQuery);
@@ -44,22 +45,24 @@ export function MarketplaceSearchBar() {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="relative group flex-1">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+        <form onSubmit={handleSubmit} className="group relative flex w-full items-center">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                <Search className="h-4.5 w-4.5 text-gray-400 transition-colors group-focus-within:text-blue-600" />
             </div>
             <input
                 type="text"
                 value={query}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="block w-full pl-11 pr-4 py-3 bg-gray-100 border-transparent rounded-2xl text-sm placeholder-gray-500 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all outline-none font-medium"
-                placeholder="Buscar tiendas, productos, categorías..."
+                className="h-11 w-full rounded-2xl border border-gray-200 bg-gray-50 pl-11 pr-24 text-sm font-medium text-gray-900 outline-none transition-all placeholder:font-normal placeholder:text-gray-400 hover:border-gray-300 focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                placeholder="Buscar productos o tiendas..."
+                aria-label="Buscar en el marketplace"
             />
-            <div className="absolute inset-y-0 right-0 pr-2 flex items-center">
-                <button type="submit" className="px-4 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition-colors">
-                    Buscar
-                </button>
-            </div>
+            <button
+                type="submit"
+                className="absolute right-1.5 flex h-8 items-center justify-center rounded-xl bg-blue-600 px-4 text-xs font-black text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95"
+            >
+                Buscar
+            </button>
         </form>
     );
 }

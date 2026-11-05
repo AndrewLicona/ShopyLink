@@ -33,6 +33,7 @@ export interface CartItem {
     storeId: string;
     storeName: string;
     storeSlug: string;
+    storeLogoUrl?: string;
     itemType?: 'product' | 'service';
 }
 
@@ -40,6 +41,7 @@ export interface CartStoreGroup {
     storeId: string;
     storeName: string;
     storeSlug: string;
+    storeLogoUrl?: string;
     items: CartItem[];
     total: number;
     count: number;
@@ -114,6 +116,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         setHydrated(true);
     }, []);
 
+    // Keep other open tabs in sync: the marketplace and the individual stores
+    // are often open side by side, and the cart lives in localStorage.
+    useEffect(() => {
+        const handleStorage = (event: StorageEvent) => {
+            if (event.key !== STORAGE_KEY) return;
+            setItems(readStoredCart());
+        };
+
+        window.addEventListener('storage', handleStorage);
+        return () => window.removeEventListener('storage', handleStorage);
+    }, []);
+
     // Persist every change once the initial restore has happened.
     useEffect(() => {
         if (!hydrated) return;
@@ -152,6 +166,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                         variantName: newItem.variantName,
                         storeName: newItem.storeName,
                         storeSlug: newItem.storeSlug,
+                        storeLogoUrl: newItem.storeLogoUrl,
                     }
                     : item,
             );
@@ -200,6 +215,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                     storeId: item.storeId,
                     storeName: item.storeName,
                     storeSlug: item.storeSlug,
+                    storeLogoUrl: item.storeLogoUrl,
                     items: [],
                     total: 0,
                     count: 0,
@@ -266,7 +282,7 @@ export function useCart(): CartContextType {
 
 /** Convenience hook: the slice of the global cart that belongs to one store. */
 export function useStoreCart(storeId: string | undefined) {
-    const { items, groups, total, count, hydrated } = useCart();
+    const { items, groups, hydrated } = useCart();
 
     return useMemo(() => {
         const storeItems = storeId
@@ -276,9 +292,11 @@ export function useStoreCart(storeId: string | undefined) {
 
         return {
             items: storeItems,
-            total: group?.total ?? total,
-            count: group?.count ?? count,
+            // When the store has no items the slice must be empty — falling back to
+            // the global total would show the shopper the wrong amount.
+            total: group?.total ?? 0,
+            count: group?.count ?? 0,
             hydrated,
         };
-    }, [items, groups, total, count, storeId, hydrated]);
+    }, [items, groups, storeId, hydrated]);
 }
