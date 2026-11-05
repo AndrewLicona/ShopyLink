@@ -48,6 +48,16 @@ RUN npm ci --omit=dev --no-audit --no-fund
 # Copy generated Prisma client (the actual artifacts)
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
+# Phase 2.6: Migrator (one-shot container)
+# Applies the Prisma migrations that are still pending. It NEVER drops, resets or
+# truncates the database: `migrate deploy` only executes the SQL files that have
+# not been applied yet, so existing rows are always preserved.
+FROM builder AS migrator
+WORKDIR /app/packages/database
+# The retry loop keeps the container alive until the database is reachable, so a
+# transient connection issue does not leave the stack half-deployed.
+CMD ["sh", "-c", "until npx prisma migrate deploy; do echo '>>> Migracion fallida, reintentando en 15s...'; sleep 15; done"]
+
 # Phase 3: Runner
 FROM base AS runner
 WORKDIR /app

@@ -14,6 +14,7 @@ import { TabSelector } from '@/components/molecules/TabSelector';
 import { DangerZone } from '@/components/molecules/DangerZone';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
 import { AppearanceSettings } from './components/AppearanceSettings';
+import { BusinessHoursEditor } from './components/BusinessHoursEditor';
 
 interface StoreTabProps {
     hook: ReturnType<typeof useStoreSettings>;
@@ -148,6 +149,14 @@ export function StoreTab({ hook }: StoreTabProps) {
                                                 onChange={(e) => actions.setMapsUrl(e.target.value)}
                                             />
                                         </div>
+                                    </div>
+
+                                    {/* Horario de atención */}
+                                    <div className="pt-4 border-t border-[var(--border)]">
+                                        <BusinessHoursEditor
+                                            value={state.businessHours}
+                                            onChange={actions.setBusinessHours}
+                                        />
                                     </div>
 
                                     <div className="pt-4 border-t border-[var(--border)]">
@@ -546,7 +555,7 @@ export function StoreTab({ hook }: StoreTabProps) {
                                         <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10 text-blue-600 flex items-start gap-3">
                                             <Info className="w-5 h-5 shrink-0 mt-0.5" />
                                             <div className="space-y-1">
-                                                <h5 className="text-xs font-black uppercase tracking-wider">Regla de Aplicación ("El descuento mayor manda")</h5>
+                                                <h5 className="text-xs font-black uppercase tracking-wider">Regla de Aplicación (&quot;El descuento mayor manda&quot;)</h5>
                                                 <p className="text-[10px] font-bold leading-relaxed text-blue-600/70">
                                                     Si un producto ya cuenta con una oferta individual configurada (ej. 30% OFF) y el descuento global de la tienda es menor (ej. 15% OFF), se mantendrá el 30% OFF porque beneficia más al comprador. Si el descuento global es mayor, se aplicará el descuento global para garantizar la mejor oferta al cliente.
                                                 </p>

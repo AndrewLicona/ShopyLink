@@ -45,7 +45,7 @@ export function StoreView({ store, products: rawProducts, categories, banners = 
 
     return (
         <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col pb-20">
-            <PublicBanners banners={banners} position="TOP_BAR" store={store} />
+            <PublicBanners banners={banners} position="TOP_BAR" />
             
             <StoreHeader
                 store={store}
@@ -54,7 +54,7 @@ export function StoreView({ store, products: rawProducts, categories, banners = 
             />
 
             <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-                <PublicBanners banners={banners} position="HERO" store={store} />
+                <PublicBanners banners={banners} position="HERO" />
                 
                 {/* Pestañas para alternar Productos vs Servicios si el comercio ofrece ambos */}
                 {state.showTypeTabs && (
@@ -119,7 +119,7 @@ export function StoreView({ store, products: rawProducts, categories, banners = 
                     onProductClick={actions.setSelectedProduct}
                     onAddToCart={actions.addToCart}
                     searchTerm={state.searchTerm}
-                    bannerNode={<PublicBanners banners={banners} position="BETWEEN_PRODUCTS" store={store} />}
+                    bannerNode={<PublicBanners banners={banners} position="BETWEEN_PRODUCTS" />}
                     whatsappNumber={store.whatsappNumber}
                 />
 

@@ -6,6 +6,7 @@ import {
   IsArray,
   IsUUID,
   IsInt,
+  IsIn,
   ValidateNested,
   ArrayMaxSize,
   Min,
@@ -75,13 +76,13 @@ export class CreateProductDto {
   @IsOptional()
   variants?: ProductVariantDto[];
 
-  @IsString()
+  @IsIn(['product', 'service'])
   @IsOptional()
-  itemType?: string;
+  itemType?: 'product' | 'service';
 
-  @IsString()
+  @IsIn(['fixed', 'from', 'hourly', 'quote'])
   @IsOptional()
-  pricingMode?: string;
+  pricingMode?: 'fixed' | 'from' | 'hourly' | 'quote';
 }
 
 

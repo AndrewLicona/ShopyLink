@@ -1,6 +1,6 @@
 
 import { createClient } from '@/lib/supabase';
-import { Product, Store, Order, Category, StoreBanner } from '@/types/types';
+import { Product, Store, Category, StoreBanner, CreateOrderPayload } from '@/types/types';
 
 const isServer = typeof window === 'undefined';
 const API_URL = isServer
@@ -56,8 +56,10 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
 export const api = {
     // Stores
     getStores: () => fetchWithAuth('/stores'),
-    getMarketplaceStores: (params?: Record<string, string>) => {
-        const query = new URLSearchParams(params || {}).toString();
+    getMarketplaceStores: (params?: Record<string, string | number>) => {
+        const query = new URLSearchParams(
+            Object.entries(params || {}).map(([k, v]) => [k, String(v)]),
+        ).toString();
         return fetchWithAuth(`/stores/marketplace/public?${query}`);
     },
     getActiveMarketplaceCategories: (): Promise<string[]> => fetchWithAuth('/stores/marketplace/categories'),
@@ -122,8 +124,10 @@ export const api = {
         const query = new URLSearchParams({ storeId, ...params }).toString();
         return fetchWithAuth(`/products?${query}`, options);
     },
-    getMarketplaceProducts: (params?: Record<string, string>) => {
-        const query = new URLSearchParams(params || {}).toString();
+    getMarketplaceProducts: (params?: Record<string, string | number>) => {
+        const query = new URLSearchParams(
+            Object.entries(params || {}).map(([k, v]) => [k, String(v)]),
+        ).toString();
         return fetchWithAuth(`/products/marketplace/public?${query}`);
     },
     getProduct: (id: string, options?: RequestInit) => fetchWithAuth(`/products/${id}`, options),
@@ -151,7 +155,7 @@ export const api = {
 
     // Orders
     getOrders: (storeId: string) => fetchWithAuth(`/orders?storeId=${storeId}`),
-    createOrder: (data: Partial<Order>) => fetchWithAuth('/orders', {
+    createOrder: (data: CreateOrderPayload) => fetchWithAuth('/orders', {
         method: 'POST',
         body: JSON.stringify(data),
     }),

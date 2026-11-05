@@ -5,6 +5,7 @@ import Image from 'next/image';
 import QRCode from 'qrcode';
 import { Download, Printer, QrCode, Loader2, Sparkles, Store as StoreIcon } from 'lucide-react';
 import { useStore } from '@/contexts/StoreContext';
+import { renderPosterToPng } from '@/lib/poster';
 
 export default function QRPosterPage() {
     const { activeStore } = useStore();
@@ -30,12 +31,29 @@ export default function QRPosterPage() {
             .catch(console.error);
     }, [storeUrl]);
 
-    const handleDownload = () => {
-        if (!canvasRef.current) return;
-        const link = document.createElement('a');
-        link.download = `qr-mostrador-${activeStore?.slug || 'tienda'}.png`;
-        link.href = canvasRef.current.toDataURL('image/png');
-        link.click();
+    const [isDownloading, setIsDownloading] = useState(false);
+
+    const handleDownload = async () => {
+        if (!activeStore) return;
+        setIsDownloading(true);
+        try {
+            const dataUrl = await renderPosterToPng({
+                storeName: activeStore.name,
+                storeUrl,
+                referenceLocation: activeStore.referenceLocation,
+                logoUrl: activeStore.logoUrl,
+                primaryColor: activeStore.primaryColor,
+            });
+            const link = document.createElement('a');
+            link.download = `afiche-qr-${activeStore.slug || 'tienda'}.png`;
+            link.href = dataUrl;
+            link.click();
+        } catch (error) {
+            console.error('Error generating poster:', error);
+            alert('No se pudo generar el afiche. Intenta de nuevo.');
+        } finally {
+            setIsDownloading(false);
+        }
     };
 
     const handlePrint = () => {
@@ -99,11 +117,15 @@ export default function QRPosterPage() {
                     </button>
                     <button
                         onClick={handleDownload}
-                        disabled={!isReady}
+                        disabled={!isReady || isDownloading}
                         className="flex items-center gap-2 px-6 py-3 bg-[var(--primary)] text-[var(--bg)] rounded-2xl font-black text-xs hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-[var(--primary)]/20"
                     >
-                        <Download className="w-4 h-4" />
-                        Descargar PNG
+                        {isDownloading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <Download className="w-4 h-4" />
+                        )}
+                        {isDownloading ? 'Generando...' : 'Descargar afiche PNG'}
                     </button>
                 </div>
             </div>

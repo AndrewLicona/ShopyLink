@@ -3,7 +3,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Minus, Plus } from 'lucide-react';
-import type { Product, ProductVariant } from '@/types/types';
+import type { Product } from '@/types/types';
 
 interface VariantSelectorProps {
     product: Product;

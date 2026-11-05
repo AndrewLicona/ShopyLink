@@ -35,7 +35,8 @@ export function ProductModal({
     const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
     const [localQuantities, setLocalQuantities] = useState<Record<string, number>>({});
     const [isCopied, setIsCopied] = useState(false);
-    const [showManualShare, setShowManualShare] = useState(false);
+    const [, setShowManualShare] = useState(false);
+
     const [stockAlert, setStockAlert] = useState<{ show: boolean, message: string }>({ show: false, message: '' });
 
     const currentQty = localQuantities[selectedVariantId || 'base'] || 1;

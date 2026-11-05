@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { ShoppingBag, Search, Plus, MessageCircle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { buildWhatsAppLink } from '@/lib/whatsapp';
+import { isProductAvailable } from '@/lib/pricing';
 import type { Product, Category } from '@/types/types';
 
 interface PublicProductGridProps {
@@ -225,7 +226,7 @@ export function PublicProductGrid({
                                         </span>
                                     )}
                                     {/* Availability badge */}
-                                    {(!product.trackInventory || (product.inventory?.stock ?? 0) > 0) ? (
+                                    {isProductAvailable(product) ? (
                                         <span className="inline-block text-[9px] font-bold text-green-600 mt-1">
                                             ✓ Disponible
                                         </span>
@@ -240,26 +241,60 @@ export function PublicProductGrid({
                                         className="relative z-10"
                                         onClick={(e) => e.stopPropagation()}
                                     >
-                                        <button
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                onAddToCart(product);
-                                            }}
-                                            className="w-10 h-10 bg-[var(--primary)] text-white rounded-xl flex items-center justify-center hover:scale-110 shadow-lg active:scale-90 transition-all cursor-pointer"
-                                        >
-                                            <Plus className="w-5 h-5" />
-                                            {(() => {
-                                                const totalQty = cart
-                                                    .filter(item => item.id === product.id)
-                                                    .reduce((sum, item) => sum + item.quantity, 0);
-                                                return totalQty > 0 ? (
-                                                    <span className="absolute -top-2 -right-2 bg-[var(--text)] text-[var(--bg)] text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-[var(--bg)] animate-in zoom-in-50">
-                                                        {totalQty}
-                                                    </span>
-                                                ) : null;
-                                            })()}
-                                        </button>
+                                        {isProductAvailable(product) ? (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    onAddToCart(product);
+                                                }}
+                                                className="w-10 h-10 bg-[var(--primary)] text-white rounded-xl flex items-center justify-center hover:scale-110 shadow-lg active:scale-90 transition-all cursor-pointer"
+                                                aria-label={`Agregar ${product.name} al carrito`}
+                                            >
+                                                <Plus className="w-5 h-5" />
+                                                {(() => {
+                                                    const totalQty = cart
+                                                        .filter(item => item.id === product.id)
+                                                        .reduce((sum, item) => sum + item.quantity, 0);
+                                                    return totalQty > 0 ? (
+                                                        <span className="absolute -top-2 -right-2 bg-[var(--text)] text-[var(--bg)] text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-[var(--bg)] animate-in zoom-in-50">
+                                                            {totalQty}
+                                                        </span>
+                                                    ) : null;
+                                                })()}
+                                            </button>
+                                        ) : whatsappNumber ? (
+                                            // Out of stock: the customer requests it via WhatsApp.
+                                            <a
+                                                href={buildWhatsAppLink({
+                                                    phone: whatsappNumber,
+                                                    type: 'product',
+                                                    name: product.name,
+                                                    price: product.price != null ? Number(product.price) : null,
+                                                })}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="w-10 h-10 bg-amber-500 text-white rounded-xl flex items-center justify-center hover:scale-110 shadow-lg active:scale-90 transition-all cursor-pointer"
+                                                aria-label={`Pedir ${product.name} por encargo`}
+                                                title="Pedir por encargo"
+                                            >
+                                                <MessageCircle className="w-5 h-5" />
+                                            </a>
+                                        ) : (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    onProductClick(product);
+                                                }}
+                                                className="w-10 h-10 bg-amber-500 text-white rounded-xl flex items-center justify-center hover:scale-110 shadow-lg active:scale-90 transition-all cursor-pointer"
+                                                aria-label={`Ver ${product.name}`}
+                                                title="Pedir por encargo"
+                                            >
+                                                <MessageCircle className="w-5 h-5" />
+                                            </button>
+                                        )}
                                     </div>
                                 )}
                             </div>

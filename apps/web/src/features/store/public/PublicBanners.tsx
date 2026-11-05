@@ -1,19 +1,17 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { StoreBanner, Store } from '@/types/types';
+import { StoreBanner } from '@/types/types';
 import Image from 'next/image';
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
 import { ChevronRight } from 'lucide-react';
 
 interface PublicBannersProps {
     banners: StoreBanner[];
     position: 'HERO' | 'TOP_BAR' | 'BETWEEN_PRODUCTS';
-    store?: Store;
 }
 
-export function PublicBanners({ banners, position, store }: PublicBannersProps) {
+export function PublicBanners({ banners, position }: PublicBannersProps) {
     const carouselRef = useRef<HTMLDivElement>(null);
     
     // Filtrar banners por la posición solicitada

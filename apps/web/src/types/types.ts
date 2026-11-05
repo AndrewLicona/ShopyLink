@@ -120,4 +120,37 @@ export interface StoreBanner {
     updatedAt: string;
 }
 
+/** Payload accepted by POST /orders (one order always belongs to a single store). */
+export interface CreateOrderPayload {
+    storeId: string;
+    customerName: string;
+    customerPhone?: string;
+    customerAddress?: string;
+    items: {
+        productId: string;
+        quantity: number;
+        variantId?: string;
+    }[];
+}
+
+/** Response of POST /orders — the store renders the WhatsApp message from this link. */
+export interface CreateOrderResponse {
+    id: string;
+    storeId: string;
+    customerName: string;
+    customerAddress?: string | null;
+    total: number;
+    status: string;
+    createdAt: string;
+    whatsappLink: string;
+    items?: {
+        id: string;
+        productId: string;
+        productName: string;
+        quantity: number;
+        price: number;
+        sku?: string | null;
+    }[];
+}
+
 

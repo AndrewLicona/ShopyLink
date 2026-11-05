@@ -1,30 +1,32 @@
 ﻿'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { api } from '@/services/api';
+import { useCart } from '@/contexts/CartContext';
 import type { Store, Product } from '@/types/types';
 
-interface CartItem {
-    id: string;
-    quantity: number;
-    name: string;
-    price: number;
-    image?: string;
-    variantId?: string;
-    variantName?: string;
-}
-
+/**
+ * State for a public store page.
+ *
+ * The cart itself lives in the global `CartContext` (persisted in localStorage
+ * and shared with the Marketplace). This hook only exposes the slice of that
+ * cart that belongs to the current store.
+ */
 export function useStoreView(store: Store, initialProducts: Product[]) {
-    const [cart, setCart] = useState<CartItem[]>([]);
+    const {
+        items: cartItems,
+        addItem,
+        setQuantity,
+        clearStore,
+    } = useCart();
+
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [itemTypeFilter, setItemTypeFilter] = useState<'all' | 'product' | 'service'>('all');
     const [searchTerm, setSearchTerm] = useState('');
 
-    const router = useRouter();
-    const pathname = usePathname();
     const searchParams = useSearchParams();
 
     // Sync URL when product is selected
@@ -47,65 +49,69 @@ export function useStoreView(store: Store, initialProducts: Product[]) {
     const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
     const [stockAlert, setStockAlert] = useState<{ show: boolean, message: string }>({ show: false, message: '' });
 
+    // Only the items of the store currently being viewed.
+    const cart = useMemo(
+        () => cartItems.filter((item) => item.storeId === store.id),
+        [cartItems, store.id],
+    );
+
     const showMessage = (msg: string) => {
         setStockAlert({ show: true, message: msg });
         setTimeout(() => setStockAlert({ show: false, message: '' }), 3000);
     };
 
     const handleAddToCart = (product: Product, quantity: number, variantId?: string | null) => {
+        // `null` and `undefined` both mean "no variant". Normalising here keeps the
+        // cart free of duplicate lines for the same product.
+        const normalizedVariantId = variantId ?? undefined;
+
         let finalPrice = Number(product.discountPrice || product.price);
         let finalStock = product.inventory?.stock ?? 0;
         let variantName: string | undefined = undefined;
 
-        if (product.variants && product.variants.length > 0) {
-            const variant = product.variants.find(v => v.id === variantId);
-            if (variant) {
-                finalPrice = variant.useParentPrice
-                    ? Number(product.discountPrice || product.price)
-                    : Number(variant.price);
+        const variant = product.variants?.find((v) => v.id === normalizedVariantId);
 
-                finalStock = variant.useParentStock
-                    ? (product.inventory?.stock ?? 0)
-                    : variant.stock;
+        if (variant) {
+            finalPrice = variant.useParentPrice
+                ? Number(product.discountPrice || product.price)
+                : Number(variant.price);
 
-                variantName = variant.name;
-            }
+            finalStock = variant.useParentStock
+                ? (product.inventory?.stock ?? 0)
+                : variant.stock;
+
+            variantName = variant.name;
         }
 
-        const variant = product.variants?.find(v => v.id === variantId);
         const trackStock = product.trackInventory !== false && variant?.trackInventory !== false;
 
-        setCart(prev => {
-            const existing = prev.find(item => item.id === product.id && item.variantId === variantId);
-            const currentQty = existing ? existing.quantity : 0;
-            const newTotalQty = currentQty + quantity;
+        const existing = cart.find(
+            (item) => item.id === product.id && item.variantId === normalizedVariantId,
+        );
+        const currentQty = existing ? existing.quantity : 0;
+        const newTotalQty = currentQty + quantity;
 
-            if (trackStock && newTotalQty > finalStock) {
-                showMessage(`Â¡Lo sentimos! Solo hay ${finalStock} unidades disponibles.`);
-                return prev;
-            }
+        if (trackStock && newTotalQty > finalStock) {
+            showMessage(`¡Lo sentimos! Solo hay ${finalStock} unidades disponibles.`);
+            return;
+        }
 
-            if (existing) {
-                return prev.map(item => (item.id === product.id && item.variantId === variantId)
-                    ? { ...item, quantity: newTotalQty }
-                    : item
-                );
-            }
+        const itemImage = (variant?.images && variant.images.length > 0)
+            ? variant.images[0]
+            : (product.images?.[0]);
 
-            const variant = product.variants?.find(v => v.id === variantId);
-            const itemImage = (variant?.images && variant.images.length > 0)
-                ? variant.images[0]
-                : (product.images?.[0]);
-
-            return [...prev, {
-                id: product.id,
-                quantity: quantity,
-                name: product.name,
-                price: finalPrice,
-                image: itemImage,
-                variantId: variantId || undefined,
-                variantName
-            }];
+        addItem({
+            id: product.id,
+            name: product.name,
+            price: finalPrice,
+            image: itemImage,
+            variantId: normalizedVariantId,
+            variantName,
+            storeId: store.id,
+            storeName: store.name,
+            storeSlug: store.slug,
+            itemType: product.itemType,
+            quantity,
         });
     };
 
@@ -120,30 +126,34 @@ export function useStoreView(store: Store, initialProducts: Product[]) {
     };
 
     const updateQuantity = (id: string, delta: number, variantId?: string) => {
-        setCart(prev => prev.map(item => {
-            if (item.id === id && item.variantId === variantId) {
-                const product = initialProducts.find(p => p.id === id);
-                let availableStock = product?.inventory?.stock ?? 0;
-                const v = product?.variants?.find(v => v.id === variantId);
-                const trackStock = product?.trackInventory !== false && v?.trackInventory !== false;
+        const normalizedVariantId = variantId ?? undefined;
+        const item = cart.find(
+            (i) => i.id === id && i.variantId === normalizedVariantId,
+        );
+        if (!item) return;
 
-                if (product?.variants && variantId) {
-                    const v = product.variants.find(v => v.id === variantId);
-                    if (v) {
-                        availableStock = v.useParentStock ? (product.inventory?.stock ?? 0) : v.stock;
-                    }
-                }
+        const product = initialProducts.find((p) => p.id === id);
+        let availableStock = product?.inventory?.stock ?? 0;
+        const v = product?.variants?.find((v) => v.id === normalizedVariantId);
+        const trackStock = product?.trackInventory !== false && v?.trackInventory !== false;
 
-                const newQty = Math.max(0, item.quantity + delta);
-
-                if (product && trackStock && newQty > availableStock) {
-                    showMessage(`Solo hay ${availableStock} disponibles.`);
-                    return item;
-                }
-                return { ...item, quantity: newQty };
+        if (product?.variants && normalizedVariantId) {
+            const vv = product.variants.find((v) => v.id === normalizedVariantId);
+            if (vv) {
+                availableStock = vv.useParentStock
+                    ? (product.inventory?.stock ?? 0)
+                    : vv.stock;
             }
-            return item;
-        }).filter(item => item.quantity > 0));
+        }
+
+        const newQty = Math.max(0, item.quantity + delta);
+
+        if (product && trackStock && newQty > availableStock) {
+            showMessage(`Solo hay ${availableStock} disponibles.`);
+            return;
+        }
+
+        setQuantity(id, normalizedVariantId, newQty);
     };
 
     const hasProducts = useMemo(() => initialProducts.some(p => !p.itemType || p.itemType === 'product'), [initialProducts]);
@@ -212,7 +222,7 @@ export function useStoreView(store: Store, initialProducts: Product[]) {
                     window.open(response.whatsappLink, '_blank');
                 }
 
-                setCart([]);
+                clearStore(store.id);
                 setIsCartOpen(false);
             }
         } catch (err: unknown) {
@@ -224,7 +234,7 @@ export function useStoreView(store: Store, initialProducts: Product[]) {
             if (err instanceof Error) {
                 if (err.message.includes('Insufficient stock')) {
                     const productName = err.message.split(': ')[1] || 'un producto';
-                    message = `Â¡Lo sentimos! No hay suficiente stock disponible para: ${productName}. Por favor, reduce la cantidad e intenta de nuevo.`;
+                    message = `¡Lo sentimos! No hay suficiente stock disponible para: ${productName}. Por favor, reduce la cantidad e intenta de nuevo.`;
                 } else {
                     message = err.message;
                 }
@@ -276,7 +286,6 @@ export function useStoreView(store: Store, initialProducts: Product[]) {
             cartCount
         },
         actions: {
-            setCart,
             setSelectedProduct,
             setIsCartOpen,
             setCategoryFilter,

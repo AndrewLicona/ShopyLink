@@ -7,24 +7,34 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Store as StoreIcon, MapPin, Eye, ShoppingBag, ExternalLink, ShieldCheck, Star } from 'lucide-react';
 import { api } from '@/services/api';
-import { Store } from '@/types/types';
+import { Store, Product } from '@/types/types';
+import { MarketplaceProductCard } from '@/features/marketplace/MarketplaceProductCard';
 
 export default function MarketplaceStoreClient() {
     const params = useParams();
     const slug = params.slug as string;
 
     const [store, setStore] = useState<Store | null>(null);
+    const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchStore = async () => {
             try {
-                const data = await api.getStoreBySlug(slug);
-                setStore(data);
-                
+                const data = await api.getPublicStorePage(slug);
+                setStore(data.store);
+                // The public page does not embed the store on every product, but the
+                // marketplace card needs it (store name, slug, WhatsApp).
+                setProducts(
+                    ((data.products || []) as Product[]).map((product) => ({
+                        ...product,
+                        store: data.store,
+                    })),
+                );
+
                 // Increment view count in the background
-                if (data?.id) {
-                    api.incrementStoreView(data.id).catch(console.error);
+                if (data.store?.id) {
+                    api.incrementStoreView(data.store.id).catch(console.error);
                 }
             } catch (error) {
                 console.error('Error fetching store:', error);
@@ -151,7 +161,27 @@ export default function MarketplaceStoreClient() {
                         </div>
                     )}
                 </motion.div>
-                
+
+                {/* Catálogo de la tienda */}
+                {products.length > 0 && (
+                    <section className="mt-12">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-2xl font-black text-gray-900">
+                                Productos de {store.name}
+                            </h2>
+                            <span className="text-xs font-black text-gray-400 uppercase tracking-widest">
+                                {products.length}{' '}
+                                {products.length === 1 ? 'producto' : 'productos'}
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+                            {products.map((product, i) => (
+                                <MarketplaceProductCard key={product.id} product={product} index={i} />
+                            ))}
+                        </div>
+                    </section>
+                )}
+
                 {/* Information Notice */}
                 <div className="mt-8 text-center text-gray-400 font-medium text-sm flex items-center justify-center gap-2">
                     <ShieldCheck className="w-5 h-5" />
