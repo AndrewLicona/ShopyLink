@@ -110,6 +110,7 @@ export function useStoreView(store: Store, initialProducts: Product[]) {
             storeId: store.id,
             storeName: store.name,
             storeSlug: store.slug,
+            storeLogoUrl: store.logoUrl || undefined,
             itemType: product.itemType,
             quantity,
         });

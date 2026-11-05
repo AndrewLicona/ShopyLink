@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import QRCode from 'qrcode';
-import { Download, Printer, QrCode, Loader2, Sparkles, Store as StoreIcon } from 'lucide-react';
+import { Download, Printer, QrCode, Loader2, Lightbulb, Store as StoreIcon } from 'lucide-react';
 import { useStore } from '@/contexts/StoreContext';
 import { renderPosterToPng } from '@/lib/poster';
 
@@ -189,7 +189,7 @@ export default function QRPosterPage() {
             {/* Tips de uso */}
             <div className="bg-[var(--surface)] p-6 rounded-3xl border border-[var(--border)] space-y-3 no-print">
                 <div className="flex items-center gap-2 text-[var(--primary)] font-black text-sm">
-                    <Sparkles className="w-4 h-4" />
+                    <Lightbulb className="w-4 h-4" />
                     <span>Consejos para tu punto de venta</span>
                 </div>
                 <ul className="text-xs text-[var(--text)]/60 font-bold space-y-1.5 list-disc list-inside">

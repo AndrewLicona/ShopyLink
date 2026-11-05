@@ -8,7 +8,7 @@ import {
     X,
     Megaphone,
     CheckCircle2,
-    Sparkles
+    Tag
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -50,7 +50,7 @@ export function AlertSystem() {
     const getIcon = (type: string) => {
         switch (type) {
             case 'WARNING': return <AlertTriangle className="w-5 h-5" />;
-            case 'PROMOTION': return <Sparkles className="w-5 h-5" />;
+            case 'PROMOTION': return <Tag className="w-5 h-5" />;
             case 'SUCCESS': return <CheckCircle2 className="w-5 h-5" />;
             default: return <Info className="w-5 h-5" />;
         }

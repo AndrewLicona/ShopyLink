@@ -106,7 +106,7 @@ function SearchResults() {
                     </h1>
                     <p className="text-gray-500 font-medium mt-1">
                         {inputValue ? (
-                            <>Buscando: <span className="text-blue-600 font-bold">"{inputValue}"</span></>
+                            <>Buscando: <span className="text-blue-600 font-bold">&quot;{inputValue}&quot;</span></>
                         ) : (
                             'Ingresa un término de búsqueda para encontrar productos'
                         )}
@@ -159,7 +159,7 @@ function SearchResults() {
                 <div className="text-center py-20 bg-white rounded-[3rem] border-2 border-dashed border-gray-200 shadow-sm">
                     <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                     <h3 className="text-2xl font-black text-gray-900 mb-2">No encontramos nada</h3>
-                    <p className="text-gray-500 font-medium">No hay productos que coincidan con "{inputValue}". Intenta con otras palabras clave.</p>
+                    <p className="text-gray-500 font-medium">No hay productos que coincidan con &quot;{inputValue}&quot;. Intenta con otras palabras clave.</p>
                 </div>
             ) : null}
         </div>

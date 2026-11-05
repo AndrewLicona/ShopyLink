@@ -198,11 +198,13 @@ export class OrdersService {
   }
 
   private formatCurrency(value: number): string {
-    return new Intl.NumberFormat('en-US', {
+    // Same format as the storefront (es-CO / COP) so the customer sees the
+    // exact same price in the app and in the WhatsApp message.
+    return new Intl.NumberFormat('es-CO', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'COP',
       minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
+      maximumFractionDigits: 0,
     }).format(value);
   }
 

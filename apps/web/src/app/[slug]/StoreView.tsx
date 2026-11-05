@@ -134,6 +134,7 @@ export function StoreView({ store, products: rawProducts, categories, banners = 
                 cart={state.cart}
                 cartTotal={state.cartTotal}
                 isCreatingOrder={state.isCreatingOrder}
+                storeId={store.id}
                 onUpdateQuantity={actions.updateQuantity}
                 onCheckout={actions.handleWhatsAppCheckout}
             />

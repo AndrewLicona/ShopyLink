@@ -2,13 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Store as StoreIcon, Star, MapPin, ShoppingBag, ArrowRight, TrendingUp, Sparkles, Search, Flame, Loader2 } from 'lucide-react';
+import { Star, ShoppingBag, ArrowRight, TrendingUp, Search, Flame, Loader2, Store as StoreIcon } from 'lucide-react';
 import { api } from '@/services/api';
 import { Product, Store } from '@/types/types';
-import { formatCurrency } from '@/lib/utils';
 import { MarketplaceProductCard } from '@/features/marketplace/MarketplaceProductCard';
+import { MarketplaceStoreCard } from '@/features/marketplace/MarketplaceStoreCard';
 
 const PAGE_SIZE = 40;
 
@@ -57,7 +56,7 @@ export default function MarketplaceClient() {
             try {
                 const params = buildParams({ limit: PAGE_SIZE, offset: 0 });
                 const [storesData, productsData, activeCategoriesIds, offersCheck] = await Promise.all([
-                    api.getMarketplaceStores({ ...params, featured: 'true' }),
+                    api.getMarketplaceStores(),
                     api.getMarketplaceProducts(params),
                     api.getActiveMarketplaceCategories(),
                     api.getMarketplaceProducts({ ofertas: 'true', limit: '1' })
@@ -106,6 +105,8 @@ export default function MarketplaceClient() {
     };
 
     const featuredStores = stores.filter(s => s.featured).slice(0, 3); // Max 3 featured stores
+    const spotlightStores = featuredStores.length > 0 ? featuredStores : stores.slice(0, 3);
+    const hasFeatured = featuredStores.length > 0;
 
     return (
         <div className="pb-24">
@@ -149,7 +150,7 @@ export default function MarketplaceClient() {
                             transition={{ duration: 0.5, delay: 0.2 }}
                             className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2 rounded-full text-sm font-bold text-blue-200 mb-8"
                         >
-                            <Sparkles className="w-4 h-4 text-cyan-300" />
+                            <StoreIcon className="w-4 h-4 text-cyan-300" />
                             El marketplace de emprendedores
                         </motion.div>
 
@@ -180,7 +181,7 @@ export default function MarketplaceClient() {
                                 className="group flex items-center justify-center gap-2 bg-white/10 backdrop-blur-md border border-white/25 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-white/20 transition-all w-full sm:w-auto"
                             >
                                 Vender Aquí
-                                <Sparkles className="w-5 h-5 text-yellow-300 group-hover:scale-110 transition-transform" />
+                                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                             </Link>
                         </div>
 
@@ -189,7 +190,7 @@ export default function MarketplaceClient() {
             </section>
 
             {/* Categories Sticky Bar */}
-            <div className="sticky top-20 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm">
+            <div className="sticky top-16 z-40 border-b border-gray-100 bg-white/90 backdrop-blur-md lg:top-[72px]">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center gap-2 overflow-x-auto py-4 hide-scrollbar">
                         {activeCategories.map((cat) => (
@@ -218,22 +219,33 @@ export default function MarketplaceClient() {
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 space-y-24">
                 
-                {/* Featured Stores */}
-                {featuredStores.length > 0 && (
+                {/* Stores */}
+                {spotlightStores.length > 0 && (
                     <section>
-                        <div className="flex items-center justify-between mb-8">
+                        <div className="mb-8 flex items-end justify-between gap-4">
                             <div>
-                                <h2 className="text-3xl font-black text-gray-900 flex items-center gap-3">
-                                    <Star className="w-8 h-8 text-yellow-500 fill-yellow-500" />
-                                    Tiendas Destacadas
+                                <h2 className="flex items-center gap-3 text-3xl font-black text-gray-900">
+                                    <Star className="h-8 w-8 fill-yellow-500 text-yellow-500" />
+                                    {hasFeatured ? 'Tiendas Destacadas' : 'Tiendas del Marketplace'}
                                 </h2>
-                                <p className="text-gray-500 font-medium mt-2">Marcas recomendadas en esta categoría</p>
+                                <p className="mt-2 font-medium text-gray-500">
+                                    {hasFeatured
+                                        ? 'Marcas recomendadas en esta categoria'
+                                        : 'Comercios que ya venden dentro de ShopyLink'}
+                                </p>
                             </div>
+                            <Link
+                                href="/marketplace/tiendas"
+                                className="hidden shrink-0 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-bold text-gray-700 transition-all hover:border-blue-200 hover:text-blue-700 sm:flex"
+                            >
+                                Ver todas
+                                <ArrowRight className="h-4 w-4" />
+                            </Link>
                         </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {featuredStores.map((store, i) => (
-                                <StoreCard key={store.id} store={store} index={i} featured />
+
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                            {spotlightStores.map((store, i) => (
+                                <MarketplaceStoreCard key={store.id} store={store} index={i} />
                             ))}
                         </div>
                     </section>
@@ -288,82 +300,5 @@ export default function MarketplaceClient() {
                 </section>
             </div>
         </div>
-    );
-}
-
-
-function StoreCard({ store, index, featured = false }: { store: Store, index: number, featured?: boolean }) {
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1, duration: 0.5 }}
-        >
-            <Link href={`/marketplace/tienda/${store.slug}`} className="block group h-full">
-                <div className={`relative h-full bg-white rounded-2xl overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 flex flex-col ${featured ? 'border-2 border-yellow-400 shadow-xl shadow-yellow-500/10' : 'border border-gray-100 shadow-sm hover:border-blue-200'}`}>
-
-                    {/* Cover Banner */}
-                    <div className={`h-36 w-full relative overflow-hidden shrink-0 ${
-                        featured
-                            ? 'bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400'
-                            : 'bg-blue-50'
-                    }`}>
-                        {store.bannerUrl && (
-                            <Image
-                                src={store.bannerUrl}
-                                alt={`${store.name} banner`}
-                                fill
-                                className="object-cover group-hover:scale-105 transition-transform duration-700"
-                            />
-                        )}
-                        {featured && (
-                            <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1 shadow-md z-10">
-                                <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                                <span className="text-[10px] font-black text-yellow-700 uppercase tracking-wider">Destacada</span>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="p-6 pt-0 relative flex flex-col flex-1">
-                        {/* Logo */}
-                        <div className="w-20 h-20 rounded-xl bg-white shadow-md border-4 border-white flex items-center justify-center overflow-hidden -mt-10 relative z-10 mx-auto group-hover:scale-105 transition-transform shrink-0">
-                            {store.logoUrl ? (
-                                <Image src={store.logoUrl} alt={store.name} fill className="object-contain p-2" />
-                            ) : (
-                                <StoreIcon className="w-8 h-8 text-gray-300" />
-                            )}
-                        </div>
-
-                        <div className="text-center mt-4 shrink-0">
-                            <h3 className="text-lg font-black text-gray-900 group-hover:text-blue-600 transition-colors">
-                                {store.name}
-                            </h3>
-                            <p className="text-sm text-gray-500 font-medium mt-1">
-                                {store.marketplaceCategory || 'Variedades'}
-                            </p>
-                        </div>
-
-                        <div className="flex items-center justify-center gap-4 mt-6 text-xs font-bold text-gray-500 mt-auto">
-                            {store.city && (
-                                <div className="flex items-center gap-1 bg-gray-50 px-3 py-1.5 rounded-lg">
-                                    <MapPin className="w-3 h-3 text-blue-500" />
-                                    {store.city}
-                                </div>
-                            )}
-                        </div>
-
-                        {store.tags && store.tags.length > 0 && (
-                            <div className="flex flex-wrap items-center justify-center gap-2 mt-4 shrink-0">
-                                {store.tags.slice(0, 3).map((tag, i) => (
-                                    <span key={i} className="px-2.5 py-1 bg-gray-50 text-gray-500 rounded-lg text-[10px] font-bold uppercase tracking-wider">
-                                        {tag}
-                                    </span>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </Link>
-        </motion.div>
     );
 }

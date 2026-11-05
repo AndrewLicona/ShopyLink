@@ -35,6 +35,7 @@ export default function ProductDetailClient() {
             storeId: product.storeId,
             storeName: product.store?.name || 'Tienda',
             storeSlug: product.store?.slug || '',
+            storeLogoUrl: product.store?.logoUrl || undefined,
             itemType: product.itemType || 'product',
             quantity: 1,
         });

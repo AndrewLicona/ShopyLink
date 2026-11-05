@@ -36,6 +36,7 @@ export interface Store {
     globalDiscountActive?: boolean;
     globalDiscountPercentage?: number;
     userId: string;
+    _count?: { products: number };
 }
 
 export interface Category {

@@ -3,7 +3,15 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ShoppingBag, Store as StoreIcon, Plus, Check, MessageCircle, Clock } from 'lucide-react';
+import {
+    ShoppingBag,
+    Store as StoreIcon,
+    Plus,
+    Check,
+    MessageCircle,
+    Clock,
+    Tag,
+} from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { formatCurrency } from '@/lib/utils';
 import { buildWhatsAppLink } from '@/lib/whatsapp';
@@ -12,6 +20,7 @@ import {
     getPricingSuffix,
     isProductAvailable,
     isService,
+    getAvailableStock,
 } from '@/lib/pricing';
 import type { Product } from '@/types/types';
 
@@ -20,6 +29,14 @@ import type { Product } from '@/types/types';
  *
  * Shared by the marketplace feed, the category pages and the search page so the
  * "add to cart" behaviour is identical everywhere.
+ *
+ * Design notes:
+ * - The image keeps a clean surface (no blurred backdrop) so catalogue posters
+ *   stay crisp instead of turning muddy.
+ * - The cart action is a compact circular button over the image instead of a
+ *   full-width solid bar: a grid of solid blue buttons used to dominate the
+ *   whole feed and made it look like a wall of CTAs.
+ * - Badges are stacked in a single corner and never overlap the price.
  */
 export function MarketplaceProductCard({
     product,
@@ -28,8 +45,9 @@ export function MarketplaceProductCard({
     product: Product;
     index?: number;
 }) {
-    const { addItem } = useCart();
+    const { addItem, items } = useCart();
     const [justAdded, setJustAdded] = useState(false);
+    const [notice, setNotice] = useState<string | null>(null);
 
     const imageUrl = product.images?.[0] || product.variants?.[0]?.images?.[0];
     const service = isService(product);
@@ -44,6 +62,24 @@ export function MarketplaceProductCard({
         event.preventDefault();
         event.stopPropagation();
 
+        // Never go over the available stock: the order would be rejected later.
+        const available = getAvailableStock(product);
+        if (available !== null) {
+            const inCart = items
+                .filter((item) => item.id === product.id)
+                .reduce((acc, item) => acc + item.quantity, 0);
+
+            if (inCart + 1 > available) {
+                setNotice(
+                    available === 0
+                        ? 'Producto agotado'
+                        : `Solo quedan ${available} disponibles`,
+                );
+                setTimeout(() => setNotice(null), 2600);
+                return;
+            }
+        }
+
         addItem({
             id: product.id,
             name: product.name,
@@ -52,12 +88,13 @@ export function MarketplaceProductCard({
             storeId: product.storeId,
             storeName: store?.name || 'Tienda',
             storeSlug: store?.slug || '',
+            storeLogoUrl: store?.logoUrl || undefined,
             itemType: product.itemType || 'product',
             quantity: 1,
         });
 
         setJustAdded(true);
-        setTimeout(() => setJustAdded(false), 1400);
+        setTimeout(() => setJustAdded(false), 1600);
     };
 
     const whatsappHref = store?.whatsappNumber
@@ -72,163 +109,163 @@ export function MarketplaceProductCard({
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: Math.min(index, 12) * 0.05, duration: 0.4 }}
+            transition={{ delay: Math.min(index, 10) * 0.04, duration: 0.35 }}
             className="h-full"
         >
-            <div
-                className={`relative h-full bg-white rounded-2xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col ${
-                    product.discountPrice
-                        ? 'border-2 border-emerald-500 hover:border-emerald-400'
-                        : 'border border-gray-100 hover:border-blue-200'
+            <article
+                className={`group relative flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:ring-transparent ${
+                    product.discountPrice ? 'ring-emerald-200' : 'ring-gray-100'
                 }`}
             >
-                <Link
-                    href={`/marketplace/producto/${product.id}`}
-                    className="block group flex-1 flex flex-col"
-                >
-                    <div className="w-full relative aspect-square bg-white flex items-center justify-center overflow-hidden">
+                {/* Image + overlay actions. The link only wraps the image so the
+                    cart button stays a valid sibling (no nested interactives). */}
+                <div className="relative aspect-[4/5] w-full overflow-hidden bg-gradient-to-b from-gray-50 to-white">
+                    <Link
+                        href={`/marketplace/producto/${product.id}`}
+                        className="absolute inset-0 flex items-center justify-center"
+                    >
                         {imageUrl ? (
-                            <>
-                                {/* Plain <img> on purpose: marketplace product images can
-                                    come from any merchant-hosted URL, not only the hosts
-                                    whitelisted in next.config.js remotePatterns. */}
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                    src={imageUrl}
-                                    alt=""
-                                    aria-hidden="true"
-                                    className="absolute inset-0 w-full h-full object-cover blur-xl opacity-30 scale-110"
-                                />
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                    src={imageUrl}
-                                    alt={product.name}
-                                    className="relative z-10 w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-500"
-                                />
-                            </>
+                            /* Plain <img> on purpose: marketplace product images can
+                               come from any merchant-hosted URL, not only the hosts
+                               whitelisted in next.config.js remotePatterns. */
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                                src={imageUrl}
+                                alt={product.name}
+                                loading="lazy"
+                                className="h-full w-full object-contain p-3 transition-transform duration-500 group-hover:scale-[1.04]"
+                            />
                         ) : (
-                            <div className="relative z-10 py-16">
-                                <ShoppingBag className="w-8 h-8 text-gray-200" />
+                            <div className="flex h-full w-full items-center justify-center">
+                                <ShoppingBag className="h-9 w-9 text-gray-200" />
                             </div>
                         )}
+                    </Link>
 
+                    {/* Badges — stacked top-left, never over the price */}
+                    <div className="pointer-events-none absolute left-3 top-3 flex flex-col items-start gap-1.5">
                         {product.discountPrice && (
-                            <div className="absolute top-3 left-3 bg-emerald-500 text-white px-2 py-1 rounded-lg text-[10px] font-black shadow-md z-20 uppercase tracking-wide">
+                            <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-500 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-md shadow-emerald-500/30">
+                                <Tag className="h-2.5 w-2.5" />
                                 Oferta
-                            </div>
+                            </span>
                         )}
-
                         {service && (
-                            <div className="absolute top-3 right-3 bg-violet-500 text-white px-2 py-1 rounded-lg text-[10px] font-black shadow-md z-20 uppercase tracking-wide">
+                            <span className="rounded-lg bg-violet-500 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-md shadow-violet-500/30">
                                 Servicio
-                            </div>
+                            </span>
                         )}
-
                         {!service && !available && (
-                            <div className="absolute bottom-3 left-3 bg-amber-500 text-white px-2 py-1 rounded-lg text-[10px] font-black shadow-md z-20 uppercase tracking-wide">
+                            <span className="rounded-lg bg-amber-500 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-md shadow-amber-500/30">
                                 Por encargo
-                            </div>
+                            </span>
                         )}
                     </div>
 
-                    <div className="p-4 flex-1 flex flex-col">
-                        <div className="text-[10px] font-black text-blue-600 mb-1.5 uppercase tracking-wider flex items-center gap-1">
-                            <StoreIcon className="w-3 h-3" />
-                            <span className="truncate">{store?.name || 'Tienda'}</span>
+                    {/* Stock notice */}
+                    {notice && (
+                        <div className="pointer-events-none absolute right-3 top-3 z-20 rounded-lg bg-red-500 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow-lg">
+                            {notice}
                         </div>
-
-                        <h3 className="text-sm font-black text-gray-900 group-hover:text-blue-600 transition-colors leading-snug mb-3">
-                            {product.name}
-                        </h3>
-
-                        <div className="flex items-center gap-2 mb-4 mt-auto flex-wrap">
-                            {price == null ? (
-                                <span className="text-sm font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">
-                                    Precio a consultar
-                                </span>
-                            ) : (
-                                <>
-                                    {pricingLabel && (
-                                        <span className="text-[10px] font-black text-violet-600 bg-violet-50 px-2 py-1 rounded-lg uppercase tracking-wide">
-                                            {pricingLabel}
-                                        </span>
-                                    )}
-                                    <span className="text-xl font-black text-gray-900">
-                                        {formatCurrency(Number(price))}
-                                    </span>
-                                    {pricingSuffix && (
-                                        <span className="text-xs font-bold text-gray-400">
-                                            {pricingSuffix}
-                                        </span>
-                                    )}
-                                    {product.discountPrice && (
-                                        <span className="text-sm font-bold text-gray-400 line-through">
-                                            {formatCurrency(product.price || 0)}
-                                        </span>
-                                    )}
-                                </>
-                            )}
-                        </div>
-                    </div>
-                </Link>
-
-                {/* Action — kept outside the Link so it never triggers navigation */}
-                <div className="px-4 pb-4">
-                    {service ? (
-                        whatsappHref ? (
-                            <a
-                                href={whatsappHref}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="w-full flex items-center justify-center gap-2 bg-green-500 text-white py-3 rounded-xl font-black text-xs hover:bg-green-600 transition-all active:scale-95"
-                            >
-                                <MessageCircle className="w-4 h-4" />
-                                Consultar por WhatsApp
-                            </a>
-                        ) : (
-                            <Link
-                                href={`/marketplace/tienda/${store?.slug ?? ''}`}
-                                className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-700 py-3 rounded-xl font-black text-xs hover:bg-gray-200 transition-all active:scale-95"
-                            >
-                                <StoreIcon className="w-4 h-4" />
-                                Ver en la tienda
-                            </Link>
-                        )
-                    ) : !available ? (
-                        <Link
-                            href={`/marketplace/producto/${product.id}`}
-                            className="w-full flex items-center justify-center gap-2 bg-amber-50 text-amber-700 border border-amber-200 py-3 rounded-xl font-black text-xs hover:bg-amber-100 transition-all active:scale-95"
-                        >
-                            <Clock className="w-4 h-4" />
-                            Pedir por encargo
-                        </Link>
-                    ) : (
-                        <button
-                            onClick={handleAdd}
-                            className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-black text-xs transition-all active:scale-95 ${
-                                justAdded
-                                    ? 'bg-emerald-500 text-white'
-                                    : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/20'
-                            }`}
-                            aria-label={`Agregar ${product.name} al carrito`}
-                        >
-                            {justAdded ? (
-                                <>
-                                    <Check className="w-4 h-4" />
-                                    Agregado
-                                </>
-                            ) : (
-                                <>
-                                    <Plus className="w-4 h-4" />
-                                    Agregar al carrito
-                                </>
-                            )}
-                        </button>
                     )}
+
+                    {/* Cart action — compact, over the bottom-right of the image */}
+                    <div className="absolute bottom-3 right-3 z-10">
+                        {service ? (
+                            whatsappHref ? (
+                                <a
+                                    href={whatsappHref}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex h-11 w-11 items-center justify-center rounded-full bg-green-500 text-white shadow-lg shadow-green-500/30 transition-all hover:scale-110 hover:bg-green-600 active:scale-95"
+                                    aria-label={`Consultar ${product.name} por WhatsApp`}
+                                    title="Consultar por WhatsApp"
+                                >
+                                    <MessageCircle className="h-5 w-5" />
+                                </a>
+                            ) : (
+                                <Link
+                                    href={`/marketplace/tienda/${store?.slug ?? ''}`}
+                                    className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-900 text-white shadow-lg transition-all hover:scale-110 active:scale-95"
+                                    aria-label="Ver en la tienda"
+                                    title="Ver en la tienda"
+                                >
+                                    <StoreIcon className="h-5 w-5" />
+                                </Link>
+                            )
+                        ) : !available ? (
+                            <Link
+                                href={`/marketplace/producto/${product.id}`}
+                                className="flex h-11 w-11 items-center justify-center rounded-full bg-amber-500 text-white shadow-lg shadow-amber-500/30 transition-all hover:scale-110 hover:bg-amber-600 active:scale-95"
+                                aria-label={`Pedir ${product.name} por encargo`}
+                                title="Pedir por encargo"
+                            >
+                                <Clock className="h-5 w-5" />
+                            </Link>
+                        ) : (
+                            <button
+                                onClick={handleAdd}
+                                className={`flex h-11 w-11 items-center justify-center rounded-full shadow-lg transition-all active:scale-95 ${
+                                    justAdded
+                                        ? 'bg-emerald-500 text-white shadow-emerald-500/30'
+                                        : 'bg-white text-gray-900 shadow-gray-900/10 ring-1 ring-gray-200 hover:bg-blue-600 hover:text-white hover:ring-blue-600'
+                                }`}
+                                aria-label={`Agregar ${product.name} al carrito`}
+                                title="Agregar al carrito"
+                            >
+                                {justAdded ? (
+                                    <Check className="h-5 w-5" />
+                                ) : (
+                                    <Plus className="h-5 w-5" />
+                                )}
+                            </button>
+                        )}
+                    </div>
                 </div>
-            </div>
+
+                {/* Body */}
+                <div className="flex flex-1 flex-col px-4 pb-4 pt-3.5">
+                    <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-blue-600">
+                        <StoreIcon className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{store?.name || 'Tienda'}</span>
+                    </div>
+
+                    <h3 className="mb-3 line-clamp-2 text-[13px] font-bold leading-snug text-gray-900 transition-colors group-hover:text-blue-600">
+                        {product.name}
+                    </h3>
+
+                    <div className="mt-auto flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                        {price == null ? (
+                            <span className="rounded-lg bg-blue-50 px-2 py-1 text-xs font-black text-blue-600">
+                                Precio a consultar
+                            </span>
+                        ) : (
+                            <>
+                                {pricingLabel && (
+                                    <span className="rounded-lg bg-violet-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-violet-600">
+                                        {pricingLabel}
+                                    </span>
+                                )}
+                                <span className="text-[17px] font-black tracking-tight text-gray-900">
+                                    {formatCurrency(Number(price))}
+                                </span>
+                                {pricingSuffix && (
+                                    <span className="text-[11px] font-bold text-gray-400">
+                                        {pricingSuffix}
+                                    </span>
+                                )}
+                                {product.discountPrice && (
+                                    <span className="text-[11px] font-bold text-gray-400 line-through">
+                                        {formatCurrency(product.price || 0)}
+                                    </span>
+                                )}
+                            </>
+                        )}
+                    </div>
+                </div>
+            </article>
         </motion.div>
     );
 }
