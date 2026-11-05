@@ -1,5 +1,7 @@
 'use client';
 
+import QRCode from 'qrcode';
+
 export interface PosterOptions {
     storeName: string;
     storeUrl: string;
@@ -206,7 +208,6 @@ export async function renderPosterToPng(options: PosterOptions): Promise<string>
 }
 
 async function buildQrDataUrl(text: string, size: number): Promise<string> {
-    const { default: QRCode } = await import('qrcode');
     return QRCode.toDataURL(text, {
         width: size,
         margin: 2,
