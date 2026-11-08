@@ -1,10 +1,15 @@
 /**
  * Rota la clave de cifrado de la base de datos.
  *
- * Contexto: la data existente (WhatsApp de las tiendas, teléfonos de los
- * pedidos) quedó cifrada con la clave legacy. Este script la descifra con la
- * clave legacy y la vuelve a cifrar con una clave nueva y fuerte, sin perder
- * ningún dato.
+ * Contexto: la data (WhatsApp de las tiendas, teléfonos de los pedidos) está
+ * cifrada con AES-256-GCM y una clave que vive FUERA del repositorio, en
+ * /etc/dokploy/secrets/shopylink.env.
+ *
+ * Este script tiene dos modos:
+ *   - Con LEGACY_ENCRYPTION_KEY definida: rota la data de la clave legacy a la
+ *     clave nueva (simulación por defecto, escritura con --apply).
+ *   - Sin LEGACY_ENCRYPTION_KEY (el estado actual, la rotación ya se hizo):
+ *     solo VERIFICA que toda la data siga descifrable con la clave actual.
  *
  * Uso:
  *   node packages/database/rotate-encryption-key.mjs            # simulación
@@ -15,13 +20,12 @@
  *   2. DATABASE_ENCRYPTION_KEY del .env local (la misma que tendrá el servidor)
  *   3. una clave aleatoria, que se imprime para copiarla al servidor
  *
- * Orden recomendado (la API acepta las dos claves mientras se migra, así que
- * no hay downtime):
- *   1. Poner la clave nueva en el .env del servidor (DATABASE_ENCRYPTION_KEY).
- *   2. Redesplegar (`bash deploy.sh`). La API sigue leyendo la data legacy.
- *   3. Rotar los datos con este script (`--apply`).
- *   4. Borrar LEGACY_ENCRYPTION_KEY del .env local y la constante legacy del
- *      código de la API; a partir de ahí solo se usa la clave nueva.
+ * Orden recomendado al cambiar la clave en el futuro:
+ *   1. Poner la clave nueva en /etc/dokploy/secrets/shopylink.env del servidor.
+ *   2. Redesplegar (push a main: Dokploy reconstruye el stack). La API usa la
+ *      clave nueva desde ese momento.
+ *   3. Rotar los datos con este script (--apply), con LEGACY_ENCRYPTION_KEY
+ *      apuntando a la clave con la que estaba cifrada la data.
  */
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
@@ -49,10 +53,13 @@ if (!connectionString) {
 }
 
 // La clave legacy NO vive en el repositorio: se lee del .env local.
+// Si no está, la rotación ya se hizo: el script pasa a modo verificación.
 const legacyRawKey = (process.env.LEGACY_ENCRYPTION_KEY || '').trim();
-if (!legacyRawKey) {
+const VERIFY_ONLY = !legacyRawKey;
+
+if (VERIFY_ONLY && !(process.env.DATABASE_ENCRYPTION_KEY || '').trim()) {
     console.error(
-        'Falta LEGACY_ENCRYPTION_KEY en el .env local.\n' +
+        'Falta DATABASE_ENCRYPTION_KEY en el .env local.\n' +
         'Es la clave con la que está cifrada la data actual; el script la necesita\n' +
         'para descifrar y volver a cifrar. No se guarda en el repositorio.',
     );
@@ -90,7 +97,7 @@ const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-const legacyKey = deriveKey(legacyRawKey);
+const legacyKey = legacyRawKey ? deriveKey(legacyRawKey) : null;
 
 const envNewKey = (process.env.NEW_ENCRYPTION_KEY || '').trim();
 const envConfiguredKey = (process.env.DATABASE_ENCRYPTION_KEY || '').trim();
@@ -103,9 +110,15 @@ const keySource = envNewKey
 const newRawKey = envNewKey || envConfiguredKey || crypto.randomBytes(32).toString('base64');
 const newKey = deriveKey(newRawKey);
 
-console.log(APPLY ? 'MODO: escribir en la base de datos' : 'MODO: simulación (no escribe nada)');
-console.log(`Clave destino: ${keySource}`);
-console.log('');
+if (VERIFY_ONLY) {
+    console.log('MODO: verificación (no hay clave legacy, la rotación ya se hizo)');
+    console.log(`Clave con la que se verifica: ${keySource}`);
+    console.log('');
+} else {
+    console.log(APPLY ? 'MODO: escribir en la base de datos' : 'MODO: simulación (no escribe nada)');
+    console.log(`Clave destino: ${keySource}`);
+    console.log('');
+}
 
 /* ---------- tiendas ---------- */
 const stores = await prisma.store.findMany({
@@ -124,10 +137,18 @@ for (const store of stores) {
         continue;
     }
 
-    const decrypted = decryptWith(store.whatsappNumber, legacyKey);
+    const decrypted = decryptWith(store.whatsappNumber, VERIFY_ONLY ? newKey : legacyKey);
     if (!decrypted.ok) {
-        console.log(`  - ${store.name}: NO se pudo descifrar con la clave legacy (${decrypted.reason}). Se deja como está.`);
+        console.log(
+            `  - ${store.name}: NO se pudo descifrar con la clave ${VERIFY_ONLY ? 'actual' : 'legacy'} (${decrypted.reason}). Se deja como está.`,
+        );
         failures.push(store.name);
+        continue;
+    }
+
+    if (VERIFY_ONLY) {
+        console.log(`  - ${store.name}: WhatsApp descifrado correctamente con la clave actual`);
+        rotated++;
         continue;
     }
 
@@ -164,27 +185,37 @@ console.log(`  - ${legacyHashed.length} con teléfono hasheado (sha256, no recup
 if (encryptedPhones.length) {
     let rotatedOrders = 0;
     for (const order of encryptedPhones) {
-        const decrypted = decryptWith(order.customerPhone, legacyKey);
+        const decrypted = decryptWith(order.customerPhone, VERIFY_ONLY ? newKey : legacyKey);
         if (!decrypted.ok) {
             failures.push(`pedido ${order.id}`);
             continue;
         }
         rotatedOrders++;
-        if (APPLY) {
+        if (APPLY && !VERIFY_ONLY) {
             await prisma.order.update({
                 where: { id: order.id },
                 data: { customerPhone: encryptWith(decrypted.value, newKey) },
             });
         }
     }
-    console.log(`  - ${rotatedOrders} pedidos con teléfono cifrado, rotados`);
+    console.log(
+        `  - ${rotatedOrders} pedidos con teléfono cifrado, ${VERIFY_ONLY ? 'descifrados con la clave actual' : 'rotados'}`,
+    );
 }
 
 await prisma.$disconnect();
 await pool.end();
 
 console.log('');
-if (!APPLY) {
+if (VERIFY_ONLY) {
+    if (failures.length) {
+        console.log(`VERIFICACIÓN FALLIDA: ${failures.length} registro(s) no se descifran con la clave actual.`);
+        process.exitCode = 1;
+    } else {
+        console.log('VERIFICACIÓN OK: toda la data cifrada se descifra con la clave actual.');
+        console.log('No hay nada que rotar (la rotación ya se hizo).');
+    }
+} else if (!APPLY) {
     console.log('Simulación terminada. Ejecuta con --apply para escribir los cambios.');
 } else {
     console.log('Rotación aplicada.');
@@ -215,19 +246,19 @@ if (!APPLY) {
     await checkPool.end();
 }
 
-console.log('');
-console.log('======================================================');
-console.log('CLAVE NUEVA (ponla en el .env del servidor):');
-console.log(`DATABASE_ENCRYPTION_KEY="${newRawKey}"`);
-console.log('======================================================');
-console.log('Siguientes pasos:');
-console.log('  1. Si la clave es nueva (generada ahora), cópiala al .env del servidor');
-console.log('     como DATABASE_ENCRYPTION_KEY y redespliega (bash deploy.sh)');
-console.log('  2. Si ya estaba en el .env del servidor, no hace falta redeplegar:');
-console.log('     la API lee las dos claves durante la transición');
-console.log('  3. Opcional: activa ENCRYPTION_STRICT="true" para que la API no arranque sin la clave');
-console.log('  4. Cuando la API esté usando la clave nueva, borra LEGACY_ENCRYPTION_KEY del .env local');
-console.log('     y la constante legacy del código de la API');
+if (!VERIFY_ONLY) {
+    console.log('');
+    console.log('======================================================');
+    console.log('CLAVE NUEVA (ponla en el archivo de secretos del servidor):');
+    console.log(`DATABASE_ENCRYPTION_KEY="${newRawKey}"`);
+    console.log('======================================================');
+    console.log('Siguientes pasos:');
+    console.log('  1. Copia la clave a /etc/dokploy/secrets/shopylink.env del servidor');
+    console.log('     (chmod 600) y redespliega (push a main: Dokploy reconstruye el stack)');
+    console.log('  2. Vuelve a ejecutar este script con --apply para rotar la data');
+    console.log('  3. Opcional: ENCRYPTION_STRICT="true" para que la API no arranque sin la clave');
+    console.log('  4. Cuando termines, borra LEGACY_ENCRYPTION_KEY del .env local');
+}
 
 if (failures.length) {
     console.log('');
