@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StoreBanner } from '@/types/types';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -14,10 +14,10 @@ interface PublicBannersProps {
 /**
  * Imagen del banner sin recortes en móvil.
  *
- * En pantallas pequeñas la imagen se muestra completa (`object-contain`) sobre
- * un fondo desenfocado de la misma imagen, de modo que nunca se cortan los
- * bordes ni el logo de la promoción. A partir de `sm` se usa `object-cover`
- * para aprovechar el formato panorámico en tablet y escritorio.
+ * En móvil el alto del contenedor sale de la proporción REAL de la imagen,
+ * así que el banner se ve completo (no se cortan los bordes ni el logo de la
+ * promo) y sin huecos: no hay fondo vacío ni imagen deformada.
+ * Desde `sm` se mantiene el formato panorámico a sangre de siempre.
  */
 function BannerMedia({
     src,
@@ -30,28 +30,48 @@ function BannerMedia({
     priority?: boolean;
     sizes?: string;
 }) {
+    const [ratio, setRatio] = useState<number | null>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        const img = new window.Image();
+        img.onload = () => {
+            if (!cancelled && img.naturalWidth && img.naturalHeight) {
+                setRatio(img.naturalWidth / img.naturalHeight);
+            }
+        };
+        img.src = src;
+        return () => { cancelled = true; };
+    }, [src]);
+
     return (
         <>
-            {/* Fondo desenfocado: rellena el espacio sobrante en móvil */}
-            <div className="absolute inset-0 sm:hidden overflow-hidden">
+            {/* Móvil: la altura la manda la proporción real del archivo */}
+            <div
+                className="relative w-full sm:hidden"
+                style={{ aspectRatio: ratio ? String(ratio) : '21 / 9' }}
+            >
                 <Image
                     src={src}
-                    alt=""
+                    alt={alt}
                     fill
-                    aria-hidden
+                    priority={priority}
                     sizes={sizes}
-                    className="object-cover scale-110 blur-xl opacity-50"
+                    className="object-contain"
                 />
             </div>
-            {/* Imagen real: completa en móvil, panorámica en escritorio */}
-            <Image
-                src={src}
-                alt={alt}
-                fill
-                priority={priority}
-                sizes={sizes}
-                className="object-contain sm:object-cover transition-transform duration-700"
-            />
+
+            {/* Tablet y escritorio: panorámico a sangre */}
+            <div className="absolute inset-0 hidden sm:block">
+                <Image
+                    src={src}
+                    alt={alt}
+                    fill
+                    priority={priority}
+                    sizes={sizes}
+                    className="object-cover transition-transform duration-700"
+                />
+            </div>
         </>
     );
 }
@@ -126,7 +146,7 @@ export function PublicBanners({ banners, position }: PublicBannersProps) {
                     {filteredBanners.map((banner) => {
                         const content = (
                             <div 
-                                className="w-full shrink-0 snap-center relative bg-[var(--secondary)] overflow-hidden h-[220px] sm:h-[320px] md:h-[400px] lg:h-[520px]"
+                                className="w-full shrink-0 snap-center relative bg-[var(--secondary)] overflow-hidden h-auto sm:h-[320px] md:h-[400px] lg:h-[520px]"
                             >
                                 {/* Background Image */}
                                 {banner.imageUrl ? (
@@ -136,7 +156,7 @@ export function PublicBanners({ banners, position }: PublicBannersProps) {
                                         priority
                                     />
                                 ) : (
-                                    <div className="w-full h-full bg-gradient-to-br from-[var(--primary)]/20 to-[var(--primary)]/5 flex flex-col items-center justify-center p-4 text-center select-none">
+                                    <div className="w-full h-full min-h-[180px] sm:min-h-0 bg-gradient-to-br from-[var(--primary)]/20 to-[var(--primary)]/5 flex flex-col items-center justify-center p-4 text-center select-none">
                                          <span className="text-xl md:text-3xl font-black text-[var(--primary)] uppercase tracking-widest opacity-30">
                                             Sin Imagen
                                          </span>
@@ -145,13 +165,13 @@ export function PublicBanners({ banners, position }: PublicBannersProps) {
                                 
                                 {/* Overlay Gradient for Text Contrast */}
                                 {(banner.title || banner.subtitle) && (
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex flex-col justify-end p-6 md:p-8 text-white select-none">
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent flex flex-col justify-end p-4 md:p-8 text-white select-none">
                                         <div className="max-w-xl space-y-1">
-                                            <h2 className="text-xl md:text-3xl font-black uppercase tracking-tight leading-none drop-shadow-sm">
+                                            <h2 className="text-lg md:text-3xl font-black uppercase tracking-tight leading-none drop-shadow-sm">
                                                 {banner.title}
                                             </h2>
                                             {banner.subtitle && (
-                                                <p className="text-xs md:text-sm font-medium opacity-90 leading-tight drop-shadow-sm">
+                                                <p className="text-[11px] md:text-sm font-medium opacity-90 leading-tight drop-shadow-sm">
                                                     {banner.subtitle}
                                                 </p>
                                             )}
@@ -194,7 +214,7 @@ export function PublicBanners({ banners, position }: PublicBannersProps) {
 
         const content = (
             <div 
-                className="w-full rounded-3xl overflow-hidden relative bg-[var(--secondary)] border border-[var(--border)] group my-8 shadow-sm h-[200px] sm:h-[210px] md:h-[240px] lg:h-[280px]"
+                className="w-full rounded-3xl overflow-hidden relative bg-[var(--secondary)] border border-[var(--border)] group my-8 shadow-sm h-auto sm:h-[210px] md:h-[240px] lg:h-[280px]"
             >
                 {banner.imageUrl ? (
                     <>
@@ -209,7 +229,7 @@ export function PublicBanners({ banners, position }: PublicBannersProps) {
                         )}
                         {/* Contenido de texto */}
                         {(banner.title || banner.subtitle || banner.linkUrl) && (
-                            <div className="absolute inset-0 flex flex-col justify-center px-6 md:px-10 select-none">
+                            <div className="absolute inset-0 flex flex-col justify-center px-4 md:px-10 select-none">
                                 <div className="max-w-lg space-y-1.5">
                                     {banner.title && (
                                         <h3 className="text-base sm:text-xl md:text-2xl font-black text-white uppercase tracking-tight leading-tight drop-shadow-md">
@@ -233,7 +253,7 @@ export function PublicBanners({ banners, position }: PublicBannersProps) {
                     </>
                 ) : (
                     /* Fallback sin imagen: degradado de tema con texto centrado */
-                    <div className="w-full h-full bg-gradient-to-r from-[var(--primary)]/15 via-[var(--primary)]/8 to-[var(--primary)]/3 flex flex-col items-center justify-center p-6 text-center select-none gap-2">
+                    <div className="w-full h-full min-h-[160px] sm:min-h-0 bg-gradient-to-r from-[var(--primary)]/15 via-[var(--primary)]/8 to-[var(--primary)]/3 flex flex-col items-center justify-center p-6 text-center select-none gap-2">
                         {banner.title && (
                             <span className="text-lg md:text-2xl font-black text-[var(--primary)] uppercase tracking-widest">
                                 {banner.title}

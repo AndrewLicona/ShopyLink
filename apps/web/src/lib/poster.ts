@@ -7,26 +7,58 @@ export interface PosterOptions {
     storeUrl: string;
     referenceLocation?: string | null;
     logoUrl?: string | null;
+    /** Tema de la tienda: define el color de acento del afiche. */
+    theme?: string | null;
 }
 
-/* Layout constants (px on a 1080px wide poster) */
+/* ---------- Medidas del afiche (escala 1080px) ---------- */
 const W = 1080;
-const PAD = 70;
-const ACCENT_H = 26;
-const LOGO_BOX = 190;
-const QR_SIZE = 560;
-const QR_PADDING = 26;
+const PAD = 84;
+const RADIUS = 74;          // rounded-[2.5rem] de la vista web
+const BORDER = 10;          // border-4 slate-100
+const ACCENT_H = 26;        // barra superior de color
+const LOGO_BOX = 232;       // w-24 h-24
+const LOGO_RADIUS = 58;     // rounded-3xl
+const QR_SIZE = 520;
+const QR_PADDING = 38;      // p-4
+const QR_RADIUS = 58;       // rounded-3xl
 const BADGE_H = 76;
-const BADGE_W = 520;
+const BADGE_RADIUS = BADGE_H / 2;
 
-const NAME_FONT = '900 72px Inter, Arial, sans-serif';
-const NAME_LINE_H = 86;
-const REF_FONT = '700 34px Inter, Arial, sans-serif';
-const REF_LINE_H = 46;
-const CTA_FONT = '900 40px Inter, Arial, sans-serif';
-const CTA_LINE_H = 52;
-const URL_FONT = '600 26px ui-monospace, Menlo, monospace';
-const URL_LINE_H = 36;
+/* ---------- Paleta (es la misma de la vista web) ---------- */
+const COLORS = {
+    page: '#f1f5f9',
+    card: '#ffffff',
+    cardBorder: '#f1f5f9',
+    slate900: '#0f172a',
+    slate500: '#64748b',
+    slate400: '#94a3b8',
+    slate200: '#e2e8f0',
+    slate50: '#f8fafc',
+    emerald400: '#34d399',
+    emerald500: '#10b981',
+    emerald50: '#ecfdf5',
+    emerald200: '#a7f3d0',
+    emerald700: '#047857',
+};
+
+/** Color principal de cada tema (mismos valores que globals.css). */
+const THEME_PRIMARY: Record<string, string> = {
+    classic: '#2563eb',
+    fresh: '#10b981',
+    modern: '#6366f1',
+    minimal: '#18181b',
+    gold: '#d4af37',
+    pastel: '#f8bbd0',
+    lilac: '#d1c4e9',
+    gray: '#9ca3af',
+    'dark-gray': '#4b5563',
+    sunset: '#f97316',
+    ocean: '#06b6d4',
+    berry: '#db2777',
+    forest: '#059669',
+    corporate: '#475569',
+};
 
 /** Loads an image, optionally with CORS enabled so the canvas stays exportable. */
 function loadImage(src: string, crossOrigin = false): Promise<HTMLImageElement | null> {
@@ -37,14 +69,6 @@ function loadImage(src: string, crossOrigin = false): Promise<HTMLImageElement |
         img.onerror = () => resolve(null);
         img.src = src;
     });
-}
-
-function hexToRgb(hex: string): [number, number, number] {
-    const clean = hex.replace('#', '');
-    const full = clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean;
-    const int = parseInt(full, 16);
-    if (Number.isNaN(int)) return [37, 99, 235];
-    return [(int >> 16) & 255, (int >> 8) & 255, int & 255];
 }
 
 /** Splits a text into lines that fit the given width. */
@@ -79,16 +103,17 @@ function drawRoundedRect(
     height: number,
     radius: number,
 ) {
+    const r = Math.min(radius, width / 2, height / 2);
     ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.lineTo(x + width - radius, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-    ctx.lineTo(x + width, y + height - radius);
-    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-    ctx.lineTo(x + radius, y + height);
-    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-    ctx.lineTo(x, y + radius);
-    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + width - r, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+    ctx.lineTo(x + width, y + height - r);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+    ctx.lineTo(x + r, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
     ctx.closePath();
 }
 
@@ -102,132 +127,160 @@ function createContext(width: number, height: number): CanvasRenderingContext2D 
 }
 
 /**
- * Renders the full counter poster (not only the QR) into a PNG data URL.
+ * Renders the counter poster exactly like the preview shown in the dashboard:
+ * white card with rounded corners and a soft shadow, the colored top accent,
+ * the logo inside its rounded frame, the QR inside its rounded frame, and the
+ * WhatsApp pill at the bottom.
  *
  * The canvas height is calculated from the real content, so nothing is ever
- * cut off (logo, nombre, QR, mensaje, URL y badge de WhatsApp).
- * The QR is generated at high resolution so it stays scannable after printing.
- * If the logo cannot be loaded with CORS headers the poster is rendered without
- * it instead of failing, so the export always succeeds.
+ * cut off. The QR is generated at high resolution so it stays scannable.
  */
 export async function renderPosterToPng(options: PosterOptions): Promise<string> {
     const contentWidth = W - PAD * 2;
+    const primary = THEME_PRIMARY[(options.theme || '').toLowerCase()] || THEME_PRIMARY.classic!;
 
-    // --- 1. Medición del contenido (para calcular el alto real) ---
+    /* ---------- 1. Medición del contenido ---------- */
     const measure = createContext(10, 10);
 
-    measure.font = NAME_FONT;
+    measure.font = '900 60px Inter, Arial, sans-serif';
     const nameLines = wrapText(measure, options.storeName.toUpperCase(), contentWidth);
 
-    measure.font = REF_FONT;
+    measure.font = '700 30px Inter, Arial, sans-serif';
     const refLines = options.referenceLocation
-        ? wrapText(measure, options.referenceLocation, contentWidth)
+        ? wrapText(measure, options.referenceLocation, contentWidth - 40)
         : [];
 
-    measure.font = CTA_FONT;
+    measure.font = '900 38px Inter, Arial, sans-serif';
     const ctaLines = wrapText(
         measure,
         'Escanea aquí para ver todo nuestro catálogo y pedir por WhatsApp',
-        contentWidth,
+        contentWidth - 40,
     );
 
-    // --- 2. Alto total del afiche ---
-    let height = ACCENT_H;                     // barra superior
-    height += 46;                              // respiro superior
-    height += LOGO_BOX;                        // logo
-    height += 46;                              // respiro
-    height += nameLines.length * NAME_LINE_H;  // nombre
+    /* ---------- 2. Alto total ---------- */
+    let height = BORDER * 2;
+    height += 44;                            // respiro tras el borde
+    height += ACCENT_H;                      // barra de acento
+    height += 52;                            // respiro
+    height += LOGO_BOX;                      // logo
+    height += 44;                            // respiro
+    height += nameLines.length * 72;         // nombre
     if (refLines.length) {
-        height += 12 + refLines.length * REF_LINE_H;
+        height += 16 + refLines.length * 40;
     }
-    height += 40;                              // respiro
-    height += QR_SIZE + QR_PADDING * 2;        // marco + QR
-    height += 48;                              // respiro
-    height += ctaLines.length * CTA_LINE_H;    // mensaje
-    height += 16;
-    height += URL_LINE_H;                      // url
-    height += 24;
-    height += BADGE_H;                         // badge whatsapp
-    height += 56;                              // respiro inferior
+    height += 48;                            // respiro
+    height += QR_SIZE + QR_PADDING * 2;      // marco + QR
+    height += 48;                            // respiro
+    height += ctaLines.length * 48;          // mensaje
+    height += 20;
+    height += 34;                            // url
+    height += 30;
+    height += BADGE_H;                       // badge whatsapp
+    height += 48;                            // respiro inferior
 
-    // --- 3. Dibujo ---
+    /* ---------- 3. Lienzo ---------- */
     const ctx = createContext(W, height);
-    const [pr, pg, pb] = hexToRgb('#2563eb');
 
-    // Fondo
-    ctx.fillStyle = '#ffffff';
+    // Fondo de la página (como la card flotando sobre el fondo del dashboard)
+    ctx.fillStyle = COLORS.page;
     ctx.fillRect(0, 0, W, height);
 
-    // Top accent bar
-    const gradient = ctx.createLinearGradient(0, 0, W, 0);
-    gradient.addColorStop(0, '#34d399');
-    gradient.addColorStop(0.5, `rgb(${pr}, ${pg}, ${pb})`);
-    gradient.addColorStop(1, '#10b981');
+    // Sombra suave de la card
+    ctx.save();
+    ctx.shadowColor = 'rgba(15, 23, 42, 0.18)';
+    ctx.shadowBlur = 48;
+    ctx.shadowOffsetY = 18;
+    ctx.fillStyle = COLORS.card;
+    drawRoundedRect(ctx, BORDER, BORDER, W - BORDER * 2, height - BORDER * 2, RADIUS);
+    ctx.fill();
+    ctx.restore();
+
+    // Borde claro de la card
+    ctx.strokeStyle = COLORS.cardBorder;
+    ctx.lineWidth = BORDER;
+    drawRoundedRect(ctx, BORDER, BORDER, W - BORDER * 2, height - BORDER * 2, RADIUS);
+    ctx.stroke();
+
+    // Recorte interior: todo lo que se dibuja dentro de la card redondeada
+    ctx.save();
+    drawRoundedRect(ctx, BORDER, BORDER, W - BORDER * 2, height - BORDER * 2, RADIUS);
+    ctx.clip();
+
+    // Barra superior con el degradado del tema (como en la web)
+    const gradient = ctx.createLinearGradient(BORDER, 0, W - BORDER, 0);
+    gradient.addColorStop(0, COLORS.emerald400);
+    gradient.addColorStop(0.5, primary);
+    gradient.addColorStop(1, COLORS.emerald500);
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, W, ACCENT_H);
+    ctx.fillRect(BORDER, BORDER, W - BORDER * 2, ACCENT_H);
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
 
-    let cursorY = ACCENT_H + 46;
+    let cursorY = BORDER + ACCENT_H + 52;
 
-    // Logo
+    /* ---------- Logo ---------- */
     if (options.logoUrl) {
         const logo = await loadImage(options.logoUrl, true);
         if (logo) {
+            const boxX = (W - LOGO_BOX) / 2;
             ctx.save();
-            ctx.fillStyle = '#f8fafc';
-            ctx.strokeStyle = '#e2e8f0';
-            ctx.lineWidth = 4;
-            drawRoundedRect(ctx, (W - LOGO_BOX) / 2, cursorY, LOGO_BOX, LOGO_BOX, 44);
+            ctx.fillStyle = COLORS.slate50;
+            ctx.strokeStyle = COLORS.slate200;
+            ctx.lineWidth = 5;
+            drawRoundedRect(ctx, boxX, cursorY, LOGO_BOX, LOGO_BOX, LOGO_RADIUS);
             ctx.fill();
             ctx.stroke();
             ctx.clip();
-            const scale = Math.min(LOGO_BOX / logo.width, LOGO_BOX / logo.height) * 0.78;
+            const scale = Math.min(LOGO_BOX / logo.width, LOGO_BOX / logo.height) * 0.74;
             const lw = logo.width * scale;
             const lh = logo.height * scale;
             ctx.drawImage(logo, (W - lw) / 2, cursorY + (LOGO_BOX - lh) / 2, lw, lh);
             ctx.restore();
         }
     }
-    cursorY += LOGO_BOX + 46;
+    cursorY += LOGO_BOX + 44;
 
-    // Store name
-    ctx.fillStyle = '#0f172a';
-    ctx.font = NAME_FONT;
+    /* ---------- Nombre ---------- */
+    ctx.fillStyle = COLORS.slate900;
+    ctx.font = '900 60px Inter, Arial, sans-serif';
     nameLines.forEach((line) => {
         ctx.fillText(line, W / 2, cursorY);
-        cursorY += NAME_LINE_H;
+        cursorY += 72;
     });
 
-    // Reference location
+    /* ---------- Referencia (con pin) ---------- */
     if (refLines.length) {
-        cursorY += 12;
-        ctx.fillStyle = '#64748b';
-        ctx.font = REF_FONT;
+        cursorY += 16;
+        ctx.fillStyle = COLORS.slate500;
+        ctx.font = '700 30px Inter, Arial, sans-serif';
         refLines.forEach((line) => {
             ctx.fillText(line, W / 2, cursorY);
-            cursorY += REF_LINE_H;
+            cursorY += 40;
         });
     }
 
-    cursorY += 40;
+    cursorY += 48;
 
-    // QR code
-    const qrDataUrl = await buildQrDataUrl(options.storeUrl, QR_SIZE);
+    /* ---------- QR ---------- */
+    const qrDataUrl = await QRCode.toDataURL(options.storeUrl, {
+        width: QR_SIZE,
+        margin: 2,
+        color: { dark: COLORS.slate900, light: '#ffffff' },
+    });
     const qrImage = await loadImage(qrDataUrl);
     if (qrImage) {
         ctx.save();
         ctx.fillStyle = '#ffffff';
-        ctx.strokeStyle = '#e2e8f0';
-        ctx.lineWidth = 4;
+        ctx.strokeStyle = COLORS.slate200;
+        ctx.lineWidth = 5;
         drawRoundedRect(
             ctx,
             (W - QR_SIZE) / 2 - QR_PADDING,
             cursorY - QR_PADDING,
             QR_SIZE + QR_PADDING * 2,
             QR_SIZE + QR_PADDING * 2,
-            36,
+            QR_RADIUS,
         );
         ctx.fill();
         ctx.stroke();
@@ -236,43 +289,62 @@ export async function renderPosterToPng(options: PosterOptions): Promise<string>
     }
     cursorY += QR_SIZE + QR_PADDING * 2 + 48;
 
-    // Call to action
-    ctx.fillStyle = '#0f172a';
-    ctx.font = CTA_FONT;
+    /* ---------- Mensaje ---------- */
+    ctx.fillStyle = COLORS.slate900;
+    ctx.font = '900 38px Inter, Arial, sans-serif';
     ctaLines.forEach((line) => {
         ctx.fillText(line, W / 2, cursorY);
-        cursorY += CTA_LINE_H;
+        cursorY += 48;
     });
 
-    cursorY += 16;
+    cursorY += 20;
 
-    // URL
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = URL_FONT;
+    /* ---------- URL ---------- */
+    ctx.fillStyle = COLORS.slate400;
+    ctx.font = '600 26px ui-monospace, Menlo, monospace';
     ctx.fillText(options.storeUrl, W / 2, cursorY);
-    cursorY += URL_LINE_H + 24;
+    cursorY += 34 + 30;
 
-    // WhatsApp badge
+    /* ---------- Badge de WhatsApp ---------- */
+    // El punto verde va a la IZQUIERDA del texto, como en la web, y ambos
+    // quedan centrados juntos dentro de la pastilla.
+    const badgeText = 'Pedidos y consultas directas';
+    const badgeFont = '900 30px Inter, Arial, sans-serif';
+    ctx.font = badgeFont;
+    const badgeTextWidth = ctx.measureText(badgeText).width;
+    const dotRadius = 11;
+    const dotGap = 22;
+    const badgePadding = 40;
+    const badgeWidth = badgeTextWidth + dotRadius * 2 + dotGap + badgePadding * 2;
+    const badgeCenterY = cursorY + BADGE_H / 2;
+
     ctx.save();
-    ctx.fillStyle = '#ecfdf5';
-    ctx.strokeStyle = '#a7f3d0';
+    ctx.fillStyle = COLORS.emerald50;
+    ctx.strokeStyle = COLORS.emerald200;
     ctx.lineWidth = 3;
-    drawRoundedRect(ctx, W / 2 - BADGE_W / 2, cursorY, BADGE_W, BADGE_H, BADGE_H / 2);
+    drawRoundedRect(ctx, (W - badgeWidth) / 2, cursorY, badgeWidth, BADGE_H, BADGE_RADIUS);
     ctx.fill();
     ctx.stroke();
-    ctx.fillStyle = '#047857';
-    ctx.font = '900 30px Inter, Arial, sans-serif';
+
+    // Punto verde (alineado con el centro visual de las mayusculas)
+    const dotX = (W - badgeWidth) / 2 + badgePadding + dotRadius;
+    ctx.fillStyle = COLORS.emerald500;
+    ctx.beginPath();
+    ctx.arc(dotX, badgeCenterY - 5, dotRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Texto de la pastilla
+    ctx.fillStyle = COLORS.emerald700;
+    ctx.font = badgeFont;
     ctx.textBaseline = 'middle';
-    ctx.fillText('Pedidos y consultas directas', W / 2, cursorY + BADGE_H / 2);
+    ctx.fillText(
+        badgeText,
+        dotX + dotRadius + dotGap + badgeTextWidth / 2,
+        badgeCenterY,
+    );
     ctx.restore();
 
-    return ctx.canvas.toDataURL('image/png');
-}
+    ctx.restore(); // fin del recorte de la card
 
-async function buildQrDataUrl(text: string, size: number): Promise<string> {
-    return QRCode.toDataURL(text, {
-        width: size,
-        margin: 2,
-        color: { dark: '#0f172a', light: '#ffffff' },
-    });
+    return ctx.canvas.toDataURL('image/png');
 }

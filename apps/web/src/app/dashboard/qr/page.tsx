@@ -20,7 +20,7 @@ const PRINT_DOCUMENT = `<!DOCTYPE html>
         display: block;
         width: 100%;
         height: auto;
-        max-height: 268mm;
+        max-height: 264mm;
         object-fit: contain;
         margin: 0 auto;
         break-inside: avoid;
@@ -63,6 +63,7 @@ export default function QRPosterPage() {
         storeUrl,
         referenceLocation: activeStore?.referenceLocation,
         logoUrl: activeStore?.logoUrl,
+        theme: activeStore?.theme,
     });
 
     const handleDownload = async () => {
