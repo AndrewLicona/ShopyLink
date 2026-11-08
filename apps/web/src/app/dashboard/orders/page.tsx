@@ -25,6 +25,7 @@ import type { Order } from '@/types/types';
 
 export default function OrdersPage() {
     const { state, actions } = useOrders();
+    const country = state.activeStore?.country;
     const { orders, loading, selectedOrder, updatingId, loadingStatus, searchTerm, statusFilter } = state;
     const { setSearchTerm, setStatusFilter, setSelectedOrder, handleUpdateStatus } = actions;
 
@@ -117,7 +118,7 @@ export default function OrdersPage() {
                                     <div className="text-right">
                                         <p className="text-[9px] font-black text-[var(--text)]/20 uppercase tracking-widest mb-0.5">Total</p>
                                         <p className="font-black text-[var(--text)] text-xl">
-                                            {formatCurrency(order.total)}
+                                            {formatCurrency(order.total, country)}
                                         </p>
                                     </div>
                                 </div>
@@ -220,12 +221,12 @@ export default function OrdersPage() {
                                                 </div>
                                                 <p className="font-bold text-[var(--text)] text-sm">{item.productName || 'Producto'}</p>
                                             </div>
-                                            <p className="font-black text-[var(--text)] text-sm">{formatCurrency(item.price * item.quantity)}</p>
+                                            <p className="font-black text-[var(--text)] text-sm">{formatCurrency(item.price * item.quantity, country)}</p>
                                         </div>
                                     ))}
                                     <div className="pt-4 flex justify-between items-center">
                                         <span className="text-sm font-black text-[var(--text)]/30 uppercase">Total</span>
-                                        <span className="text-2xl font-black text-[var(--primary)]">{formatCurrency(selectedOrder.total)}</span>
+                                        <span className="text-2xl font-black text-[var(--primary)]">{formatCurrency(selectedOrder.total, country)}</span>
                                     </div>
                                 </div>
 

@@ -37,6 +37,7 @@ export default function ProductDetailClient() {
             storeName: product.store?.name || 'Tienda',
             storeSlug: product.store?.slug || '',
             storeLogoUrl: product.store?.logoUrl || undefined,
+            storeCountry: product.store?.country || undefined,
             itemType: product.itemType || 'product',
             quantity: 1,
         });
@@ -173,6 +174,7 @@ export default function ProductDetailClient() {
                                         {getServicePriceLabel(
                                             product.price != null ? Number(product.price) : null,
                                             product.pricingMode,
+                                            product.store?.country,
                                         )}
                                     </div>
                                 ) : isPriceHidden ? (
@@ -182,11 +184,11 @@ export default function ProductDetailClient() {
                                 ) : (
                                     <div className="flex items-end gap-4">
                                         <span className="text-5xl font-black text-gray-900">
-                                            {formatCurrency(displayPrice)}
+                                            {formatCurrency(displayPrice, product.store?.country)}
                                         </span>
                                         {product.discountPrice && (
                                             <span className="text-2xl font-bold text-gray-400 line-through mb-1">
-                                                {formatCurrency(product.price || 0)}
+                                                {formatCurrency(product.price || 0, product.store?.country)}
                                             </span>
                                         )}
                                     </div>

@@ -35,6 +35,8 @@ export const pdfService = {
         const pageHeight = doc.internal.pageSize.getHeight();
         const margin = 15;
         const contentWidth = pageWidth - (margin * 2);
+        // La moneda sale del país de la tienda.
+        const country = store.country;
 
         // Colors
         const textColor = [17, 24, 39] as const;
@@ -186,14 +188,14 @@ export const pdfService = {
                 doc.setFontSize(13);
                 doc.setFont('helvetica', 'bold');
                 const currentPrice = product.discountPrice || product.price || 0;
-                doc.text(formatCurrency(Number(currentPrice)), x + 5, currentY + 65);
+                doc.text(formatCurrency(Number(currentPrice), country), x + 5, currentY + 65);
 
                 // Old Price cross-out
                 if (product.discountPrice) {
                     doc.setFontSize(8);
                     doc.setTextColor(180, 180, 180);
-                    const oldP = formatCurrency(Number(product.price));
-                    const priceWidth = doc.getTextWidth(formatCurrency(Number(currentPrice)));
+                    const oldP = formatCurrency(Number(product.price), country);
+                    const priceWidth = doc.getTextWidth(formatCurrency(Number(currentPrice), country));
                     doc.text(oldP, x + 5 + priceWidth + 5, currentY + 65);
                     const oldW = doc.getTextWidth(oldP);
                     doc.line(x + 5 + priceWidth + 5, currentY + 64, x + 5 + priceWidth + 5 + oldW, currentY + 64);
@@ -240,7 +242,7 @@ export const pdfService = {
                         doc.setTextColor(textColor[0], textColor[1], textColor[2]);
                         doc.setFontSize(9);
                         doc.setFont('helvetica', 'bold');
-                        doc.text(formatCurrency(Number(vP)), vx + 4, vY + 4);
+                        doc.text(formatCurrency(Number(vP), country), vx + 4, vY + 4);
 
                         if (vCol === 1) {
                             vCol = 0;

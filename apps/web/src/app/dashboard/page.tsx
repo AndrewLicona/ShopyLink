@@ -22,6 +22,7 @@ import { pdfService } from '@/services/pdf.service';
 export default function DashboardPage() {
     const { state, actions } = useDashboard();
     const { stats, recentOrders, analytics, topProducts, loading, copied, storeName, activeStore } = state;
+    const country = activeStore?.country;
 
     // Simulate Gallagher-style data
     const firstName = storeName.split(' ')[0] || 'Cliente';
@@ -122,14 +123,14 @@ export default function DashboardPage() {
                 <StatCard
                     icon={DollarSign}
                     label="Ventas Hoy"
-                    value={formatCurrency(stats.todaySales)}
+                    value={formatCurrency(stats.todaySales, country)}
                     color="green"
                     statusLabel="Creciendo"
                 />
                 <StatCard
                     icon={DollarSign}
                     label="Ventas (Tot)"
-                    value={formatCurrency(stats.totalSales || 0)}
+                    value={formatCurrency(stats.totalSales || 0, country)}
                     color="primary"
                     statusLabel="Estable"
                 />
@@ -144,7 +145,7 @@ export default function DashboardPage() {
                         <p className="text-[10px] font-medium text-[var(--text)]/40">Distribución de ventas en los últimos 7 días</p>
                     </div>
                     <div className="flex-1 min-h-0 bg-white/[0.02]">
-                        <SalesChart data={analytics} hideHeader />
+                        <SalesChart data={analytics} hideHeader country={country} />
                     </div>
                 </div>
 

@@ -16,7 +16,7 @@ import {
     PackageOpen,
 } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, getCurrencyForCountry } from '@/lib/utils';
 import { Overlay } from '@/components/molecules/Overlay';
 
 /**
@@ -58,6 +58,14 @@ export function MarketplaceCartDrawer({
     };
 
     const storeCount = groups.length;
+
+    // El carrito del marketplace puede mezclar tiendas de países distintos:
+    // sumar monedas diferentes no tiene sentido, así que el total global solo
+    // se muestra cuando todas las tiendas usan la misma moneda.
+    const currencyCodes = new Set(
+        groups.map((g) => getCurrencyForCountry(g.storeCountry).code),
+    );
+    const multiCurrency = currencyCodes.size > 1;
 
     return (
         <Overlay>
@@ -180,7 +188,7 @@ export function MarketplaceCartDrawer({
                                                         </p>
                                                     </div>
                                                     <span className="shrink-0 text-sm font-black text-gray-900">
-                                                        {formatCurrency(group.total)}
+                                                        {formatCurrency(group.total, group.storeCountry)}
                                                     </span>
                                                 </div>
 
@@ -251,6 +259,7 @@ export function MarketplaceCartDrawer({
                                                                     <span className="text-[13px] font-black text-gray-900">
                                                                         {formatCurrency(
                                                                             item.price * item.quantity,
+                                                                            group.storeCountry,
                                                                         )}
                                                                     </span>
                                                                 </div>
@@ -289,7 +298,9 @@ export function MarketplaceCartDrawer({
                                             </p>
                                         </div>
                                         <p className="text-3xl font-black tracking-tight text-gray-900">
-                                            {formatCurrency(total)}
+                                            {multiCurrency
+                                                ? `${storeCount} pedidos`
+                                                : formatCurrency(total, groups[0]?.storeCountry)}
                                         </p>
                                     </div>
 

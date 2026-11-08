@@ -207,6 +207,7 @@ export class ProductsService {
                 slug: true,
                 logoUrl: true,
                 city: true,
+                country: true,
                 marketplaceCategory: true,
                 globalDiscountActive: true,
                 globalDiscountPercentage: true,

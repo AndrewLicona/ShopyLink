@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { api } from '@/services/api';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, getCurrencyForCountry } from '@/lib/utils';
 import { PhoneInput } from '@/components/atoms/PhoneInput';
 import type { CreateOrderResponse } from '@/types/types';
 
@@ -25,6 +25,7 @@ interface CreatedOrder {
     storeId: string;
     storeName: string;
     storeSlug: string;
+    storeCountry?: string;
     total: number;
     whatsappLink: string;
 }
@@ -40,6 +41,12 @@ export default function CheckoutClient() {
     const [error, setError] = useState('');
     const [created, setCreated] = useState<CreatedOrder[]>([]);
     const [failedStores, setFailedStores] = useState<string[]>([]);
+
+    // Tiendas de países distintos usan monedas distintas: el total global solo
+    // tiene sentido cuando todas comparten la misma moneda.
+    const multiCurrency = new Set(
+        groups.map((g) => getCurrencyForCountry(g.storeCountry).code),
+    ).size > 1;
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -77,6 +84,7 @@ export default function CheckoutClient() {
                     storeId: group.storeId,
                     storeName: group.storeName,
                     storeSlug: group.storeSlug,
+                    storeCountry: group.storeCountry,
                     total: group.total,
                     whatsappLink: response.whatsappLink,
                 });
@@ -153,7 +161,7 @@ export default function CheckoutClient() {
                                             {order.storeName}
                                         </p>
                                         <p className="text-xs font-bold text-gray-400">
-                                            Pedido por {formatCurrency(order.total)}
+                                            Pedido por {formatCurrency(order.total, order.storeCountry)}
                                         </p>
                                     </div>
                                 </div>
@@ -254,7 +262,7 @@ export default function CheckoutClient() {
                                         </span>
                                     </div>
                                     <span className="font-black text-sm text-gray-900 shrink-0">
-                                        {formatCurrency(group.total)}
+                                        {formatCurrency(group.total, group.storeCountry)}
                                     </span>
                                 </div>
 
@@ -285,7 +293,7 @@ export default function CheckoutClient() {
                                                     </p>
                                                 )}
                                                 <p className="text-blue-600 font-black text-xs mt-1">
-                                                    {formatCurrency(item.price)}
+                                                    {formatCurrency(item.price, group.storeCountry)}
                                                 </p>
                                                 <div className="flex items-center gap-3 mt-2">
                                                     <button
@@ -324,7 +332,7 @@ export default function CheckoutClient() {
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
                                                 <p className="font-black text-sm text-gray-900">
-                                                    {formatCurrency(item.price * item.quantity)}
+                                                    {formatCurrency(item.price * item.quantity, group.storeCountry)}
                                                 </p>
                                             </div>
                                         </div>
@@ -393,7 +401,9 @@ export default function CheckoutClient() {
                             <div className="flex justify-between items-center mb-1">
                                 <span className="font-bold text-gray-600">Total estimado</span>
                                 <span className="text-2xl font-black text-gray-900">
-                                    {formatCurrency(total)}
+                                    {multiCurrency
+                                        ? `${groups.length} pedidos`
+                                        : formatCurrency(total, groups[0]?.storeCountry)}
                                 </span>
                             </div>
                             {groups.length > 1 && (

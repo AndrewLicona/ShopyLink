@@ -106,6 +106,7 @@ export function StoreView({ store, products: rawProducts, categories, banners = 
                     onProductClick={actions.setSelectedProduct}
                     categoryFilter={state.categoryFilter}
                     searchTerm={state.searchTerm}
+                    country={store.country}
                     onViewAllDiscounts={() => {
                         actions.setCategoryFilter('all');
                         actions.setSearchTerm('');
@@ -122,6 +123,7 @@ export function StoreView({ store, products: rawProducts, categories, banners = 
                     bannerNode={<PublicBanners banners={banners} position="BETWEEN_PRODUCTS" />}
                     whatsappNumber={store.whatsappNumber}
                     storeName={store.name}
+                    country={store.country}
                 />
 
                 <AdBanner planType={store.planType} />
@@ -138,6 +140,7 @@ export function StoreView({ store, products: rawProducts, categories, banners = 
                 storeId={store.id}
                 onUpdateQuantity={actions.updateQuantity}
                 onCheckout={actions.handleWhatsAppCheckout}
+                country={store.country}
             />
 
             {/* Floating Cart Button */}

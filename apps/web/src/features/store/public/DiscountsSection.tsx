@@ -12,6 +12,8 @@ interface DiscountsSectionProps {
     categoryFilter?: string;
     searchTerm?: string;
     onViewAllDiscounts?: () => void;
+    /** País de la tienda: define la moneda de los precios. */
+    country?: string | null;
 }
 
 export function DiscountsSection({
@@ -20,7 +22,8 @@ export function DiscountsSection({
     onProductClick,
     categoryFilter = 'all',
     searchTerm = '',
-    onViewAllDiscounts
+    onViewAllDiscounts,
+    country
 }: DiscountsSectionProps) {
     // Filter products with discounts
     let discountedProducts = products.filter(p => p.discountPrice && p.price);
@@ -137,15 +140,15 @@ export function DiscountsSection({
 
                                     <div className="flex flex-col gap-1">
                                         <span className="text-[10px] font-bold text-[var(--text)]/40 line-through">
-                                            {formatCurrency(product.price!)}
+                                            {formatCurrency(product.price!, country)}
                                         </span>
                                         <div className="flex items-baseline gap-2">
                                             <span className="text-lg font-black text-green-500">
-                                                {formatCurrency(product.discountPrice!)}
+                                                {formatCurrency(product.discountPrice!, country)}
                                             </span>
                                         </div>
                                         <div className="text-[9px] font-black text-white bg-green-500 px-2 py-1 rounded-md inline-block w-fit">
-                                            Ahorras {formatCurrency(Number(product.price!) - Number(product.discountPrice!))}
+                                            Ahorras {formatCurrency(Number(product.price!) - Number(product.discountPrice!), country)}
                                         </div>
                                     </div>
                                 </div>

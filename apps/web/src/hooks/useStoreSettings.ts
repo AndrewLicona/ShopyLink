@@ -5,6 +5,7 @@ import { api } from '@/services/api';
 import { useStore } from '@/contexts/StoreContext';
 import { storage } from '@/lib/storage';
 import { generateSlug } from '@/lib/utils';
+import { DEFAULT_COUNTRY } from '@/lib/currency';
 
 export function useStoreSettings() {
     const { activeStore, refreshStores } = useStore();
@@ -47,6 +48,7 @@ export function useStoreSettings() {
     const [isPublic, setIsPublic] = useState(true);
     const [marketplaceCategory, setMarketplaceCategory] = useState('');
     const [city, setCity] = useState('');
+    const [country, setCountry] = useState(DEFAULT_COUNTRY);
     const [tags, setTags] = useState<string[]>([]);
     
     // Global discounts
@@ -84,6 +86,7 @@ export function useStoreSettings() {
             setIsPublic(activeStore.isPublic ?? true);
             setMarketplaceCategory(activeStore.marketplaceCategory || '');
             setCity(activeStore.city || '');
+            setCountry(activeStore.country || DEFAULT_COUNTRY);
             setTags(activeStore.tags || []);
             setGlobalDiscountActive(activeStore.globalDiscountActive ?? false);
             setGlobalDiscountPercentage(activeStore.globalDiscountPercentage ?? 0);
@@ -122,6 +125,7 @@ export function useStoreSettings() {
                 isPublic,
                 marketplaceCategory,
                 city,
+                country,
                 tags,
                 globalDiscountActive,
                 globalDiscountPercentage
@@ -191,7 +195,7 @@ export function useStoreSettings() {
             instagramUrl, facebookUrl, tiktokUrl, twitterUrl, pinterestUrl, youtubeUrl,
             deliveryEnabled, deliveryPrice,
             theme, mode, applyToDashboard,
-            isPublic, marketplaceCategory, city, tags,
+            isPublic, marketplaceCategory, city, country, tags,
             isDeleteModalOpen, deleteConfirmationName, deleting,
             suggestedSlug,
             globalDiscountActive, globalDiscountPercentage
@@ -219,6 +223,7 @@ export function useStoreSettings() {
             setIsPublic,
             setMarketplaceCategory,
             setCity,
+            setCountry,
             setTags,
             setGlobalDiscountActive,
             setGlobalDiscountPercentage,

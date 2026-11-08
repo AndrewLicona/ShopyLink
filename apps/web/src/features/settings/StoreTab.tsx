@@ -8,7 +8,7 @@ import {
     Youtube, Truck, DollarSign, ShoppingBag, MapPin, Search, Trash2, Percent, Info
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { cn } from '@/lib/utils';
+import { cn, COUNTRY_OPTIONS, getCurrencyForCountry } from '@/lib/utils';
 import { PhoneInput } from '@/components/atoms/PhoneInput';
 import { TabSelector } from '@/components/molecules/TabSelector';
 import { DangerZone } from '@/components/molecules/DangerZone';
@@ -40,6 +40,8 @@ export function StoreTab({ hook }: StoreTabProps) {
     const { state, actions } = hook;
     const [innerTab, setInnerTab] = useState<'info' | 'marketplace' | 'social' | 'appearance' | 'promotions'>('info');
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+    // La moneda se deriva del país elegido por el dueño de la tienda.
+    const currencyLabel = getCurrencyForCountry(state.country).code;
 
     const subTabs = [
         { id: 'info' as const, label: 'TIENDA & BRANDING', icon: StoreIcon },
@@ -328,6 +330,28 @@ export function StoreTab({ hook }: StoreTabProps) {
                                                 value={state.city}
                                                 onChange={(e) => actions.setCity(e.target.value)}
                                             />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1 flex items-center gap-2">
+                                                <Globe className="w-4 h-4" /> País
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-[var(--primary)] bg-[var(--primary)]/10 px-2 py-0.5 rounded-full">
+                                                    {currencyLabel}
+                                                </span>
+                                            </label>
+                                            <select
+                                                className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/10 outline-none transition-all font-bold text-[var(--text)] bg-[var(--surface)]"
+                                                value={state.country}
+                                                onChange={(e) => actions.setCountry(e.target.value)}
+                                            >
+                                                {COUNTRY_OPTIONS.map((option) => (
+                                                    <option key={option.code} value={option.code}>
+                                                        {option.name} ({getCurrencyForCountry(option.code).code})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <p className="text-[11px] font-medium text-[var(--text)]/40 mt-2 px-1">
+                                                Tus precios se muestran en la moneda de este país.
+                                            </p>
                                         </div>
                                         <div className="md:col-span-2">
                                             <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1 flex items-center gap-2">

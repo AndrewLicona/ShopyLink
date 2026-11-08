@@ -90,6 +90,7 @@ export function MarketplaceProductCard({
             storeName: store?.name || 'Tienda',
             storeSlug: store?.slug || '',
             storeLogoUrl: store?.logoUrl || undefined,
+            storeCountry: store?.country || undefined,
             itemType: product.itemType || 'product',
             quantity: 1,
         });
@@ -244,6 +245,7 @@ export function MarketplaceProductCard({
                                 {getServicePriceLabel(
                                     price != null ? Number(price) : null,
                                     product.pricingMode,
+                                    store?.country,
                                 )}
                             </span>
                         ) : price == null ? (
@@ -258,7 +260,7 @@ export function MarketplaceProductCard({
                                     </span>
                                 )}
                                 <span className="text-[17px] font-black tracking-tight text-gray-900">
-                                    {formatCurrency(Number(price))}
+                                    {formatCurrency(Number(price), store?.country)}
                                 </span>
                                 {pricingSuffix && (
                                     <span className="text-[11px] font-bold text-gray-400">
@@ -267,7 +269,7 @@ export function MarketplaceProductCard({
                                 )}
                                 {product.discountPrice && (
                                     <span className="text-[11px] font-bold text-gray-400 line-through">
-                                        {formatCurrency(product.price || 0)}
+                                        {formatCurrency(product.price || 0, store?.country)}
                                     </span>
                                 )}
                             </>

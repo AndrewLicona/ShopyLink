@@ -35,6 +35,7 @@ export function ProductModal({
     store,
 }: ProductModalProps) {
     const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+    const country = store?.country;
     const [localQuantities, setLocalQuantities] = useState<Record<string, number>>({});
     const [isCopied, setIsCopied] = useState(false);
     const [, setShowManualShare] = useState(false);
@@ -176,12 +177,13 @@ export function ProductModal({
                                             {getServicePriceLabel(
                                                 selectedProduct.price != null ? Number(selectedProduct.price) : null,
                                                 selectedProduct.pricingMode,
+                                                country,
                                             )}
                                         </p>
                                     ) : (() => {
                                         const effectivePrice = getEffectivePrice();
                                         if (effectivePrice === null) return <p className="text-2xl font-black text-blue-600">Consultar Precio</p>;
-                                        return <p className="text-2xl font-black text-[var(--primary)]">{formatCurrency(effectivePrice)}</p>;
+                                        return <p className="text-2xl font-black text-[var(--primary)]">{formatCurrency(effectivePrice, country)}</p>;
                                     })()}
                                 </div>
                             </div>
@@ -242,7 +244,7 @@ export function ProductModal({
                                 className="w-full bg-[var(--primary)] text-[var(--primary-foreground)] py-4 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-lg md:text-xl flex items-center justify-center gap-3 hover:scale-[1.02] transition-all shadow-xl active:scale-[0.98]"
                             >
                                 <ShoppingCart className="w-5 h-5 md:w-6 md:h-6" />
-                                Añadir • {formatCurrency(getTotalPrice())}
+                                Añadir • {formatCurrency(getTotalPrice(), country)}
                             </button>
                         )}
                     </div>

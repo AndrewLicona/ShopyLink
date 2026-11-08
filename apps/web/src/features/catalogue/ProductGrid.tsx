@@ -10,6 +10,7 @@ interface ProductGridProps {
 }
 
 export function ProductGrid({ hook }: ProductGridProps) {
+    const country = hook.state.activeStore?.country;
     const { state, actions } = hook;
 
     if (state.products.length === 0) {
@@ -101,15 +102,15 @@ export function ProductGrid({ hook }: ProductGridProps) {
                                 {product.discountPrice && product.discountPrice > 0 ? (
                                     <>
                                         <span className="text-base font-black text-red-500">
-                                            {formatCurrency(product.discountPrice)}
+                                            {formatCurrency(product.discountPrice, country)}
                                         </span>
                                         <span className="text-xs font-bold text-[var(--text)]/30 line-through">
-                                            {product.price != null ? formatCurrency(product.price) : ''}
+                                            {product.price != null ? formatCurrency(product.price, country) : ''}
                                         </span>
                                     </>
                                 ) : (
                                     <span className="text-base font-black text-[var(--primary)]">
-                                        {product.price != null ? formatCurrency(product.price) : 'Consultar'}
+                                        {product.price != null ? formatCurrency(product.price, country) : 'Consultar'}
                                     </span>
                                 )}
                             </div>

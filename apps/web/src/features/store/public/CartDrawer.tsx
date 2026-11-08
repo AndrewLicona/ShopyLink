@@ -26,6 +26,8 @@ interface CartDrawerProps {
     storeId: string;
     onUpdateQuantity: (id: string, delta: number, variantId?: string) => void;
     onCheckout: () => void;
+    /** País de la tienda: define la moneda de los precios. */
+    country?: string | null;
 }
 
 export function CartDrawer({
@@ -36,7 +38,8 @@ export function CartDrawer({
     isCreatingOrder,
     storeId,
     onUpdateQuantity,
-    onCheckout
+    onCheckout,
+    country
 }: CartDrawerProps) {
     const { groups, clearAll } = useCart();
 
@@ -92,7 +95,7 @@ export function CartDrawer({
                                     {item.variantName && (
                                         <p className="text-[10px] text-[var(--text)]/40 font-bold uppercase tracking-widest">{item.variantName}</p>
                                     )}
-                                    <p className="text-[var(--primary)] font-black text-xs">{formatCurrency(item.price)}</p>
+                                    <p className="text-[var(--primary)] font-black text-xs">{formatCurrency(item.price, country)}</p>
                                     <div className="flex items-center gap-3 mt-2">
                                         <button
                                             onClick={() => onUpdateQuantity(item.id, -1, item.variantId)}
@@ -112,7 +115,7 @@ export function CartDrawer({
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <p className="font-black text-sm">{formatCurrency(item.price * item.quantity)}</p>
+                                    <p className="font-black text-sm">{formatCurrency(item.price * item.quantity, country)}</p>
                                 </div>
                             </div>
                         ))
@@ -144,7 +147,7 @@ export function CartDrawer({
                     <div className="p-6 border-t border-[var(--border)] space-y-4">
                         <div className="flex justify-between items-center text-xl font-black">
                             <span>Total:</span>
-                            <span className="text-[var(--primary)]">{formatCurrency(cartTotal)}</span>
+                            <span className="text-[var(--primary)]">{formatCurrency(cartTotal, country)}</span>
                         </div>
                         <button
                             onClick={onCheckout}

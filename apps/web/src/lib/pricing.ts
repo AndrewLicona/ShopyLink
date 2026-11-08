@@ -40,8 +40,9 @@ export function getPricingSuffix(mode: PricingMode): string | null {
 export function getServicePriceLabel(
     price?: number | null,
     mode: PricingMode = 'fixed',
+    country?: string | null,
 ): string {
-    const amount = price != null ? formatCurrency(price) : null;
+    const amount = price != null ? formatCurrency(price, country) : null;
 
     switch (mode) {
         case 'quote':

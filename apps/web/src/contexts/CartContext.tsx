@@ -34,6 +34,8 @@ export interface CartItem {
     storeName: string;
     storeSlug: string;
     storeLogoUrl?: string;
+    /** país de la tienda: define la moneda de los precios del carrito */
+    storeCountry?: string;
     itemType?: 'product' | 'service';
 }
 
@@ -42,6 +44,7 @@ export interface CartStoreGroup {
     storeName: string;
     storeSlug: string;
     storeLogoUrl?: string;
+    storeCountry?: string;
     items: CartItem[];
     total: number;
     count: number;
@@ -167,6 +170,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                         storeName: newItem.storeName,
                         storeSlug: newItem.storeSlug,
                         storeLogoUrl: newItem.storeLogoUrl,
+                        storeCountry: newItem.storeCountry,
                     }
                     : item,
             );
@@ -216,6 +220,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                     storeName: item.storeName,
                     storeSlug: item.storeSlug,
                     storeLogoUrl: item.storeLogoUrl,
+                    storeCountry: item.storeCountry,
                     items: [],
                     total: 0,
                     count: 0,

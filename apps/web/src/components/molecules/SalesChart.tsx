@@ -6,9 +6,11 @@ import { formatCurrency, cn } from '@/lib/utils';
 interface SalesChartProps {
     data: { date: string, amount: number }[];
     hideHeader?: boolean;
+    /** País de la tienda: define la moneda de los valores. */
+    country?: string | null;
 }
 
-export function SalesChart({ data, hideHeader = false }: SalesChartProps) {
+export function SalesChart({ data, hideHeader = false, country }: SalesChartProps) {
     const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
     if (data.length === 0) return null;
@@ -51,7 +53,7 @@ export function SalesChart({ data, hideHeader = false }: SalesChartProps) {
                             top: `${height - (data[hoveredIndex].amount / maxAmount) * (height - padding * 2) - padding}px`
                         }}
                     >
-                        {formatCurrency(data[hoveredIndex].amount)}
+                        {formatCurrency(data[hoveredIndex].amount, country)}
                         <div className="absolute top-full left-1/2 -translate-x-1/2 border-x-4 border-x-transparent border-t-4 border-t-black" />
                     </div>
                 )}

@@ -9,6 +9,7 @@ import { OrderStatus } from '@repo/database';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { decrypt, encrypt } from '../../core/common/encryption.util';
+import { formatCurrency } from '../../core/common/currency';
 import {
   Prisma,
   Product,
@@ -27,6 +28,8 @@ interface StoreWithDetails {
   name: string | null;
   whatsappNumber?: string | null;
   slug?: string;
+  /** país de la tienda: define la moneda de los precios */
+  country?: string | null;
 }
 
 @Injectable()
@@ -99,6 +102,7 @@ export class OrdersService {
       store.name || 'Tienda',
       order,
       decryptedWhatsapp,
+      store.country,
     );
 
     await this.invalidateStoreCaches(storeId);
@@ -208,15 +212,11 @@ export class OrdersService {
     return { total, orderItemsData };
   }
 
-  private formatCurrency(value: number): string {
-    // Same format as the storefront (es-CO / COP) so the customer sees the
-    // exact same price in the app and in the WhatsApp message.
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
+  private formatCurrency(value: number, country?: string | null): string {
+    // Mismo formato que la tienda (`símbolo valor CÓDIGO`) y con la moneda del
+    // país de la tienda, para que el cliente vea el precio idéntico en la web
+    // y en el mensaje de WhatsApp.
+    return formatCurrency(value, country);
   }
 
   private generateWhatsAppLink(
@@ -229,13 +229,14 @@ export class OrdersService {
       items: OrderItem[];
     },
     whatsappNumber: string | null,
+    country?: string | null,
   ) {
     const phone = whatsappNumber ? whatsappNumber.replace(/\D/g, '') : '';
 
     const itemsList = order.items
       .map(
         (i) =>
-          `• ${i.quantity}x ${i.productName}${i.sku ? ` [${i.sku}]` : ''} (${this.formatCurrency(Number(i.price))})`,
+          `• ${i.quantity}x ${i.productName}${i.sku ? ` [${i.sku}]` : ''} (${this.formatCurrency(Number(i.price), country)})`,
       )
       .join('\n');
 
@@ -250,7 +251,7 @@ export class OrdersService {
         : '') +
       `Quiero confirmar mi pedido *#${order.id.slice(0, 8)}*\n\n` +
       `*DETALLE DE PEDIDO:*\n${itemsList}\n\n` +
-      `*TOTAL: ${this.formatCurrency(Number(order.total))}*\n\n` +
+      `*TOTAL: ${this.formatCurrency(Number(order.total), country)}*\n\n` +
       `-------------------\n` +
       `[!] *Nota para el cliente:* No modifiques este mensaje para asegurar la validez de tu pedido.\n\n` +
       `*Verificar en Dashboard (Solo dueño):*\n${dashboardLink}`;

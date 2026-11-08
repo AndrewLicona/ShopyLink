@@ -18,6 +18,8 @@ interface PublicProductGridProps {
     bannerNode?: React.ReactNode;
     whatsappNumber?: string | null;
     storeName?: string | null;
+    /** País de la tienda: define la moneda de los precios. */
+    country?: string | null;
 }
 
 function PricingModeBadge({ pricingMode }: { pricingMode?: string | null }) {
@@ -46,6 +48,7 @@ export function PublicProductGrid({
     bannerNode,
     whatsappNumber,
     storeName,
+    country,
 }: PublicProductGridProps) {
     if (products.length === 0) {
         return (
@@ -105,7 +108,7 @@ export function PublicProductGrid({
                                 <PricingModeBadge pricingMode={product.pricingMode} />
                                 <div className="mt-auto pt-3">
                                     <span className="text-base font-black text-[var(--primary)]">
-                                        {getServicePriceLabel(product.price, product.pricingMode)}
+                                        {getServicePriceLabel(product.price, product.pricingMode, country)}
                                     </span>
                                     {whatsappNumber && (
                                         <a
@@ -193,10 +196,10 @@ export function PublicProductGrid({
                                     ) : product.discountPrice ? (
                                         <>
                                             <span className="text-[10px] font-bold text-[var(--text)]/40 line-through decoration-red-500/50">
-                                                {formatCurrency(product.price)}
+                                                {formatCurrency(product.price, country)}
                                             </span>
                                             <span className="text-base font-black text-green-500">
-                                                {formatCurrency(product.discountPrice)}
+                                                {formatCurrency(product.discountPrice, country)}
                                             </span>
                                             {(() => {
                                                 const saved = Math.round(((Number(product.price) - Number(product.discountPrice)) / Number(product.price)) * 100);
@@ -209,7 +212,7 @@ export function PublicProductGrid({
                                         </>
                                     ) : (
                                         <span className="text-base font-black text-[var(--primary)]">
-                                            {formatCurrency(product.price)}
+                                            {formatCurrency(product.price, country)}
                                         </span>
                                     )}
                                     {/* Availability badge */}

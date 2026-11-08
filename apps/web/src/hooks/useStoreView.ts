@@ -111,6 +111,7 @@ export function useStoreView(store: Store, initialProducts: Product[]) {
             storeName: store.name,
             storeSlug: store.slug,
             storeLogoUrl: store.logoUrl || undefined,
+            storeCountry: store.country || undefined,
             itemType: product.itemType,
             quantity,
         });

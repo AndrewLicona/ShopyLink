@@ -27,11 +27,11 @@ export async function generateMetadata({ params, searchParams }: {
                     let description = product.description || `Mira ${product.name} en ${store.name} y haz tu pedido por WhatsApp.`;
 
                     if (discountPrice && discountPrice < price) {
-                        title = `${product.name} - ${formatCurrency(discountPrice)} (Antes ${formatCurrency(price)}) | ${store.name}`;
-                        description = `¡En oferta! ${product.name} por solo ${formatCurrency(discountPrice)}. ${description}`;
+                        title = `${product.name} - ${formatCurrency(discountPrice, store.country)} (Antes ${formatCurrency(price, store.country)}) | ${store.name}`;
+                        description = `¡En oferta! ${product.name} por solo ${formatCurrency(discountPrice, store.country)}. ${description}`;
                     } else if (price > 0) {
-                        title = `${product.name} - ${formatCurrency(price)} | ${store.name}`;
-                        description = `${product.name} por ${formatCurrency(price)}. ${description}`;
+                        title = `${product.name} - ${formatCurrency(price, store.country)} | ${store.name}`;
+                        description = `${product.name} por ${formatCurrency(price, store.country)}. ${description}`;
                     }
 
                     const absoluteImage = product.images?.[0] ? getAbsoluteUrl(product.images[0]) : getAbsoluteUrl(store.logoUrl);
