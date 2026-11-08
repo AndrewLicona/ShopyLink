@@ -80,7 +80,8 @@ export default function BannersPage() {
                                         src={banner.imageUrl}
                                         alt={banner.title || 'Banner'}
                                         fill
-                                        className="object-cover group-hover:scale-105 transition-transform duration-700"
+                                        sizes="(min-width: 1280px) 25vw, (min-width: 768px) 50vw, 100vw"
+                                        className="object-contain group-hover:scale-105 transition-transform duration-700"
                                     />
                                 ) : (
                                     <div className="w-full h-full rounded-2xl bg-gradient-to-br from-[var(--primary)]/10 to-transparent border border-[var(--primary)]/10 flex flex-col items-center justify-center text-center select-none shadow-inner">
@@ -249,7 +250,7 @@ export default function BannersPage() {
                                             
                                             {state.form.imageUrl ? (
                                                 <>
-                                                    <Image src={state.form.imageUrl} alt="Banner subido" fill className="object-cover opacity-60 group-hover:opacity-40 transition-opacity" />
+                                                    <Image src={state.form.imageUrl} alt="Banner subido" fill sizes="700px" className="object-contain opacity-60 group-hover:opacity-40 transition-opacity" />
                                                     <div className="absolute inset-0 flex items-center justify-center flex-col z-10 opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md">
                                                         <Upload className="w-6 h-6 text-white mb-1" />
                                                         <span className="text-xs font-bold text-white">Cambiar imagen</span>
@@ -446,7 +447,11 @@ export default function BannersPage() {
                                                         src={state.form.imageUrl}
                                                         alt="Preview"
                                                         fill
-                                                        className="object-cover"
+                                                        sizes="350px"
+                                                        className={cn(
+                                                            "object-contain",
+                                                            previewMode === 'desktop' && "object-cover"
+                                                        )}
                                                     />
                                                 ) : (
                                                     <div className="text-[8px] text-[var(--text)]/30 font-bold uppercase">Sin Imagen</div>
@@ -489,7 +494,8 @@ export default function BannersPage() {
                                                             src={state.form.imageUrl}
                                                             alt="Preview"
                                                             fill
-                                                            className="object-cover"
+                                                            sizes="350px"
+                                                            className="object-contain"
                                                         />
                                                     ) : (
                                                         <div className="text-[8px] text-[var(--text)]/30 font-bold uppercase">Banner Central</div>

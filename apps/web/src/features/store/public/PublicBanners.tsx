@@ -11,6 +11,51 @@ interface PublicBannersProps {
     position: 'HERO' | 'TOP_BAR' | 'BETWEEN_PRODUCTS';
 }
 
+/**
+ * Imagen del banner sin recortes en móvil.
+ *
+ * En pantallas pequeñas la imagen se muestra completa (`object-contain`) sobre
+ * un fondo desenfocado de la misma imagen, de modo que nunca se cortan los
+ * bordes ni el logo de la promoción. A partir de `sm` se usa `object-cover`
+ * para aprovechar el formato panorámico en tablet y escritorio.
+ */
+function BannerMedia({
+    src,
+    alt,
+    priority = false,
+    sizes = '100vw',
+}: {
+    src: string;
+    alt: string;
+    priority?: boolean;
+    sizes?: string;
+}) {
+    return (
+        <>
+            {/* Fondo desenfocado: rellena el espacio sobrante en móvil */}
+            <div className="absolute inset-0 sm:hidden overflow-hidden">
+                <Image
+                    src={src}
+                    alt=""
+                    fill
+                    aria-hidden
+                    sizes={sizes}
+                    className="object-cover scale-110 blur-xl opacity-50"
+                />
+            </div>
+            {/* Imagen real: completa en móvil, panorámica en escritorio */}
+            <Image
+                src={src}
+                alt={alt}
+                fill
+                priority={priority}
+                sizes={sizes}
+                className="object-contain sm:object-cover transition-transform duration-700"
+            />
+        </>
+    );
+}
+
 export function PublicBanners({ banners, position }: PublicBannersProps) {
     const carouselRef = useRef<HTMLDivElement>(null);
     
@@ -85,11 +130,9 @@ export function PublicBanners({ banners, position }: PublicBannersProps) {
                             >
                                 {/* Background Image */}
                                 {banner.imageUrl ? (
-                                    <Image
+                                    <BannerMedia
                                         src={banner.imageUrl}
                                         alt={banner.title || 'Oferta especial'}
-                                        fill
-                                        className="object-cover transition-transform duration-700"
                                         priority
                                     />
                                 ) : (
@@ -151,15 +194,14 @@ export function PublicBanners({ banners, position }: PublicBannersProps) {
 
         const content = (
             <div 
-                className="w-full rounded-3xl overflow-hidden relative bg-[var(--secondary)] border border-[var(--border)] group my-8 shadow-sm h-[180px] sm:h-[210px] md:h-[240px] lg:h-[280px]"
+                className="w-full rounded-3xl overflow-hidden relative bg-[var(--secondary)] border border-[var(--border)] group my-8 shadow-sm h-[200px] sm:h-[210px] md:h-[240px] lg:h-[280px]"
             >
                 {banner.imageUrl ? (
                     <>
-                        <Image
+                        <BannerMedia
                             src={banner.imageUrl}
                             alt={banner.title || 'Promoción'}
-                            fill
-                            className="object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out"
+                            sizes="(min-width: 1024px) 1200px, 100vw"
                         />
                         {/* Gradient overlay solo cuando hay texto */}
                         {(banner.title || banner.subtitle) && (

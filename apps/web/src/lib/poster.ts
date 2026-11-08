@@ -9,6 +9,25 @@ export interface PosterOptions {
     logoUrl?: string | null;
 }
 
+/* Layout constants (px on a 1080px wide poster) */
+const W = 1080;
+const PAD = 70;
+const ACCENT_H = 26;
+const LOGO_BOX = 190;
+const QR_SIZE = 560;
+const QR_PADDING = 26;
+const BADGE_H = 76;
+const BADGE_W = 520;
+
+const NAME_FONT = '900 72px Inter, Arial, sans-serif';
+const NAME_LINE_H = 86;
+const REF_FONT = '700 34px Inter, Arial, sans-serif';
+const REF_LINE_H = 46;
+const CTA_FONT = '900 40px Inter, Arial, sans-serif';
+const CTA_LINE_H = 52;
+const URL_FONT = '600 26px ui-monospace, Menlo, monospace';
+const URL_LINE_H = 36;
+
 /** Loads an image, optionally with CORS enabled so the canvas stays exportable. */
 function loadImage(src: string, crossOrigin = false): Promise<HTMLImageElement | null> {
     return new Promise((resolve) => {
@@ -34,7 +53,8 @@ function wrapText(
     text: string,
     maxWidth: number,
 ): string[] {
-    const words = text.split(/\s+/);
+    const words = text.split(/\s+/).filter(Boolean);
+    if (words.length === 0) return [];
     const lines: string[] = [];
     let current = '';
 
@@ -72,28 +92,71 @@ function drawRoundedRect(
     ctx.closePath();
 }
 
+function createContext(width: number, height: number): CanvasRenderingContext2D {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('No se pudo crear el lienzo del afiche');
+    return ctx;
+}
+
 /**
  * Renders the full counter poster (not only the QR) into a PNG data URL.
  *
+ * The canvas height is calculated from the real content, so nothing is ever
+ * cut off (logo, nombre, QR, mensaje, URL y badge de WhatsApp).
  * The QR is generated at high resolution so it stays scannable after printing.
  * If the logo cannot be loaded with CORS headers the poster is rendered without
  * it instead of failing, so the export always succeeds.
  */
 export async function renderPosterToPng(options: PosterOptions): Promise<string> {
-    const W = 1080;
-    const H = 1350;
-    const canvas = document.createElement('canvas');
-    canvas.width = W;
-    canvas.height = H;
+    const contentWidth = W - PAD * 2;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('No se pudo crear el lienzo del afiche');
+    // --- 1. Medición del contenido (para calcular el alto real) ---
+    const measure = createContext(10, 10);
 
+    measure.font = NAME_FONT;
+    const nameLines = wrapText(measure, options.storeName.toUpperCase(), contentWidth);
+
+    measure.font = REF_FONT;
+    const refLines = options.referenceLocation
+        ? wrapText(measure, options.referenceLocation, contentWidth)
+        : [];
+
+    measure.font = CTA_FONT;
+    const ctaLines = wrapText(
+        measure,
+        'Escanea aquí para ver todo nuestro catálogo y pedir por WhatsApp',
+        contentWidth,
+    );
+
+    // --- 2. Alto total del afiche ---
+    let height = ACCENT_H;                     // barra superior
+    height += 46;                              // respiro superior
+    height += LOGO_BOX;                        // logo
+    height += 46;                              // respiro
+    height += nameLines.length * NAME_LINE_H;  // nombre
+    if (refLines.length) {
+        height += 12 + refLines.length * REF_LINE_H;
+    }
+    height += 40;                              // respiro
+    height += QR_SIZE + QR_PADDING * 2;        // marco + QR
+    height += 48;                              // respiro
+    height += ctaLines.length * CTA_LINE_H;    // mensaje
+    height += 16;
+    height += URL_LINE_H;                      // url
+    height += 24;
+    height += BADGE_H;                         // badge whatsapp
+    height += 56;                              // respiro inferior
+
+    // --- 3. Dibujo ---
+    const ctx = createContext(W, height);
     const [pr, pg, pb] = hexToRgb('#2563eb');
 
-    // Background
+    // Fondo
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillRect(0, 0, W, height);
 
     // Top accent bar
     const gradient = ctx.createLinearGradient(0, 0, W, 0);
@@ -101,57 +164,56 @@ export async function renderPosterToPng(options: PosterOptions): Promise<string>
     gradient.addColorStop(0.5, `rgb(${pr}, ${pg}, ${pb})`);
     gradient.addColorStop(1, '#10b981');
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, W, 26);
+    ctx.fillRect(0, 0, W, ACCENT_H);
 
-    let cursorY = 150;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+
+    let cursorY = ACCENT_H + 46;
 
     // Logo
     if (options.logoUrl) {
         const logo = await loadImage(options.logoUrl, true);
         if (logo) {
-            const box = 200;
             ctx.save();
             ctx.fillStyle = '#f8fafc';
             ctx.strokeStyle = '#e2e8f0';
             ctx.lineWidth = 4;
-            drawRoundedRect(ctx, (W - box) / 2, cursorY - 20, box, box, 48);
+            drawRoundedRect(ctx, (W - LOGO_BOX) / 2, cursorY, LOGO_BOX, LOGO_BOX, 44);
             ctx.fill();
             ctx.stroke();
             ctx.clip();
-            const scale = Math.min(box / logo.width, box / logo.height) * 0.78;
+            const scale = Math.min(LOGO_BOX / logo.width, LOGO_BOX / logo.height) * 0.78;
             const lw = logo.width * scale;
             const lh = logo.height * scale;
-            ctx.drawImage(logo, (W - lw) / 2, cursorY - 20 + (box - lh) / 2, lw, lh);
+            ctx.drawImage(logo, (W - lw) / 2, cursorY + (LOGO_BOX - lh) / 2, lw, lh);
             ctx.restore();
         }
     }
-
-    cursorY += 230;
+    cursorY += LOGO_BOX + 46;
 
     // Store name
     ctx.fillStyle = '#0f172a';
-    ctx.font = '900 68px Inter, Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    const nameLines = wrapText(ctx, options.storeName.toUpperCase(), W - 160);
+    ctx.font = NAME_FONT;
     nameLines.forEach((line) => {
         ctx.fillText(line, W / 2, cursorY);
-        cursorY += 76;
+        cursorY += NAME_LINE_H;
     });
 
     // Reference location
-    if (options.referenceLocation) {
-        cursorY += 10;
+    if (refLines.length) {
+        cursorY += 12;
         ctx.fillStyle = '#64748b';
-        ctx.font = '700 34px Inter, Arial, sans-serif';
-        ctx.fillText(options.referenceLocation, W / 2, cursorY);
-        cursorY += 60;
+        ctx.font = REF_FONT;
+        refLines.forEach((line) => {
+            ctx.fillText(line, W / 2, cursorY);
+            cursorY += REF_LINE_H;
+        });
     }
 
-    cursorY += 30;
+    cursorY += 40;
 
     // QR code
-    const QR_SIZE = 640;
     const qrDataUrl = await buildQrDataUrl(options.storeUrl, QR_SIZE);
     const qrImage = await loadImage(qrDataUrl);
     if (qrImage) {
@@ -159,50 +221,52 @@ export async function renderPosterToPng(options: PosterOptions): Promise<string>
         ctx.fillStyle = '#ffffff';
         ctx.strokeStyle = '#e2e8f0';
         ctx.lineWidth = 4;
-        drawRoundedRect(ctx, (W - QR_SIZE) / 2 - 24, cursorY - 24, QR_SIZE + 48, QR_SIZE + 48, 36);
+        drawRoundedRect(
+            ctx,
+            (W - QR_SIZE) / 2 - QR_PADDING,
+            cursorY - QR_PADDING,
+            QR_SIZE + QR_PADDING * 2,
+            QR_SIZE + QR_PADDING * 2,
+            36,
+        );
         ctx.fill();
         ctx.stroke();
         ctx.drawImage(qrImage, (W - QR_SIZE) / 2, cursorY);
         ctx.restore();
-        cursorY += QR_SIZE + 70;
     }
+    cursorY += QR_SIZE + QR_PADDING * 2 + 48;
 
     // Call to action
     ctx.fillStyle = '#0f172a';
-    ctx.font = '900 40px Inter, Arial, sans-serif';
-    const ctaLines = wrapText(
-        ctx,
-        'Escanea aquí para ver todo nuestro catálogo y pedir por WhatsApp',
-        W - 200,
-    );
+    ctx.font = CTA_FONT;
     ctaLines.forEach((line) => {
         ctx.fillText(line, W / 2, cursorY);
-        cursorY += 50;
+        cursorY += CTA_LINE_H;
     });
 
-    cursorY += 24;
+    cursorY += 16;
 
     // URL
     ctx.fillStyle = '#94a3b8';
-    ctx.font = '600 26px ui-monospace, Menlo, monospace';
+    ctx.font = URL_FONT;
     ctx.fillText(options.storeUrl, W / 2, cursorY);
-    cursorY += 60;
+    cursorY += URL_LINE_H + 24;
 
     // WhatsApp badge
     ctx.save();
     ctx.fillStyle = '#ecfdf5';
     ctx.strokeStyle = '#a7f3d0';
     ctx.lineWidth = 3;
-    drawRoundedRect(ctx, W / 2 - 250, cursorY, 500, 76, 38);
+    drawRoundedRect(ctx, W / 2 - BADGE_W / 2, cursorY, BADGE_W, BADGE_H, BADGE_H / 2);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = '#047857';
     ctx.font = '900 30px Inter, Arial, sans-serif';
     ctx.textBaseline = 'middle';
-    ctx.fillText('Pedidos y consultas directas', W / 2, cursorY + 38);
+    ctx.fillText('Pedidos y consultas directas', W / 2, cursorY + BADGE_H / 2);
     ctx.restore();
 
-    return canvas.toDataURL('image/png');
+    return ctx.canvas.toDataURL('image/png');
 }
 
 async function buildQrDataUrl(text: string, size: number): Promise<string> {

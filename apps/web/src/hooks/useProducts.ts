@@ -140,13 +140,34 @@ export function useProducts() {
                 .trim()
                 .replace(/\s+/g, "-");
 
-            await api.createCategory({
+            const created = await api.createCategory({
                 name: trimmedName,
                 slug: slug || 'cat',
                 storeId
-            });
+            }) as Category;
+
             setNewCatName('');
-            await loadData();
+
+            // Actualización optimista: la categoría aparece de inmediato.
+            // No llamamos a loadData() porque eso reinicia el estado `loading`
+            // y reemplaza el catálogo por la tarjeta de "Cargando catálogo...".
+            if (created?.id) {
+                setCategories(prev => (
+                    prev.some(c => c.id === created.id)
+                        ? prev
+                        : [...prev, {
+                            id: created.id,
+                            name: created.name ?? trimmedName,
+                            slug: created.slug ?? (slug || 'cat'),
+                            storeId,
+                        }]
+                ));
+            } else {
+                // Respaldo: si la API no devuelve la categoría, recargamos en segundo plano
+                api.getCategories(storeId)
+                    .then((cats: Category[]) => setCategories(cats))
+                    .catch(() => undefined);
+            }
         } catch (err: unknown) {
             console.error('Create category error:', err);
             const message = err instanceof Error ? err.message : 'No se pudo crear la categoría.';
@@ -155,11 +176,19 @@ export function useProducts() {
     };
 
     const handleDeleteCategory = async (id: string) => {
+        const previousCategories = categories;
+        const previousFilter = categoryFilter;
+
+        // Actualización optimista: desaparece de la lista al instante.
+        setCategories(prev => prev.filter(c => c.id !== id));
+        if (categoryFilter === id) setCategoryFilter('all');
+
         try {
             await api.deleteCategory(id);
-            await loadData();
         } catch (err: unknown) {
             console.error('Delete category error:', err);
+            setCategories(previousCategories);
+            setCategoryFilter(previousFilter);
             setErrorAlert({ show: true, title: 'Error al eliminar', message: 'No se pudo eliminar la categoría.' });
         }
     };

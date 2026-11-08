@@ -7,6 +7,30 @@ import { Download, Printer, QrCode, Loader2, Lightbulb, MapPin, Store as StoreIc
 import { useStore } from '@/contexts/StoreContext';
 import { renderPosterToPng } from '@/lib/poster';
 
+/** Skeleton HTML of the print window: only the poster image is printed. */
+const PRINT_DOCUMENT = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Afiche QR</title>
+<style>
+    @page { size: A4 portrait; margin: 8mm; }
+    html, body { margin: 0; padding: 0; background: #fff; }
+    img {
+        display: block;
+        width: 100%;
+        height: auto;
+        max-height: 268mm;
+        object-fit: contain;
+        margin: 0 auto;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+</style>
+</head>
+<body><img id="poster" alt="Afiche QR de la tienda" /></body>
+</html>`;
+
 export default function QRPosterPage() {
     const { activeStore } = useStore();
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -32,17 +56,20 @@ export default function QRPosterPage() {
     }, [storeUrl]);
 
     const [isDownloading, setIsDownloading] = useState(false);
+    const [isPrinting, setIsPrinting] = useState(false);
+
+    const posterOptions = () => ({
+        storeName: activeStore?.name || 'Mi Tienda',
+        storeUrl,
+        referenceLocation: activeStore?.referenceLocation,
+        logoUrl: activeStore?.logoUrl,
+    });
 
     const handleDownload = async () => {
         if (!activeStore) return;
         setIsDownloading(true);
         try {
-            const dataUrl = await renderPosterToPng({
-                storeName: activeStore.name,
-                storeUrl,
-                referenceLocation: activeStore.referenceLocation,
-                logoUrl: activeStore.logoUrl,
-            });
+            const dataUrl = await renderPosterToPng(posterOptions());
             const link = document.createElement('a');
             link.download = `afiche-qr-${activeStore.slug || 'tienda'}.png`;
             link.href = dataUrl;
@@ -55,8 +82,47 @@ export default function QRPosterPage() {
         }
     };
 
-    const handlePrint = () => {
-        window.print();
+    /**
+     * Imprime el afiche completo en una sola hoja.
+     *
+     * Se genera el mismo PNG que se descarga y se imprime en una ventana
+     * aislada con `@page A4 portrait`, así el resultado es idéntico al
+     * afiche y nunca se corta entre dos páginas.
+     */
+    const handlePrint = async () => {
+        if (!activeStore) return;
+
+        // Se abre la ventana de inmediato (dentro del clic del usuario) para
+        // no ser bloqueada por el navegador durante el render del afiche.
+        const printWindow = window.open('', '_blank', 'width=900,height=1200');
+        if (!printWindow) {
+            // Popup bloqueado: usamos la impresión directa del DOM.
+            window.print();
+            return;
+        }
+
+        setIsPrinting(true);
+        try {
+            printWindow.document.write(PRINT_DOCUMENT);
+            printWindow.document.close();
+
+            const dataUrl = await renderPosterToPng(posterOptions());
+            const img = printWindow.document.getElementById('poster') as HTMLImageElement | null;
+            if (!img) throw new Error('No se pudo preparar el afiche para imprimir.');
+
+            img.src = dataUrl;
+            await img.decode().catch(() => undefined);
+
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
+        } catch (error) {
+            console.error('Error printing poster:', error);
+            printWindow.close();
+            alert('No se pudo preparar la impresión. Intenta de nuevo.');
+        } finally {
+            setIsPrinting(false);
+        }
     };
 
     if (!activeStore) {
@@ -71,23 +137,38 @@ export default function QRPosterPage() {
         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-16">
             <style jsx global>{`
                 @media print {
-                    /* Ocultar toda la interfaz del dashboard al imprimir */
-                    header, aside, nav, button, .no-print {
-                        display: none !important;
-                    }
-                    body {
+                    @page { size: A4 portrait; margin: 8mm; }
+                    html, body {
+                        height: 100%;
+                        overflow: hidden !important;
                         background: white !important;
                         margin: 0 !important;
                         padding: 0 !important;
                     }
+                    /* Ocultar toda la interfaz del dashboard al imprimir */
+                    body * { visibility: hidden !important; }
+                    #qr-printable-area, #qr-printable-area * { visibility: visible !important; }
                     #qr-printable-area {
+                        position: fixed !important;
+                        inset: 0 !important;
                         display: flex !important;
                         justify-content: center !important;
                         align-items: center !important;
-                        min-height: 100vh !important;
-                        box-shadow: none !important;
-                        border: none !important;
+                        width: 100% !important;
+                        height: 100% !important;
+                        padding: 0 !important;
+                        margin: 0 !important;
                     }
+                    #qr-poster {
+                        width: 100% !important;
+                        max-width: 190mm !important;
+                        max-height: 265mm !important;
+                        box-shadow: none !important;
+                        border-color: #e2e8f0 !important;
+                        break-inside: avoid !important;
+                        page-break-inside: avoid !important;
+                    }
+                    .no-print { display: none !important; }
                 }
             `}</style>
 
@@ -105,33 +186,39 @@ export default function QRPosterPage() {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                     <button
                         onClick={handlePrint}
-                        disabled={!isReady}
-                        className="flex items-center gap-2 px-5 py-3 bg-[var(--surface)] border-2 border-[var(--border)] rounded-2xl font-black text-xs text-[var(--text)] hover:bg-[var(--secondary)] transition-all active:scale-95 disabled:opacity-50 shadow-sm"
+                        disabled={!isReady || isPrinting}
+                        title="Imprimir"
+                        aria-label="Imprimir afiche"
+                        className="flex items-center justify-center p-3.5 bg-[var(--surface)] border-2 border-[var(--border)] rounded-2xl text-[var(--text)] hover:bg-[var(--secondary)] transition-all active:scale-95 disabled:opacity-50 shadow-sm"
                     >
-                        <Printer className="w-4 h-4 text-[var(--primary)]" />
-                        Imprimir Afiche
+                        {isPrinting ? (
+                            <Loader2 className="w-5 h-5 animate-spin text-[var(--primary)]" />
+                        ) : (
+                            <Printer className="w-5 h-5 text-[var(--primary)]" />
+                        )}
                     </button>
                     <button
                         onClick={handleDownload}
                         disabled={!isReady || isDownloading}
-                        className="flex items-center gap-2 px-6 py-3 bg-[var(--primary)] text-[var(--bg)] rounded-2xl font-black text-xs hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-[var(--primary)]/20"
+                        title="Descargar"
+                        aria-label="Descargar afiche PNG"
+                        className="flex items-center justify-center p-3.5 bg-[var(--primary)] text-[var(--bg)] rounded-2xl hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-[var(--primary)]/20"
                     >
                         {isDownloading ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <Loader2 className="w-5 h-5 animate-spin" />
                         ) : (
-                            <Download className="w-4 h-4" />
+                            <Download className="w-5 h-5" />
                         )}
-                        {isDownloading ? 'Generando...' : 'Descargar afiche PNG'}
                     </button>
                 </div>
             </div>
 
             {/* Vista previa del afiche de mostrador */}
             <div id="qr-printable-area" className="flex justify-center items-center py-4">
-                <div className="w-full max-w-md bg-white text-slate-900 rounded-[2.5rem] shadow-2xl border-4 border-slate-100 p-8 sm:p-10 flex flex-col items-center text-center space-y-6 relative overflow-hidden">
+                <div id="qr-poster" className="w-full max-w-md bg-white text-slate-900 rounded-[2.5rem] shadow-2xl border-4 border-slate-100 p-8 sm:p-10 flex flex-col items-center text-center space-y-6 relative overflow-hidden">
                     {/* Acento superior decorativo */}
                     <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-emerald-400 via-[var(--primary)] to-emerald-500" />
 
@@ -192,12 +279,12 @@ export default function QRPosterPage() {
                     <span>Consejos para tu punto de venta</span>
                 </div>
                 <ul className="text-xs text-[var(--text)]/60 font-bold space-y-1.5 list-disc list-inside">
-                    <li>Imprime en papel tamaño carta o cartulina e insértalo en un portafiches de acrílico en el mostrador.</li>
+                    <li>El botón de imprimir genera el afiche completo en una sola hoja tamaño carta/A4.</li>
+                    <li>El botón de descargar guarda la imagen del afiche completo en PNG, lista para compartir o para tus diseños.</li>
+                    <li>Imprímelo en papel tamaño carta o cartulina e insértalo en un portafiches de acrílico en el mostrador.</li>
                     <li>Tus clientes no necesitan descargar ninguna app extra; la cámara del celular abre el catálogo de inmediato.</li>
-                    <li>Los pedidos y consultas llegarán a tu WhatsApp con el producto y precio ya preconfigurados.</li>
                 </ul>
             </div>
         </div>
     );
 }
-
