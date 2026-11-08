@@ -27,6 +27,7 @@ services:
     restart: always
     environment:
       - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_ENCRYPTION_KEY=${DATABASE_ENCRYPTION_KEY}
       - JWT_SECRET=${JWT_SECRET}
       - SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - FRONTEND_URL=${FRONTEND_URL}

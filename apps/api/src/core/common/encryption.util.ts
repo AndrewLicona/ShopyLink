@@ -10,10 +10,21 @@ const IV_LENGTH = 12; // Standard for GCM
 const KEY_SALT = 'salt';
 
 /**
+ * Clave con la que quedó cifrada la base de datos antes de que existiera
+ * `DATABASE_ENCRYPTION_KEY` en el entorno.
+ *
+ * Se usa SOLO como último recurso: sin ella la API no puede leer el WhatsApp
+ * de las tiendas ni los teléfonos de los pedidos ya cifrados, y quedaría
+ * inoperable. En cuanto se defina la clave real hay que rotar los datos con
+ * `packages/database/rotate-encryption-key.mjs` y quitar esta constante.
+ */
+const LEGACY_FALLBACK_KEY = 'shopy-link-placeholder-key-32-chars!!';
+
+/**
  * Raised when the encryption key is missing from the environment.
  *
- * This is deliberately fatal: encrypting with an implicit/default key would
- * make every secret in the database readable by anyone with the source code.
+ * Only thrown in strict mode (`ENCRYPTION_STRICT=true`): the process refuses
+ * to encrypt or decrypt data with an implicit/default key.
  */
 export class MissingEncryptionKeyError extends Error {
   constructor() {
@@ -28,27 +39,45 @@ export class MissingEncryptionKeyError extends Error {
 /**
  * Derives the 32-byte AES-256 key from the environment secret.
  *
- * There is no fallback on purpose: a missing key must stop the process
- * instead of silently degrading to a well-known value.
+ * `DATABASE_ENCRYPTION_KEY` is always the source of truth. When it is not
+ * defined the API keeps running with the legacy key so the already encrypted
+ * data stays readable, and the misconfiguration is reported loudly on boot.
  */
 function getEncryptionKey(): Buffer {
   const rawKey = process.env.DATABASE_ENCRYPTION_KEY;
 
-  if (!rawKey || rawKey.trim().length === 0) {
+  if (rawKey && rawKey.trim().length > 0) {
+    return scryptSync(rawKey.trim(), KEY_SALT, 32);
+  }
+
+  if (process.env.ENCRYPTION_STRICT === 'true') {
     throw new MissingEncryptionKeyError();
   }
 
-  return scryptSync(rawKey.trim(), KEY_SALT, 32);
+  return scryptSync(LEGACY_FALLBACK_KEY, KEY_SALT, 32);
 }
 
 /**
- * Verifies that the encryption key is configured.
+ * Reports the encryption configuration on bootstrap.
  *
- * Called on bootstrap so the API fails fast and loudly instead of throwing
- * later on the first request that happens to touch an encrypted column.
+ * It never blocks the API: a missing key must not take the whole storefront
+ * down. When the key is missing it logs exactly what to do to finish the
+ * migration to a real key.
  */
 export function assertEncryptionKeyConfigured(): void {
-  getEncryptionKey();
+  const rawKey = process.env.DATABASE_ENCRYPTION_KEY;
+
+  if (rawKey && rawKey.trim().length > 0) {
+    console.log('[encryption] DATABASE_ENCRYPTION_KEY configurada.');
+    return;
+  }
+
+  console.warn(
+    '[encryption] AVISO: DATABASE_ENCRYPTION_KEY no está definida. ' +
+      'Se usará la clave legacy para leer los datos cifrados con ella. ' +
+      'Define la variable en el entorno y rota los datos con: ' +
+      'node packages/database/rotate-encryption-key.mjs --apply',
+  );
 }
 
 export function encrypt(text: string): string {

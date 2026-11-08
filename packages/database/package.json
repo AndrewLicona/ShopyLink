@@ -8,7 +8,8 @@
         "build": "prisma generate --schema=prisma/schema.prisma && tsc",
         "seed": "ts-node --transpile-only prisma/seed.ts",
         "prisma": "prisma",
-        "prisma:generate": "prisma generate --schema=prisma/schema.prisma"
+        "prisma:generate": "prisma generate --schema=prisma/schema.prisma",
+        "encrypt:rotate": "node rotate-encryption-key.mjs"
     },
     "devDependencies": {
         "@prisma/config": "^7.2.0",
