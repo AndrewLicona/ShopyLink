@@ -1,0 +1,19 @@
+name: Seguridad
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  secrets:
+    name: Sin secretos versionados
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar dependencias
+        run: npm ci --ignore-scripts || npm install --ignore-scripts
+
+      - name: Revisar que no haya secretos reales en el repositorio
+        run: npm run check:secrets

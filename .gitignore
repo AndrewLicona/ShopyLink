@@ -13,6 +13,13 @@ node_modules
 .env.production.local
 .env.production
 
+# Cualquier archivo de secretos, sin importar el nombre (p.ej. secrets.env,
+# shopylink.env). Las plantillas .env*.example si se versionan.
+*.env
+*.key
+*.p12
+*.pfx
+
 # Testing
 coverage
 

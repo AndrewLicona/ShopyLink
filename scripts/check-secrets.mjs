@@ -89,6 +89,21 @@ for (const rel of tracked) {
             }
         }
     }
+
+    // 3) secreto escrito a mano en el codigo (funciona tambien en CI, donde
+    //    no existen los .env locales para comparar).
+    for (const line of content.split(/\r?\n/)) {
+        const m = line.match(
+            /(?:^|[\s{,])([A-Za-z0-9_]*(?:SECRET|PASSWORD|PRIVATE_KEY|ACCESS_KEY)[A-Za-z0-9_]*)\s*[:=]\s*['"]([^'"]{16,})['"]/i,
+        );
+        if (!m) continue;
+        const [, key, value] = m;
+        if (PUBLIC_KEY.test(key)) continue;
+        if (PLACEHOLDER.test(value)) continue;
+        if (!/^[A-Za-z0-9+/=_\-.]+$/.test(value)) continue; // no parece un secreto
+        if (realSecrets.has(value)) continue; // ya reportado arriba
+        problems.push(`${rel}: parece un secreto escrito a mano en ${key}`);
+    }
 }
 
 if (problems.length) {
