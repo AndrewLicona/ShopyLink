@@ -25,7 +25,6 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 
 const APPLY = process.argv.includes('--apply');
-const LEGACY_KEY = 'shopy-link-placeholder-key-32-chars!!';
 const KEY_SALT = 'salt';
 
 /* ---------- entorno ---------- */
@@ -41,6 +40,17 @@ if (fs.existsSync(envPath)) {
 const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
 if (!connectionString) {
     console.error('No se encontró DATABASE_URL ni DIRECT_URL en el entorno.');
+    process.exit(1);
+}
+
+// La clave legacy NO vive en el repositorio: se lee del .env local.
+const legacyRawKey = (process.env.LEGACY_ENCRYPTION_KEY || '').trim();
+if (!legacyRawKey) {
+    console.error(
+        'Falta LEGACY_ENCRYPTION_KEY en el .env local.\n' +
+        'Es la clave con la que está cifrada la data actual; el script la necesita\n' +
+        'para descifrar y volver a cifrar. No se guarda en el repositorio.',
+    );
     process.exit(1);
 }
 
@@ -75,7 +85,7 @@ const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-const legacyKey = deriveKey(LEGACY_KEY);
+const legacyKey = deriveKey(legacyRawKey);
 const newRawKey = (process.env.NEW_ENCRYPTION_KEY || '').trim() || crypto.randomBytes(32).toString('base64');
 const newKey = deriveKey(newRawKey);
 
@@ -174,6 +184,7 @@ console.log('Siguientes pasos:');
 console.log('  1. Copia esa clave al .env del servidor como DATABASE_ENCRYPTION_KEY');
 console.log('  2. Redespliega (bash deploy.sh)');
 console.log('  3. Opcional: activa ENCRYPTION_STRICT="true" para que la API no arranque sin la clave');
+console.log('  4. Cuando la API esté usando la clave nueva, borra LEGACY_ENCRYPTION_KEY del .env local');
 
 if (failures.length) {
     console.log('');

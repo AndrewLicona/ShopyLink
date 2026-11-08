@@ -13,10 +13,10 @@ const KEY_SALT = 'salt';
  * Clave con la que quedó cifrada la base de datos antes de que existiera
  * `DATABASE_ENCRYPTION_KEY` en el entorno.
  *
- * Se usa SOLO como último recurso: sin ella la API no puede leer el WhatsApp
- * de las tiendas ni los teléfonos de los pedidos ya cifrados, y quedaría
- * inoperable. En cuanto se defina la clave real hay que rotar los datos con
- * `packages/database/rotate-encryption-key.mjs` y quitar esta constante.
+ * Es una clave provisional: sirve para leer los datos ya cifrados mientras se
+ * migran a la clave definitiva. En cuanto los datos estén rotados
+ * (`packages/database/rotate-encryption-key.mjs`) esta constante se elimina
+ * del código y la API pasa a exigir `DATABASE_ENCRYPTION_KEY`.
  */
 const LEGACY_FALLBACK_KEY = 'shopy-link-placeholder-key-32-chars!!';
 
@@ -58,6 +58,24 @@ function getEncryptionKey(): Buffer {
 }
 
 /**
+ * Keys accepted when reading, in order of preference.
+ *
+ * While the migration is in progress the data can be encrypted with the legacy
+ * key (already rotated) or with the new one (not rotated yet), so reading
+ * accepts both and writing always uses the new key. Once the rotation is done
+ * only the configured key is used.
+ */
+function getReadKeys(): Buffer[] {
+  const primary = getEncryptionKey();
+  const rawKey = process.env.DATABASE_ENCRYPTION_KEY?.trim();
+
+  if (!rawKey || rawKey === LEGACY_FALLBACK_KEY) return [primary];
+
+  const legacy = scryptSync(LEGACY_FALLBACK_KEY, KEY_SALT, 32);
+  return [primary, legacy];
+}
+
+/**
  * Reports the encryption configuration on bootstrap.
  *
  * It never blocks the API: a missing key must not take the whole storefront
@@ -80,6 +98,26 @@ export function assertEncryptionKeyConfigured(): void {
   );
 }
 
+function tryDecrypt(encryptedText: string, key: Buffer): string | null {
+  try {
+    const [ivHex, authTagHex, encryptedData] = encryptedText.split(':');
+    if (!ivHex || !authTagHex || !encryptedData) return null;
+
+    const iv = Buffer.from(ivHex, 'hex');
+    const authTag = Buffer.from(authTagHex, 'hex');
+
+    const decipher = createDecipheriv(ALGORITHM, key, iv);
+    decipher.setAuthTag(authTag);
+
+    let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+
+    return decrypted;
+  } catch {
+    return null;
+  }
+}
+
 export function encrypt(text: string): string {
   if (!text) return text;
 
@@ -99,30 +137,17 @@ export function encrypt(text: string): string {
 export function decrypt(encryptedText: string): string {
   if (!encryptedText || !encryptedText.includes(':')) return encryptedText;
 
-  const key = getEncryptionKey();
-
-  try {
-    const [ivHex, authTagHex, encryptedData] = encryptedText.split(':');
-    if (!ivHex || !authTagHex || !encryptedData) return encryptedText;
-
-    const iv = Buffer.from(ivHex, 'hex');
-    const authTag = Buffer.from(authTagHex, 'hex');
-
-    const decipher = createDecipheriv(ALGORITHM, key, iv);
-    decipher.setAuthTag(authTag);
-
-    let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-
-    return decrypted;
-  } catch (error) {
-    // The value is not readable with the current key: it was encrypted with a
-    // different one. Returning the ciphertext keeps the app alive but makes
-    // the misconfiguration loud in the logs.
-    console.error(
-      'Decryption failed (wrong DATABASE_ENCRYPTION_KEY or corrupted value):',
-      error,
-    );
-    return encryptedText;
+  for (const key of getReadKeys()) {
+    const decrypted = tryDecrypt(encryptedText, key);
+    if (decrypted !== null) return decrypted;
   }
+
+  // The value is not readable with any of the configured keys: it was
+  // encrypted with a different one. Returning the ciphertext keeps the app
+  // alive but makes the misconfiguration loud in the logs.
+  console.error(
+    'Decryption failed (wrong DATABASE_ENCRYPTION_KEY or corrupted value):',
+    encryptedText.slice(0, 24) + '...',
+  );
+  return encryptedText;
 }
