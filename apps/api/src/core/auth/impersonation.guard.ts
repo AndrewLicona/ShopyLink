@@ -2,15 +2,12 @@ import {
   Injectable,
   CanActivate,
   ExecutionContext,
-  UnauthorizedException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import * as jwt from 'jsonwebtoken';
+import { getJwtSecret } from '../common/jwt-secret.util';
 
 @Injectable()
 export class ImpersonationGuard implements CanActivate {
-  constructor(private configService: ConfigService) {}
-
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const impersonationToken = request.headers['x-impersonate-token'];
@@ -25,8 +22,10 @@ export class ImpersonationGuard implements CanActivate {
     }
 
     try {
-      const secret =
-        this.configService.get<string>('JWT_SECRET') || 'fallback_secret';
+      // Sin secreto no se puede verificar nada: se usa el valor del entorno,
+      // nunca uno por defecto (firmar con una clave conocida permitiria
+      // forjar una suplantacion).
+      const secret = getJwtSecret();
       const payload: any = jwt.verify(impersonationToken as string, secret);
 
       // If we are here, the token is valid.

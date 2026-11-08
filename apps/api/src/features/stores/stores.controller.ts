@@ -24,6 +24,7 @@ import { UpdateStoreDto } from './dto/update-store.dto';
 import { JwtAuthGuard } from '../../core/auth/jwt-auth.guard';
 import { SuperAdminGuard } from '../../core/auth/super-admin.guard';
 import { RequestWithUser } from '../../core/auth/interfaces/user.interface';
+import { getJwtSecret } from '../../core/common/jwt-secret.util';
 
 @Controller('stores')
 export class StoresController {
@@ -74,8 +75,7 @@ export class StoresController {
       throw new NotFoundException('Usuario a suplantar no encontrado');
     }
 
-    const secret =
-      this.configService.get<string>('JWT_SECRET') || 'fallback_secret';
+    const secret = getJwtSecret();
 
     const payload = {
       sub: userId,

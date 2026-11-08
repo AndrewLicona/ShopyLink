@@ -14,7 +14,8 @@ services:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
       - DATABASE_URL=${DATABASE_URL}
       - NEXTAUTH_URL=${NEXTAUTH_URL}
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      # NEXTAUTH_SECRET no se inyecta: el frontend usa Supabase Auth y ningun
+      # codigo lee esa variable. Mantenerla solo dejaba el secreto expuesto.
       - INTERNAL_API_URL=http://api:3001/api
     networks:
       - shopynet
@@ -26,16 +27,20 @@ services:
       dockerfile: apps/api/Dockerfile
     restart: always
     env_file:
-      # Clave de cifrado de la base de datos. Vive FUERA del repositorio (en el
-      # servidor) para que nunca llegue a git. El archivo se crea una sola vez:
-      #   echo 'DATABASE_ENCRYPTION_KEY="<clave>"' > /etc/dokploy/secrets/shopylink.env
+      # Secretos que viven FUERA del repositorio (en el servidor) para que nunca
+      # lleguen a git ni al panel de Dokploy. El archivo se crea una sola vez:
+      #   cat > /etc/dokploy/secrets/shopylink.env <<'EOF'
+      #   DATABASE_ENCRYPTION_KEY="<clave>"
+      #   JWT_SECRET="<clave>"
+      #   EOF
       # `required: false` para que el compose siga siendo usable en entornos
-      # donde ese archivo todavía no existe.
+      # donde ese archivo todavia no existe.
       - path: /etc/dokploy/secrets/shopylink.env
         required: false
     environment:
       - DATABASE_URL=${DATABASE_URL}
-      - JWT_SECRET=${JWT_SECRET}
+      # JWT_SECRET NO se inyecta desde el .env del stack: llega por `env_file`,
+      # para que la clave de firma no quede en el repositorio ni en Dokploy.
       - SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - FRONTEND_URL=${FRONTEND_URL}
       - PORT=3001

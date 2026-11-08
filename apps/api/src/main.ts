@@ -3,10 +3,13 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './all-exceptions.filter';
 import { assertEncryptionKeyConfigured } from './core/common/encryption.util';
+import { assertJwtSecretConfigured } from './core/common/jwt-secret.util';
 
 async function bootstrap() {
   // Fail fast: without this key the API cannot read the encrypted columns.
   assertEncryptionKeyConfigured();
+  // La suplantacion queda deshabilitada si no hay secreto de firma.
+  assertJwtSecretConfigured();
 
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');
