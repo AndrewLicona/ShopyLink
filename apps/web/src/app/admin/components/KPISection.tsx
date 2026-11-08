@@ -6,7 +6,7 @@ import {
     ShoppingCart,
     Users as UsersIcon
 } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import { formatAmount } from '@/lib/utils';
 
 interface Stats {
     totalStores: number;
@@ -49,8 +49,8 @@ export function KPISection({ stats }: { stats: Stats }) {
             <div className="bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between">
                 <div>
                     <p className="text-[10px] md:text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Ticket Prom.</p>
-                    <h3 className="text-xl md:text-3xl font-black text-emerald-600 font-tabular-nums">{formatCurrency(stats.avgOrderValue || 0)}</h3>
-                    <p className="text-[10px] text-slate-400 font-bold mt-1">{stats.totalOrders} órdenes</p>
+                    <h3 className="text-xl md:text-3xl font-black text-emerald-600 font-tabular-nums">{formatAmount(stats.avgOrderValue || 0)}</h3>
+                    <p className="text-[10px] text-slate-400 font-bold mt-1">{stats.totalOrders} órdenes · moneda mixta</p>
                 </div>
                 <div className="w-10 h-10 md:w-12 md:h-12 bg-emerald-50 text-emerald-600 rounded-xl md:rounded-2xl flex items-center justify-center">
                     <ShoppingCart className="w-5 h-5 md:w-6 md:h-6" />
@@ -60,8 +60,8 @@ export function KPISection({ stats }: { stats: Stats }) {
             <div className="bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between">
                 <div>
                     <p className="text-[10px] md:text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Ventas Totales</p>
-                    <h3 className="text-xl md:text-3xl font-black text-indigo-600 font-tabular-nums">{formatCurrency(stats.totalRevenue || 0)}</h3>
-                    <p className="text-[10px] text-slate-400 font-bold mt-1">Acumulado</p>
+                    <h3 className="text-xl md:text-3xl font-black text-indigo-600 font-tabular-nums">{formatAmount(stats.totalRevenue || 0)}</h3>
+                    <p className="text-[10px] text-slate-400 font-bold mt-1">Acumulado · moneda mixta</p>
                 </div>
                 <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-50 text-indigo-600 rounded-xl md:rounded-2xl flex items-center justify-center">
                     <ShoppingCart className="w-5 h-5 md:w-6 md:h-6" />

@@ -6,7 +6,7 @@
  * marketplace, dashboard and PDF all use this exact format so a customer never
  * sees two different prices for the same item.
  */
-export { formatCurrency, getCurrencyForCountry, getCountryName, COUNTRY_OPTIONS, DEFAULT_COUNTRY } from './currency';
+export { formatCurrency, formatAmount, getCurrencyForCountry, getCountryName, COUNTRY_OPTIONS, DEFAULT_COUNTRY } from './currency';
 
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';

@@ -114,3 +114,20 @@ export function formatCurrency(
 
     return `${currency.symbol} ${formatted} ${currency.code}`;
 }
+
+/**
+ * Formatea un monto sin símbolo ni código de moneda.
+ *
+ * Se usa en el panel de super admin, donde los totales suman tiendas de
+ * distintos países: ahí no hay una moneda única que represente el monto.
+ *
+ * @example formatAmount(25000) -> '25.000'
+ */
+export function formatAmount(value: number | string | null | undefined): string {
+    const amount = typeof value === 'string' ? parseFloat(value) : value;
+
+    return new Intl.NumberFormat('es-CO', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+    }).format(amount || 0);
+}
