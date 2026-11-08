@@ -10,7 +10,8 @@ import { api } from '@/services/api';
 import { useCart } from '@/contexts/CartContext';
 import { Product } from '@/types/types';
 import { formatCurrency } from '@/lib/utils';
-import { isProductAvailable } from '@/lib/pricing';
+import { getServicePriceLabel, isProductAvailable } from '@/lib/pricing';
+import { buildWhatsAppLink } from '@/lib/whatsapp';
 
 export default function ProductDetailClient() {
     const params = useParams();
@@ -166,7 +167,15 @@ export default function ProductDetailClient() {
                             </h1>
 
                             <div className="mb-8">
-                                {isPriceHidden ? (
+                                {isService ? (
+                                    /* Services are quoted by mode, never added to the cart. */
+                                    <div className="text-5xl font-black text-gray-900">
+                                        {getServicePriceLabel(
+                                            product.price != null ? Number(product.price) : null,
+                                            product.pricingMode,
+                                        )}
+                                    </div>
+                                ) : isPriceHidden ? (
                                     <div className="text-2xl font-black text-blue-600">
                                         Precio a consultar
                                     </div>
@@ -183,7 +192,7 @@ export default function ProductDetailClient() {
                                     </div>
                                 )}
 
-                                {!available && !isPriceHidden && (
+                                {!available && !isPriceHidden && !isService && (
                                     <div className="mt-4 inline-flex items-center gap-2 bg-amber-50 text-amber-700 border border-amber-200 px-4 py-2.5 rounded-xl">
                                         <Clock className="w-4 h-4" />
                                         <span className="text-sm font-black">
@@ -241,31 +250,52 @@ export default function ProductDetailClient() {
                                         </button>
                                     )}
 
-                                    <Link
-                                        href={`/${product.store.slug}?p=${product.id}`}
-                                        className={`${isPriceHidden ? 'w-full' : 'flex-1'} py-5 rounded-[1.5rem] font-black text-lg flex items-center justify-center gap-3 transition-all hover:scale-105 active:scale-95 shadow-xl ${
-                                            isPriceHidden
-                                                ? 'bg-gradient-to-r from-gray-800 to-gray-900 text-white shadow-gray-900/20'
-                                                : 'bg-white border-2 border-gray-200 text-gray-900 hover:border-blue-300'
-                                        }`}
-                                    >
-                                        {isPriceHidden ? (
-                                            <>
-                                                <MessageCircle className="w-6 h-6" />
-                                                Consultar precio
-                                            </>
-                                        ) : (
-                                            <>
-                                                <ExternalLink className="w-5 h-5" />
-                                                Comprar en {product.store.name}
-                                            </>
-                                        )}
-                                    </Link>
+                                    {/* Services are an inquiry: link straight to WhatsApp
+                                        instead of the store's stock modal. */}
+                                    {isService && product.store.whatsappNumber ? (
+                                        <a
+                                            href={buildWhatsAppLink({
+                                                phone: product.store.whatsappNumber,
+                                                type: 'service',
+                                                name: product.name,
+                                                storeName: product.store.name,
+                                            })}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex-1 py-5 rounded-[1.5rem] font-black text-lg flex items-center justify-center gap-3 transition-all hover:scale-105 active:scale-95 shadow-xl bg-green-500 text-white shadow-green-500/30"
+                                        >
+                                            <MessageCircle className="w-6 h-6" />
+                                            Consultar por WhatsApp
+                                        </a>
+                                    ) : (
+                                        <Link
+                                            href={`/${product.store.slug}?p=${product.id}`}
+                                            className={`${isPriceHidden ? 'w-full' : 'flex-1'} py-5 rounded-[1.5rem] font-black text-lg flex items-center justify-center gap-3 transition-all hover:scale-105 active:scale-95 shadow-xl ${
+                                                isPriceHidden
+                                                    ? 'bg-gradient-to-r from-gray-800 to-gray-900 text-white shadow-gray-900/20'
+                                                    : 'bg-white border-2 border-gray-200 text-gray-900 hover:border-blue-300'
+                                            }`}
+                                        >
+                                            {isPriceHidden ? (
+                                                <>
+                                                    <MessageCircle className="w-6 h-6" />
+                                                    Consultar precio
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <ExternalLink className="w-5 h-5" />
+                                                    Comprar en {product.store.name}
+                                                </>
+                                            )}
+                                        </Link>
+                                    )}
                                 </div>
                                 <p className="text-center text-xs font-bold text-gray-400 mt-4 uppercase tracking-widest">
-                                    {isPriceHidden
+                                    {isService
                                         ? 'Contacta al comercio para más información'
-                                        : 'Agrega al carrito para seguir comprando en el marketplace'}
+                                        : isPriceHidden
+                                            ? 'Contacta al comercio para más información'
+                                            : 'Agrega al carrito para seguir comprando en el marketplace'}
                                 </p>
                             </div>
                         </div>

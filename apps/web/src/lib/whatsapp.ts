@@ -8,8 +8,9 @@ export function buildWhatsAppLink(params: {
     name: string;
     price?: number | null;
     pricingMode?: string | null;
+    storeName?: string | null;
 }): string {
-    const { phone, type, name, price, pricingMode } = params;
+    const { phone, type, name, price, pricingMode, storeName } = params;
     // wa.me expects digits only. A leading "+" breaks the deep link, so it is
     // stripped here and only the international digits are kept.
     const cleanPhone = phone.replace(/\D/g, '');
@@ -21,15 +22,10 @@ export function buildWhatsAppLink(params: {
             : '';
         text = `Hola, quiero pedir el producto: ${name}${priceStr}`;
     } else {
-        const modeLabel = pricingMode === 'hourly'
-            ? ' (servicio por hora)'
-            : pricingMode === 'quote'
-                ? ' (servicio a convenir)'
-                : '';
-        const priceStr = price != null && pricingMode !== 'quote'
-            ? ` — precio de referencia $${price.toLocaleString('es-CO')}`
-            : '';
-        text = `Hola, me interesa información sobre el servicio: ${name}${modeLabel}${priceStr}`;
+        // Services are an inquiry, not a purchase: greet the store by name and
+        // ask about the service without forcing a price into the message.
+        const greeting = storeName ? `Hola ${storeName},` : 'Hola,';
+        text = `${greeting} me interesa consultar sobre el servicio: ${name}.`;
     }
 
     return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;

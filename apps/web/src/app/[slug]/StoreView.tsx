@@ -121,6 +121,7 @@ export function StoreView({ store, products: rawProducts, categories, banners = 
                     searchTerm={state.searchTerm}
                     bannerNode={<PublicBanners banners={banners} position="BETWEEN_PRODUCTS" />}
                     whatsappNumber={store.whatsappNumber}
+                    storeName={store.name}
                 />
 
                 <AdBanner planType={store.planType} />

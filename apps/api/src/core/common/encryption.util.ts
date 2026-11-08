@@ -5,18 +5,50 @@ import {
   scryptSync,
 } from 'crypto';
 
-// The encryption key should be exactly 32 bytes for AES-256
-// In a real production environment, this MUST be a 32-byte hex string in process.env.DATABASE_ENCRYPTION_KEY
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12; // Standard for GCM
+const KEY_SALT = 'salt';
 
+/**
+ * Raised when the encryption key is missing from the environment.
+ *
+ * This is deliberately fatal: encrypting with an implicit/default key would
+ * make every secret in the database readable by anyone with the source code.
+ */
+export class MissingEncryptionKeyError extends Error {
+  constructor() {
+    super(
+      'DATABASE_ENCRYPTION_KEY is not set. Refusing to encrypt or decrypt data. ' +
+        'Define it in the environment before starting the API.',
+    );
+    this.name = 'MissingEncryptionKeyError';
+  }
+}
+
+/**
+ * Derives the 32-byte AES-256 key from the environment secret.
+ *
+ * There is no fallback on purpose: a missing key must stop the process
+ * instead of silently degrading to a well-known value.
+ */
 function getEncryptionKey(): Buffer {
-  const key =
-    process.env.DATABASE_ENCRYPTION_KEY ||
-    'shopy-link-placeholder-key-32-chars!!';
-  // If the key is less than 32 chars, we pad it or hash it to reach 32 bytes
-  // Using scrypt to ensure we always get a 32-byte key
-  return scryptSync(key, 'salt', 32);
+  const rawKey = process.env.DATABASE_ENCRYPTION_KEY;
+
+  if (!rawKey || rawKey.trim().length === 0) {
+    throw new MissingEncryptionKeyError();
+  }
+
+  return scryptSync(rawKey.trim(), KEY_SALT, 32);
+}
+
+/**
+ * Verifies that the encryption key is configured.
+ *
+ * Called on bootstrap so the API fails fast and loudly instead of throwing
+ * later on the first request that happens to touch an encrypted column.
+ */
+export function assertEncryptionKeyConfigured(): void {
+  getEncryptionKey();
 }
 
 export function encrypt(text: string): string {
@@ -38,13 +70,14 @@ export function encrypt(text: string): string {
 export function decrypt(encryptedText: string): string {
   if (!encryptedText || !encryptedText.includes(':')) return encryptedText;
 
+  const key = getEncryptionKey();
+
   try {
     const [ivHex, authTagHex, encryptedData] = encryptedText.split(':');
     if (!ivHex || !authTagHex || !encryptedData) return encryptedText;
 
     const iv = Buffer.from(ivHex, 'hex');
     const authTag = Buffer.from(authTagHex, 'hex');
-    const key = getEncryptionKey();
 
     const decipher = createDecipheriv(ALGORITHM, key, iv);
     decipher.setAuthTag(authTag);
@@ -54,8 +87,13 @@ export function decrypt(encryptedText: string): string {
 
     return decrypted;
   } catch (error) {
-    console.error('Decryption failed:', error);
-    // If decryption fails, it might be raw text or corrupted
+    // The value is not readable with the current key: it was encrypted with a
+    // different one. Returning the ciphertext keeps the app alive but makes
+    // the misconfiguration loud in the logs.
+    console.error(
+      'Decryption failed (wrong DATABASE_ENCRYPTION_KEY or corrupted value):',
+      error,
+    );
     return encryptedText;
   }
 }

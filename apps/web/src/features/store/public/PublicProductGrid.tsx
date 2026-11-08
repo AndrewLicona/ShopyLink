@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { ShoppingBag, Search, Plus, MessageCircle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { buildWhatsAppLink } from '@/lib/whatsapp';
-import { isProductAvailable } from '@/lib/pricing';
+import { getServicePriceLabel, isProductAvailable } from '@/lib/pricing';
 import type { Product, Category } from '@/types/types';
 
 interface PublicProductGridProps {
@@ -17,22 +17,7 @@ interface PublicProductGridProps {
     searchTerm: string;
     bannerNode?: React.ReactNode;
     whatsappNumber?: string | null;
-}
-
-function ServicePriceLabel({ price, pricingMode }: { price?: number | null; pricingMode?: string | null }) {
-    if (pricingMode === 'quote' || (price == null && pricingMode !== 'from' && pricingMode !== 'hourly')) {
-        return <span className="text-base font-black text-[var(--primary)]">A convenir</span>;
-    }
-    if (pricingMode === 'from' && price != null) {
-        return <span className="text-base font-black text-[var(--primary)]">Desde {formatCurrency(price)}</span>;
-    }
-    if (pricingMode === 'hourly' && price != null) {
-        return <span className="text-base font-black text-[var(--primary)]">{formatCurrency(price)}/hora</span>;
-    }
-    if (price != null) {
-        return <span className="text-base font-black text-[var(--primary)]">{formatCurrency(price)}</span>;
-    }
-    return <span className="text-base font-black text-[var(--primary)]">A convenir</span>;
+    storeName?: string | null;
 }
 
 function PricingModeBadge({ pricingMode }: { pricingMode?: string | null }) {
@@ -60,6 +45,7 @@ export function PublicProductGrid({
     searchTerm,
     bannerNode,
     whatsappNumber,
+    storeName,
 }: PublicProductGridProps) {
     if (products.length === 0) {
         return (
@@ -118,15 +104,16 @@ export function PublicProductGrid({
                                 <h3 className="text-sm font-black text-[var(--text)] line-clamp-1">{product.name}</h3>
                                 <PricingModeBadge pricingMode={product.pricingMode} />
                                 <div className="mt-auto pt-3">
-                                    <ServicePriceLabel price={product.price} pricingMode={product.pricingMode} />
+                                    <span className="text-base font-black text-[var(--primary)]">
+                                        {getServicePriceLabel(product.price, product.pricingMode)}
+                                    </span>
                                     {whatsappNumber && (
                                         <a
                                             href={buildWhatsAppLink({
                                                 phone: whatsappNumber,
                                                 type: 'service',
                                                 name: product.name,
-                                                price: product.price,
-                                                pricingMode: product.pricingMode,
+                                                storeName,
                                             })}
                                             target="_blank"
                                             rel="noopener noreferrer"

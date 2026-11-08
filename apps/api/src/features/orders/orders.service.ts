@@ -6,10 +6,9 @@ import {
 import { PrismaService } from '../../core/prisma/prisma.module';
 import { RedisService } from '../../core/cache/redis.service';
 import { OrderStatus } from '@repo/database';
-import { createHash } from 'crypto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
-import { decrypt } from '../../core/common/encryption.util';
+import { decrypt, encrypt } from '../../core/common/encryption.util';
 import {
   Prisma,
   Product,
@@ -58,15 +57,18 @@ export class OrdersService {
     // 4. Create Order
     const order = await this.prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
-        const hashedPhone = customerPhone
-          ? createHash('sha256').update(customerPhone).digest('hex')
+        // The customer phone is encrypted (AES-256-GCM) instead of hashed so the
+        // merchant can still read it back from the dashboard and contact the
+        // customer when a checkout is interrupted.
+        const encryptedPhone = customerPhone
+          ? encrypt(customerPhone)
           : null;
 
         const newOrder = await tx.order.create({
           data: {
             storeId,
             customerName,
-            customerPhone: hashedPhone,
+            customerPhone: encryptedPhone,
             customerAddress,
             total,
             status: 'PENDING',
@@ -75,6 +77,13 @@ export class OrdersService {
             },
           },
           include: { items: true },
+        });
+
+        // Keep the marketplace ranking in sync. The increment happens inside the
+        // same transaction so the counter can never drift from the orders.
+        await tx.store.update({
+          where: { id: storeId },
+          data: { orderCount: { increment: 1 } },
         });
 
         return newOrder as typeof newOrder & { items: OrderItem[] };
@@ -91,6 +100,8 @@ export class OrdersService {
       order,
       decryptedWhatsapp,
     );
+
+    await this.invalidateStoreCaches(storeId);
 
     return { ...order, whatsappLink: waLink };
   }
@@ -255,13 +266,15 @@ export class OrdersService {
     if (!store || store.userId !== userId)
       throw new NotFoundException('Store not found or access denied');
 
-    return this.prisma.withRetry(() =>
+    const orders = await this.prisma.withRetry(() =>
       this.prisma.order.findMany({
         where: { storeId },
         include: { items: true },
         orderBy: { createdAt: 'desc' },
       }),
     );
+
+    return orders.map((order) => this.decryptOrder(order));
   }
 
   async findOne(id: string, userId: string) {
@@ -274,6 +287,19 @@ export class OrdersService {
     if (!order) throw new NotFoundException('Order not found');
     if (order.store.userId !== userId)
       throw new NotFoundException('Access denied');
+    return this.decryptOrder(order);
+  }
+
+  /**
+   * Returns the order with the customer phone in plain text so the merchant
+   * can call or write to the customer when a checkout is interrupted.
+   */
+  private decryptOrder<T extends { customerPhone?: string | null }>(order: T): T {
+    if (!order) return order;
+
+    if (typeof order.customerPhone === 'string') {
+      order.customerPhone = decrypt(order.customerPhone);
+    }
     return order;
   }
 

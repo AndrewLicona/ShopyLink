@@ -9,7 +9,10 @@ import {
     Calendar,
     User,
     ShoppingCart,
-    Search
+    Search,
+    Phone,
+    PhoneCall,
+    MessageCircle
 } from 'lucide-react';
 import { useOrders } from '@/hooks/useOrders';
 import { cn, formatCurrency } from '@/lib/utils';
@@ -160,6 +163,36 @@ export default function OrdersPage() {
                                                 <p className="font-black text-[var(--text)]">{selectedOrder.customerName}</p>
                                             </div>
                                         </div>
+
+                                        {selectedOrder.customerPhone && (
+                                            <div className="flex items-center gap-3 bg-[var(--secondary)]/30 p-4 rounded-2xl">
+                                                <Phone className="w-4 h-4 text-[var(--text)]/30" />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-[10px] font-black text-[var(--text)]/30 uppercase tracking-tighter">Teléfono</p>
+                                                    <p className="font-black text-[var(--text)]">{selectedOrder.customerPhone}</p>
+                                                </div>
+                                                <div className="flex items-center gap-2 shrink-0">
+                                                    <a
+                                                        href={`tel:${selectedOrder.customerPhone}`}
+                                                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--primary)]/10 text-[var(--primary)] font-black text-[10px] uppercase tracking-wider hover:bg-[var(--primary)]/20 transition-all active:scale-95"
+                                                        aria-label={`Llamar a ${selectedOrder.customerName}`}
+                                                    >
+                                                        <PhoneCall className="w-3.5 h-3.5" />
+                                                        Llamar
+                                                    </a>
+                                                    <a
+                                                        href={`https://wa.me/${selectedOrder.customerPhone.replace(/\D/g, '')}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-green-500/10 text-green-600 font-black text-[10px] uppercase tracking-wider hover:bg-green-500/20 transition-all active:scale-95"
+                                                        aria-label={`Escribir a ${selectedOrder.customerName} por WhatsApp`}
+                                                    >
+                                                        <MessageCircle className="w-3.5 h-3.5" />
+                                                        WhatsApp
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 

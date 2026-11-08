@@ -1,4 +1,5 @@
 import type { Product } from '@/types/types';
+import { formatCurrency } from '@/lib/utils';
 
 export type PricingMode = 'fixed' | 'from' | 'hourly' | 'quote' | null | undefined;
 
@@ -23,6 +24,34 @@ export function getPricingSuffix(mode: PricingMode): string | null {
             return '/hora';
         default:
             return null;
+    }
+}
+
+/**
+ * Canonical price text for a service, driven by its pricing mode.
+ *
+ * - from   → "Desde $ 25.000 COP"
+ * - hourly → "$ 25.000 COP / hr"
+ * - quote  → "A convenir"
+ * - fixed  → "$ 25.000 COP"
+ *
+ * Services without a price are always quoted on request.
+ */
+export function getServicePriceLabel(
+    price?: number | null,
+    mode: PricingMode = 'fixed',
+): string {
+    const amount = price != null ? formatCurrency(price) : null;
+
+    switch (mode) {
+        case 'quote':
+            return 'A convenir';
+        case 'from':
+            return amount ? `Desde ${amount}` : 'A convenir';
+        case 'hourly':
+            return amount ? `${amount} / hr` : 'A convenir';
+        default:
+            return amount ?? 'A convenir';
     }
 }
 

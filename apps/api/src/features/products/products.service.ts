@@ -267,7 +267,10 @@ export class ProductsService {
 
     return {
       ...product,
-      discountPrice
+      store: store
+        ? { ...store, whatsappNumber: decrypt(store.whatsappNumber) }
+        : store,
+      discountPrice,
     };
   }
 

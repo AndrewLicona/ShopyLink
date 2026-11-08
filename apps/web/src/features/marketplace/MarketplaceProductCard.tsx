@@ -18,6 +18,7 @@ import { buildWhatsAppLink } from '@/lib/whatsapp';
 import {
     getPricingLabel,
     getPricingSuffix,
+    getServicePriceLabel,
     isProductAvailable,
     isService,
     getAvailableStock,
@@ -102,8 +103,7 @@ export function MarketplaceProductCard({
             phone: store.whatsappNumber,
             type: 'service',
             name: product.name,
-            price: price != null ? Number(price) : null,
-            pricingMode: product.pricingMode,
+            storeName: store?.name,
         })
         : null;
 
@@ -237,7 +237,16 @@ export function MarketplaceProductCard({
                     </h3>
 
                     <div className="mt-auto flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                        {price == null ? (
+                        {service ? (
+                            /* Services quote their price by mode: "Desde $ X COP",
+                               "$ X COP / hr" or "A convenir". */
+                            <span className="text-[17px] font-black tracking-tight text-gray-900">
+                                {getServicePriceLabel(
+                                    price != null ? Number(price) : null,
+                                    product.pricingMode,
+                                )}
+                            </span>
+                        ) : price == null ? (
                             <span className="rounded-lg bg-blue-50 px-2 py-1 text-xs font-black text-blue-600">
                                 Precio a consultar
                             </span>

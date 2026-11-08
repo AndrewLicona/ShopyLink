@@ -10,6 +10,8 @@ import {
     MessageCircle
 } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
+import { getServicePriceLabel } from '@/lib/pricing';
+import { buildWhatsAppLink } from '@/lib/whatsapp';
 import type { Product, Category, Store, ProductVariant } from '@/types/types';
 import { ProductImageGallery } from './components/ProductImageGallery';
 import { VariantSelector } from './components/VariantSelector';
@@ -101,6 +103,17 @@ export function ProductModal({
     const variant = selectedProduct.variants?.find(v => v.id === selectedVariantId);
     const displayImages = (variant?.images && variant.images.length > 0) ? variant.images : (selectedProduct.images || []);
 
+    // Services are an inquiry: no variants, no stock and no quantity picker.
+    const isService = selectedProduct.itemType === 'service';
+    const serviceWhatsAppHref = isService && store?.whatsappNumber
+        ? buildWhatsAppLink({
+            phone: store.whatsappNumber,
+            type: 'service',
+            name: selectedProduct.name,
+            storeName: store.name,
+        })
+        : null;
+
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center sm:p-6 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
             {stockAlert.show && (
@@ -158,7 +171,14 @@ export function ProductModal({
                             <div className="space-y-1">
                                 <h2 className="text-2xl sm:text-3xl font-black text-[var(--text)] leading-tight tracking-tight break-words">{selectedProduct.name}</h2>
                                 <div className="flex items-center gap-4">
-                                    {(() => {
+                                    {isService ? (
+                                        <p className="text-2xl font-black text-[var(--primary)]">
+                                            {getServicePriceLabel(
+                                                selectedProduct.price != null ? Number(selectedProduct.price) : null,
+                                                selectedProduct.pricingMode,
+                                            )}
+                                        </p>
+                                    ) : (() => {
                                         const effectivePrice = getEffectivePrice();
                                         if (effectivePrice === null) return <p className="text-2xl font-black text-blue-600">Consultar Precio</p>;
                                         return <p className="text-2xl font-black text-[var(--primary)]">{formatCurrency(effectivePrice)}</p>;
@@ -167,14 +187,16 @@ export function ProductModal({
                             </div>
                         </div>
 
-                        <VariantSelector
-                            product={selectedProduct}
-                            selectedVariantId={selectedVariantId}
-                            onSelectVariant={setSelectedVariantId}
-                            quantity={currentQty}
-                            onQuantityChange={(val) => setLocalQuantities(prev => ({ ...prev, [selectedVariantId || 'base']: val }))}
-                            onShowMessage={showMessage}
-                        />
+                        {!isService && (
+                            <VariantSelector
+                                product={selectedProduct}
+                                selectedVariantId={selectedVariantId}
+                                onSelectVariant={setSelectedVariantId}
+                                quantity={currentQty}
+                                onQuantityChange={(val) => setLocalQuantities(prev => ({ ...prev, [selectedVariantId || 'base']: val }))}
+                                onShowMessage={showMessage}
+                            />
+                        )}
 
                         {selectedProduct.description && (
                             <div className="space-y-4 px-2">
@@ -188,7 +210,23 @@ export function ProductModal({
                     </div>
 
                     <div className="p-5 sm:p-7 pt-3 mt-auto border-t border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur-sm z-10">
-                        {getEffectivePrice() === null ? (
+                        {isService ? (
+                            serviceWhatsAppHref ? (
+                                <a
+                                    href={serviceWhatsAppHref}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-full bg-green-500 text-white py-4 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-lg md:text-xl flex items-center justify-center gap-3 hover:bg-green-600 hover:scale-[1.02] transition-all shadow-xl active:scale-[0.98]"
+                                >
+                                    <MessageCircle className="w-5 h-5 md:w-6 md:h-6" />
+                                    Consultar por WhatsApp
+                                </a>
+                            ) : (
+                                <p className="w-full text-center text-sm font-bold text-[var(--text)]/50 py-4">
+                                    Esta tienda no tiene un número de WhatsApp configurado.
+                                </p>
+                            )
+                        ) : getEffectivePrice() === null ? (
                             <a
                                 href={`https://wa.me/${store?.whatsappNumber?.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, me interesa: ${selectedProduct.name}\n${process.env.NEXT_PUBLIC_FRONTEND_URL || (typeof window !== 'undefined' ? window.location.origin : '')}${window.location.pathname}?p=${selectedProduct.id}`)}`}
                                 target="_blank"
