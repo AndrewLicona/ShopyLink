@@ -10,13 +10,18 @@
  *   node packages/database/rotate-encryption-key.mjs            # simulación
  *   node packages/database/rotate-encryption-key.mjs --apply    # escribe
  *
- * La clave nueva se toma de NEW_ENCRYPTION_KEY; si no está, se genera una y
- * se imprime (cópiala en el .env del servidor como DATABASE_ENCRYPTION_KEY).
+ * La clave nueva se toma, en este orden, de:
+ *   1. NEW_ENCRYPTION_KEY (entorno o .env local)
+ *   2. DATABASE_ENCRYPTION_KEY del .env local (la misma que tendrá el servidor)
+ *   3. una clave aleatoria, que se imprime para copiarla al servidor
  *
- * Orden recomendado (importante):
- *   1. Rotar los datos con este script.
- *   2. Poner la clave nueva en el .env del servidor (DATABASE_ENCRYPTION_KEY).
- *   3. Redesplegar (`bash deploy.sh`).
+ * Orden recomendado (la API acepta las dos claves mientras se migra, así que
+ * no hay downtime):
+ *   1. Poner la clave nueva en el .env del servidor (DATABASE_ENCRYPTION_KEY).
+ *   2. Redesplegar (`bash deploy.sh`). La API sigue leyendo la data legacy.
+ *   3. Rotar los datos con este script (`--apply`).
+ *   4. Borrar LEGACY_ENCRYPTION_KEY del .env local y la constante legacy del
+ *      código de la API; a partir de ahí solo se usa la clave nueva.
  */
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
@@ -86,10 +91,20 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 const legacyKey = deriveKey(legacyRawKey);
-const newRawKey = (process.env.NEW_ENCRYPTION_KEY || '').trim() || crypto.randomBytes(32).toString('base64');
+
+const envNewKey = (process.env.NEW_ENCRYPTION_KEY || '').trim();
+const envConfiguredKey = (process.env.DATABASE_ENCRYPTION_KEY || '').trim();
+const keySource = envNewKey
+    ? 'NEW_ENCRYPTION_KEY'
+    : envConfiguredKey
+        ? 'DATABASE_ENCRYPTION_KEY (del .env local)'
+        : 'generada ahora (no hay clave configurada en el .env local)';
+
+const newRawKey = envNewKey || envConfiguredKey || crypto.randomBytes(32).toString('base64');
 const newKey = deriveKey(newRawKey);
 
 console.log(APPLY ? 'MODO: escribir en la base de datos' : 'MODO: simulación (no escribe nada)');
+console.log(`Clave destino: ${keySource}`);
 console.log('');
 
 /* ---------- tiendas ---------- */
@@ -173,6 +188,31 @@ if (!APPLY) {
     console.log('Simulación terminada. Ejecuta con --apply para escribir los cambios.');
 } else {
     console.log('Rotación aplicada.');
+    console.log('');
+    console.log('Verificación:');
+    const checkPool = new Pool({ connectionString });
+    const checkAdapter = new PrismaPg(checkPool);
+    const checkPrisma = new PrismaClient({ adapter: checkAdapter });
+
+    const checkStores = await checkPrisma.store.findMany({
+        select: { name: true, whatsappNumber: true },
+    });
+    let ok = 0;
+    let bad = 0;
+    for (const store of checkStores) {
+        if (!store.whatsappNumber) continue;
+        const res = decryptWith(store.whatsappNumber, newKey);
+        if (res.ok) ok++;
+        else {
+            bad++;
+            console.log(`  - ${store.name}: NO se pudo descifrar con la clave nueva (${res.reason})`);
+        }
+    }
+    console.log(`  - ${ok} tiendas legibles con la clave nueva, ${bad} con error`);
+    if (bad) failures.push('verificación de tiendas');
+
+    await checkPrisma.$disconnect();
+    await checkPool.end();
 }
 
 console.log('');
@@ -181,10 +221,13 @@ console.log('CLAVE NUEVA (ponla en el .env del servidor):');
 console.log(`DATABASE_ENCRYPTION_KEY="${newRawKey}"`);
 console.log('======================================================');
 console.log('Siguientes pasos:');
-console.log('  1. Copia esa clave al .env del servidor como DATABASE_ENCRYPTION_KEY');
-console.log('  2. Redespliega (bash deploy.sh)');
+console.log('  1. Si la clave es nueva (generada ahora), cópiala al .env del servidor');
+console.log('     como DATABASE_ENCRYPTION_KEY y redespliega (bash deploy.sh)');
+console.log('  2. Si ya estaba en el .env del servidor, no hace falta redeplegar:');
+console.log('     la API lee las dos claves durante la transición');
 console.log('  3. Opcional: activa ENCRYPTION_STRICT="true" para que la API no arranque sin la clave');
 console.log('  4. Cuando la API esté usando la clave nueva, borra LEGACY_ENCRYPTION_KEY del .env local');
+console.log('     y la constante legacy del código de la API');
 
 if (failures.length) {
     console.log('');

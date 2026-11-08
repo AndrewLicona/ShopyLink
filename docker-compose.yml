@@ -25,9 +25,16 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
     restart: always
+    env_file:
+      # Clave de cifrado de la base de datos. Vive FUERA del repositorio (en el
+      # servidor) para que nunca llegue a git. El archivo se crea una sola vez:
+      #   echo 'DATABASE_ENCRYPTION_KEY="<clave>"' > /etc/dokploy/secrets/shopylink.env
+      # `required: false` para que el compose siga siendo usable en entornos
+      # donde ese archivo todavía no existe.
+      - path: /etc/dokploy/secrets/shopylink.env
+        required: false
     environment:
       - DATABASE_URL=${DATABASE_URL}
-      - DATABASE_ENCRYPTION_KEY=${DATABASE_ENCRYPTION_KEY}
       - JWT_SECRET=${JWT_SECRET}
       - SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - FRONTEND_URL=${FRONTEND_URL}
