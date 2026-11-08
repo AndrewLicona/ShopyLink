@@ -154,7 +154,7 @@ export default function ProductDetailClient() {
                             <Link href={`/marketplace/tienda/${product.store.slug}`} className="inline-flex items-center gap-3 bg-white border border-gray-200 px-4 py-2 rounded-2xl mb-6 hover:border-blue-300 hover:shadow-md transition-all w-max group">
                                 <div className="w-8 h-8 relative rounded-lg bg-gray-100 overflow-hidden border border-gray-200">
                                     {product.store.logoUrl ? (
-                                        <Image src={product.store.logoUrl} alt={product.store.name} fill className="object-contain" />
+                                        <Image src={product.store.logoUrl} alt={product.store.name} fill className="object-contain p-0.5" />
                                     ) : (
                                         <StoreIcon className="w-full h-full p-1.5 text-gray-400" />
                                     )}

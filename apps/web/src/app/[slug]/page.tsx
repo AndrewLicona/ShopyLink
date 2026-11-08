@@ -15,6 +15,22 @@ export async function generateMetadata({ params, searchParams }: {
 
     try {
         const store = await api.getStoreBySlug(slug, { next: { revalidate: 300 } });
+        const storeUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://shopylinks.shop'}/${slug}`;
+
+        // Imagen para la vista previa al compartir (WhatsApp, etc.): primero el
+        // logo de la tienda y, si no hay, el primer banner.
+        const shareImage =
+            getAbsoluteUrl(store.logoUrl) || getAbsoluteUrl(store.bannerUrl) || null;
+
+        const storeDescription =
+            store.description ||
+            [
+                store.name,
+                store.referenceLocation ? `en ${store.referenceLocation}` : '',
+                'Catálogo digital y pedidos por WhatsApp.',
+            ]
+                .filter(Boolean)
+                .join(' · ');
 
         if (typeof productId === 'string') {
             try {
@@ -34,15 +50,28 @@ export async function generateMetadata({ params, searchParams }: {
                         description = `${product.name} por ${formatCurrency(price, store.country)}. ${description}`;
                     }
 
-                    const absoluteImage = product.images?.[0] ? getAbsoluteUrl(product.images[0]) : getAbsoluteUrl(store.logoUrl);
+                    const absoluteImage =
+                        getAbsoluteUrl(product.images?.[0]) || shareImage;
 
                     return {
                         title,
                         description,
+                        alternates: { canonical: `${storeUrl}?p=${productId}` },
                         openGraph: {
                             title,
-                            images: absoluteImage ? [{ url: absoluteImage }] : [],
-                        }
+                            description,
+                            type: 'website',
+                            url: `${storeUrl}?p=${productId}`,
+                            images: absoluteImage
+                                ? [{ url: absoluteImage, alt: product.name, width: 1200, height: 630 }]
+                                : [],
+                        },
+                        twitter: {
+                            card: 'summary_large_image',
+                            title,
+                            description,
+                            images: absoluteImage ? [absoluteImage] : [],
+                        },
                     };
                 }
 
@@ -51,8 +80,28 @@ export async function generateMetadata({ params, searchParams }: {
             }
         }
 
-        // Si no hay producto, retornamos undefined para que use el de layout.tsx
-        return {};
+        // La página de la tienda también necesita metadata: sin esto, al
+        // compartir el enlace por WhatsApp no se veía ni el logo ni el nombre.
+        return {
+            title: `${store.name} | Catálogo`,
+            description: storeDescription,
+            alternates: { canonical: storeUrl },
+            openGraph: {
+                title: `${store.name} | Catálogo`,
+                description: storeDescription,
+                type: 'website',
+                url: storeUrl,
+                images: shareImage
+                    ? [{ url: shareImage, alt: store.name, width: 1200, height: 630 }]
+                    : [],
+            },
+            twitter: {
+                card: 'summary_large_image',
+                title: `${store.name} | Catálogo`,
+                description: storeDescription,
+                images: shareImage ? [shareImage] : [],
+            },
+        };
     } catch {
         return {};
     }

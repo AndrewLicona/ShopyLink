@@ -93,7 +93,7 @@ export function StoreSwitcher({
                                 >
                                     <div className="w-8 h-8 rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--bg)] relative">
                                         {s.logoUrl ? (
-                                            <Image src={s.logoUrl} alt={s.name} fill className="object-contain" sizes="32px" />
+                                            <Image src={s.logoUrl} alt={s.name} fill className="object-contain p-0.5" sizes="32px" />
                                         ) : (
                                             <div className="w-full h-full bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] font-bold text-xs">{s.name[0]}</div>
                                         )}

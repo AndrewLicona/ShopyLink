@@ -23,7 +23,7 @@ export function StoreHeader({ store, cartCount, onOpenCart }: StoreHeaderProps) 
                                     src={store.logoUrl}
                                     alt={store.name}
                                     fill
-                                    className="object-contain"
+                                    className="object-contain p-1"
                                     sizes="48px"
                                 />
                             ) : (

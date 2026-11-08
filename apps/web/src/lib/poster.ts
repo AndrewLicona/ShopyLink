@@ -1,6 +1,7 @@
 'use client';
 
 import QRCode from 'qrcode';
+import { getThemePrimary } from '@/lib/theme';
 
 export interface PosterOptions {
     storeName: string;
@@ -40,24 +41,6 @@ const COLORS = {
     emerald50: '#ecfdf5',
     emerald200: '#a7f3d0',
     emerald700: '#047857',
-};
-
-/** Color principal de cada tema (mismos valores que globals.css). */
-const THEME_PRIMARY: Record<string, string> = {
-    classic: '#2563eb',
-    fresh: '#10b981',
-    modern: '#6366f1',
-    minimal: '#18181b',
-    gold: '#d4af37',
-    pastel: '#f8bbd0',
-    lilac: '#d1c4e9',
-    gray: '#9ca3af',
-    'dark-gray': '#4b5563',
-    sunset: '#f97316',
-    ocean: '#06b6d4',
-    berry: '#db2777',
-    forest: '#059669',
-    corporate: '#475569',
 };
 
 /** Loads an image, optionally with CORS enabled so the canvas stays exportable. */
@@ -137,7 +120,7 @@ function createContext(width: number, height: number): CanvasRenderingContext2D 
  */
 export async function renderPosterToPng(options: PosterOptions): Promise<string> {
     const contentWidth = W - PAD * 2;
-    const primary = THEME_PRIMARY[(options.theme || '').toLowerCase()] || THEME_PRIMARY.classic!;
+    const primary = getThemePrimary(options.theme);
 
     /* ---------- 1. Medición del contenido ---------- */
     const measure = createContext(10, 10);
@@ -224,18 +207,47 @@ export async function renderPosterToPng(options: PosterOptions): Promise<string>
         const logo = await loadImage(options.logoUrl, true);
         if (logo) {
             const boxX = (W - LOGO_BOX) / 2;
+            const boxY = cursorY;
+
+            // Medallón: sombra suave + base blanca
             ctx.save();
-            ctx.fillStyle = COLORS.slate50;
-            ctx.strokeStyle = COLORS.slate200;
-            ctx.lineWidth = 5;
-            drawRoundedRect(ctx, boxX, cursorY, LOGO_BOX, LOGO_BOX, LOGO_RADIUS);
+            ctx.shadowColor = 'rgba(15, 23, 42, 0.16)';
+            ctx.shadowBlur = 34;
+            ctx.shadowOffsetY = 12;
+            ctx.fillStyle = COLORS.card;
+            drawRoundedRect(ctx, boxX, boxY, LOGO_BOX, LOGO_BOX, LOGO_RADIUS);
             ctx.fill();
+            ctx.restore();
+
+            // Anillo con el degradado del tema
+            const ring = ctx.createLinearGradient(boxX, boxY, boxX + LOGO_BOX, boxY + LOGO_BOX);
+            ring.addColorStop(0, COLORS.emerald400);
+            ring.addColorStop(0.5, primary);
+            ring.addColorStop(1, COLORS.emerald500);
+            ctx.save();
+            ctx.strokeStyle = ring;
+            ctx.lineWidth = 9;
+            drawRoundedRect(
+                ctx,
+                boxX + 5,
+                boxY + 5,
+                LOGO_BOX - 10,
+                LOGO_BOX - 10,
+                LOGO_RADIUS - 5
+            );
             ctx.stroke();
+            ctx.restore();
+
+            // El logo va centrado con aire: nunca se corta ni toca el borde
+            ctx.save();
+            ctx.fillStyle = COLORS.card;
+            drawRoundedRect(ctx, boxX, boxY, LOGO_BOX, LOGO_BOX, LOGO_RADIUS);
+            ctx.fill();
             ctx.clip();
-            const scale = Math.min(LOGO_BOX / logo.width, LOGO_BOX / logo.height) * 0.74;
+            const scale = Math.min(LOGO_BOX / logo.width, LOGO_BOX / logo.height) * 0.68;
             const lw = logo.width * scale;
             const lh = logo.height * scale;
-            ctx.drawImage(logo, (W - lw) / 2, cursorY + (LOGO_BOX - lh) / 2, lw, lh);
+            ctx.drawImage(logo, (W - lw) / 2, boxY + (LOGO_BOX - lh) / 2, lw, lh);
             ctx.restore();
         }
     }
