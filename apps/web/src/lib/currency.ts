@@ -5,6 +5,9 @@
  * todos sus precios (tienda, panel, marketplace, PDF y mensaje de WhatsApp).
  * El formato es siempre `símbolo valor CÓDIGO` (ej: `$ 25.000 COP`) para que
  * el cliente siempre sepa qué moneda está viendo.
+ *
+ * En la tienda individual el código se omite (`formatPrice` → `$ 25.000`),
+ * porque la tienda ya es de un solo país; el marketplace sí lo muestra.
  */
 
 export interface CurrencyConfig {
@@ -94,6 +97,16 @@ export function getCountryName(country?: string | null): string {
     return COUNTRY_OPTIONS.find(c => c.code === code)?.name ?? COUNTRY_OPTIONS[0]!.name;
 }
 
+/** Numero formateado con el separador de miles de la moneda (sin símbolo ni código). */
+function formatNumber(value: number | string | null | undefined, currency: CurrencyConfig): string {
+    const amount = typeof value === 'string' ? parseFloat(value) : value;
+
+    return new Intl.NumberFormat(currency.locale, {
+        minimumFractionDigits: currency.decimals,
+        maximumFractionDigits: currency.decimals,
+    }).format(amount || 0);
+}
+
 /**
  * Formatea un precio con la moneda del país indicado.
  *
@@ -104,15 +117,28 @@ export function formatCurrency(
     value: number | string | null | undefined,
     country?: string | null,
 ): string {
-    const amount = typeof value === 'string' ? parseFloat(value) : value;
     const currency = getCurrencyForCountry(country);
 
-    const formatted = new Intl.NumberFormat(currency.locale, {
-        minimumFractionDigits: currency.decimals,
-        maximumFractionDigits: currency.decimals,
-    }).format(amount || 0);
+    return `${currency.symbol} ${formatNumber(value, currency)} ${currency.code}`;
+}
 
-    return `${currency.symbol} ${formatted} ${currency.code}`;
+/**
+ * Formatea un precio con el símbolo de la moneda del país, SIN el código ISO.
+ *
+ * Se usa en la tienda individual: allí el cliente ya sabe que la moneda es la
+ * del país de la tienda, así que el código (COP, MXN...) es ruido visual. En el
+ * marketplace sí se muestra, porque conviven tiendas de países distintos.
+ *
+ * @example formatPrice(25000, 'CO') -> '$ 25.000'
+ * @example formatPrice(25, 'US')    -> '$ 25.00'
+ */
+export function formatPrice(
+    value: number | string | null | undefined,
+    country?: string | null,
+): string {
+    const currency = getCurrencyForCountry(country);
+
+    return `${currency.symbol} ${formatNumber(value, currency)}`;
 }
 
 /**

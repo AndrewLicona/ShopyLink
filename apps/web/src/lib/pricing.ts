@@ -1,5 +1,5 @@
 import type { Product } from '@/types/types';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatPrice } from '@/lib/utils';
 
 export type PricingMode = 'fixed' | 'from' | 'hourly' | 'quote' | null | undefined;
 
@@ -36,13 +36,20 @@ export function getPricingSuffix(mode: PricingMode): string | null {
  * - fixed  → "$ 25.000 COP"
  *
  * Services without a price are always quoted on request.
+ *
+ * `showCurrencyCode` lets the individual store omit the ISO code (`$ 25.000`),
+ * since there the country of the store is already known. The marketplace keeps
+ * it, because stores from different countries are listed side by side.
  */
 export function getServicePriceLabel(
     price?: number | null,
     mode: PricingMode = 'fixed',
     country?: string | null,
+    showCurrencyCode = true,
 ): string {
-    const amount = price != null ? formatCurrency(price, country) : null;
+    const amount = price != null
+        ? (showCurrencyCode ? formatCurrency(price, country) : formatPrice(price, country))
+        : null;
 
     switch (mode) {
         case 'quote':

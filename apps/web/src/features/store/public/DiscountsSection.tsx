@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { ShoppingBag, Tag, ChevronRight } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import { formatPrice } from '@/lib/utils';
 import type { Product, Category } from '@/types/types';
 
 interface DiscountsSectionProps {
@@ -140,15 +140,15 @@ export function DiscountsSection({
 
                                     <div className="flex flex-col gap-1">
                                         <span className="text-[10px] font-bold text-[var(--text)]/40 line-through">
-                                            {formatCurrency(product.price!, country)}
+                                            {formatPrice(product.price!, country)}
                                         </span>
                                         <div className="flex items-baseline gap-2">
                                             <span className="text-lg font-black text-green-500">
-                                                {formatCurrency(product.discountPrice!, country)}
+                                                {formatPrice(product.discountPrice!, country)}
                                             </span>
                                         </div>
                                         <div className="text-[9px] font-black text-white bg-green-500 px-2 py-1 rounded-md inline-block w-fit">
-                                            Ahorras {formatCurrency(Number(product.price!) - Number(product.discountPrice!), country)}
+                                            Ahorras {formatPrice(Number(product.price!) - Number(product.discountPrice!), country)}
                                         </div>
                                     </div>
                                 </div>

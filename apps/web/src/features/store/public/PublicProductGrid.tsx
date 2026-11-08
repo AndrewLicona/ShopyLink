@@ -3,7 +3,7 @@ import React from 'react';
 
 import Image from 'next/image';
 import { ShoppingBag, Search, Plus, MessageCircle } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import { formatPrice } from '@/lib/utils';
 import { buildWhatsAppLink } from '@/lib/whatsapp';
 import { getServicePriceLabel, isProductAvailable } from '@/lib/pricing';
 import type { Product, Category } from '@/types/types';
@@ -108,7 +108,7 @@ export function PublicProductGrid({
                                 <PricingModeBadge pricingMode={product.pricingMode} />
                                 <div className="mt-auto pt-3">
                                     <span className="text-base font-black text-[var(--primary)]">
-                                        {getServicePriceLabel(product.price, product.pricingMode, country)}
+                                        {getServicePriceLabel(product.price, product.pricingMode, country, false)}
                                     </span>
                                     {whatsappNumber && (
                                         <a
@@ -196,10 +196,10 @@ export function PublicProductGrid({
                                     ) : product.discountPrice ? (
                                         <>
                                             <span className="text-[10px] font-bold text-[var(--text)]/40 line-through decoration-red-500/50">
-                                                {formatCurrency(product.price, country)}
+                                                {formatPrice(product.price, country)}
                                             </span>
                                             <span className="text-base font-black text-green-500">
-                                                {formatCurrency(product.discountPrice, country)}
+                                                {formatPrice(product.discountPrice, country)}
                                             </span>
                                             {(() => {
                                                 const saved = Math.round(((Number(product.price) - Number(product.discountPrice)) / Number(product.price)) * 100);
@@ -212,7 +212,7 @@ export function PublicProductGrid({
                                         </>
                                     ) : (
                                         <span className="text-base font-black text-[var(--primary)]">
-                                            {formatCurrency(product.price, country)}
+                                            {formatPrice(product.price, country)}
                                         </span>
                                     )}
                                     {/* Availability badge */}

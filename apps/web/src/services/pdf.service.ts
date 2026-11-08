@@ -340,7 +340,9 @@ export const pdfService = {
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(7.5);
             setText('#9ca3af');
-            const contact = [store.whatsappNumber, store.referenceLocation].filter(Boolean).join('  ·  ');
+            // En el catálogo no se imprimen números de teléfono: solo la
+            // referencia de ubicación de la tienda.
+            const contact = store.referenceLocation || '';
             if (contact) doc.text(contact, margin, pageHeight - 7);
 
             doc.setFont('helvetica', 'bold');
