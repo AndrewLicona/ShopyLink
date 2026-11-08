@@ -70,8 +70,8 @@ export function BusinessHoursEditor({
 
     return (
         <div className="space-y-4">
-            <div className="flex items-start justify-between gap-4">
-                <div>
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
+                <div className="min-w-0">
                     <label className="text-sm font-bold text-[var(--text)]/60 mb-1 block px-1 flex items-center gap-2">
                         <Clock className="w-4 h-4 text-[var(--primary)]" />
                         Horario de atención
@@ -82,7 +82,7 @@ export function BusinessHoursEditor({
                             : `${configuredDays} ${configuredDays === 1 ? 'día abierto' : 'días abiertos'}.`}
                     </p>
                 </div>
-                <div className="flex gap-2 shrink-0">
+                <div className="flex gap-4 shrink-0">
                     <button
                         type="button"
                         onClick={copyToAll}
@@ -109,51 +109,59 @@ export function BusinessHoursEditor({
                         <div
                             key={day.key}
                             className={cn(
-                                'flex items-center gap-3 p-3 rounded-2xl border-2 transition-all',
+                                'flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-2xl border-2 transition-all',
                                 open
                                     ? 'border-[var(--primary)]/30 bg-[var(--primary)]/5'
                                     : 'border-[var(--border)] bg-[var(--surface)]',
                             )}
                         >
-                            <button
-                                type="button"
-                                onClick={() => toggleDay(day.key)}
-                                className={cn(
-                                    'w-11 h-11 rounded-xl flex items-center justify-center font-black text-xs shrink-0 transition-all active:scale-90',
-                                    open
-                                        ? 'bg-[var(--primary)] text-white'
-                                        : 'bg-[var(--secondary)] text-[var(--text)]/30',
-                                )}
-                                aria-label={open ? `Cerrar ${day.label}` : `Abrir ${day.label}`}
-                            >
-                                {day.short}
-                            </button>
+                            <div className="flex items-center gap-3 min-w-0">
+                                <button
+                                    type="button"
+                                    onClick={() => toggleDay(day.key)}
+                                    className={cn(
+                                        'w-11 h-11 rounded-xl flex items-center justify-center font-black text-xs shrink-0 transition-all active:scale-90',
+                                        open
+                                            ? 'bg-[var(--primary)] text-white'
+                                            : 'bg-[var(--secondary)] text-[var(--text)]/30',
+                                    )}
+                                    aria-label={open ? `Cerrar ${day.label}` : `Abrir ${day.label}`}
+                                >
+                                    {day.short}
+                                </button>
+
+                                <span className="sm:hidden font-black text-sm text-[var(--text)]">
+                                    {day.label}
+                                </span>
+                            </div>
 
                             {open ? (
-                                <div className="flex items-center gap-2 flex-1">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1 min-w-0">
                                     <input
                                         type="time"
                                         value={hours?.open || DEFAULT_OPEN}
                                         onChange={(e) => setTime(day.key, 'open', e.target.value)}
-                                        className="flex-1 min-w-0 px-3 py-2 rounded-xl border-2 border-[var(--border)] bg-[var(--bg)] text-sm font-bold text-[var(--text)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/10 outline-none transition-all"
+                                        aria-label={`Hora de apertura del ${day.label}`}
+                                        className="w-full min-w-0 px-3 py-2.5 rounded-xl border-2 border-[var(--border)] bg-[var(--bg)] text-sm font-bold text-[var(--text)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/10 outline-none transition-all"
                                     />
-                                    <span className="text-xs font-black text-[var(--text)]/30">a</span>
+                                    <span className="hidden sm:inline text-xs font-black text-[var(--text)]/30">a</span>
                                     <input
                                         type="time"
                                         value={hours?.close || DEFAULT_CLOSE}
                                         onChange={(e) => setTime(day.key, 'close', e.target.value)}
-                                        className="flex-1 min-w-0 px-3 py-2 rounded-xl border-2 border-[var(--border)] bg-[var(--bg)] text-sm font-bold text-[var(--text)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/10 outline-none transition-all"
+                                        aria-label={`Hora de cierre del ${day.label}`}
+                                        className="w-full min-w-0 px-3 py-2.5 rounded-xl border-2 border-[var(--border)] bg-[var(--bg)] text-sm font-bold text-[var(--text)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/10 outline-none transition-all"
                                     />
                                 </div>
                             ) : (
                                 <div className="flex-1 flex items-center gap-2 text-[var(--text)]/30">
-                                    <X className="w-4 h-4" />
+                                    <X className="w-4 h-4 shrink-0" />
                                     <span className="text-xs font-bold">Cerrado</span>
                                 </div>
                             )}
 
                             {open && (
-                                <Check className="w-4 h-4 text-[var(--primary)] shrink-0" />
+                                <Check className="w-4 h-4 text-[var(--primary)] shrink-0 hidden sm:block" />
                             )}
                         </div>
                     );

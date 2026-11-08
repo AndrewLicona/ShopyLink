@@ -11,6 +11,7 @@ import { motion } from 'framer-motion';
 import { cn, COUNTRY_OPTIONS, getCurrencyForCountry } from '@/lib/utils';
 import { PhoneInput } from '@/components/atoms/PhoneInput';
 import { TabSelector } from '@/components/molecules/TabSelector';
+import { ToggleCard } from '@/components/molecules/ToggleCard';
 import { DangerZone } from '@/components/molecules/DangerZone';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
 import { AppearanceSettings } from './components/AppearanceSettings';
@@ -101,24 +102,15 @@ export function StoreTab({ hook }: StoreTabProps) {
                                                 </button>
                                             </div>
                                         )}
-                                        <div
-                                            onClick={() => actions.setAutoGenerateSlug(!state.autoGenerateSlug)}
-                                            className={cn("mt-3 cursor-pointer p-4 rounded-2xl border-2 transition-all", state.autoGenerateSlug ? "border-[var(--primary)] bg-[var(--primary)]/5" : "border-[var(--border)] bg-[var(--surface)]")}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", state.autoGenerateSlug ? "bg-[var(--primary)] text-white" : "bg-[var(--secondary)] text-[var(--text)]/20")}>
-                                                        <Globe className="w-5 h-5" />
-                                                    </div>
-                                                    <div>
-                                                        <p className={cn("font-black text-sm", state.autoGenerateSlug ? "text-[var(--text)]" : "text-[var(--text)]/40")}>Auto-generar enlace</p>
-                                                        <p className="text-xs text-[var(--text)]/30 font-bold">{state.autoGenerateSlug ? 'Enlace automático del nombre' : 'Edita manualmente'}</p>
-                                                    </div>
-                                                </div>
-                                                <div className={cn("w-12 h-7 rounded-full flex items-center px-1 transition-all", state.autoGenerateSlug ? "bg-[var(--primary)]" : "bg-[var(--border)]")}>
-                                                    <div className={cn("w-5 h-5 rounded-full bg-white shadow-sm transition-all transform", state.autoGenerateSlug ? "translate-x-5" : "translate-x-0")} />
-                                                </div>
-                                            </div>
+                                        <div className="mt-3">
+                                            <ToggleCard
+                                                icon={Globe}
+                                                title="Auto-generar enlace"
+                                                description={state.autoGenerateSlug ? 'Enlace automático del nombre' : 'Edita manualmente'}
+                                                checked={state.autoGenerateSlug}
+                                                onChange={actions.setAutoGenerateSlug}
+                                                compact
+                                            />
                                         </div>
                                     </div>
 
@@ -162,25 +154,13 @@ export function StoreTab({ hook }: StoreTabProps) {
                                     </div>
 
                                     <div className="pt-4 border-t border-[var(--border)]">
-                                        <div
-                                            onClick={() => actions.setDeliveryEnabled(!state.deliveryEnabled)}
-                                            className={cn("group cursor-pointer p-6 rounded-3xl border-2 transition-all relative overflow-hidden", state.deliveryEnabled ? "border-[var(--primary)] bg-[var(--primary)]/5 shadow-md shadow-[var(--primary)]/10" : "border-[var(--border)] bg-[var(--surface)]")}
-                                        >
-                                            <div className="flex items-center justify-between relative z-10">
-                                                <div className="flex items-center gap-4">
-                                                    <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center transition-all", state.deliveryEnabled ? "bg-[var(--primary)] text-white scale-110 shadow-lg" : "bg-[var(--secondary)] text-[var(--text)]/20")}>
-                                                        <Truck className="w-6 h-6" />
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <p className={cn("font-black text-base transition-colors", state.deliveryEnabled ? "text-[var(--text)]" : "text-[var(--text)]/40")}>Activar Delivery</p>
-                                                        <p className="text-xs text-[var(--text)]/30 font-bold uppercase">Permitir envíos a domicilio</p>
-                                                    </div>
-                                                </div>
-                                                <div className={cn("w-14 h-8 rounded-full transition-all flex items-center px-1", state.deliveryEnabled ? "bg-[var(--primary)]" : "bg-[var(--border)]")}>
-                                                    <div className={cn("w-6 h-6 rounded-full bg-white shadow-xl transition-all transform", state.deliveryEnabled ? "translate-x-6 scale-90" : "translate-x-0 scale-75")} />
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <ToggleCard
+                                            icon={Truck}
+                                            title="Activar Delivery"
+                                            description="Permitir envíos a domicilio"
+                                            checked={state.deliveryEnabled}
+                                            onChange={actions.setDeliveryEnabled}
+                                        />
 
                                         {state.deliveryEnabled && (
                                             <div className="mt-6 p-6 rounded-3xl bg-[var(--bg)] border-2 border-dashed border-[var(--border)] animate-in fade-in slide-in-from-top-4">
@@ -207,7 +187,7 @@ export function StoreTab({ hook }: StoreTabProps) {
                                 <div className="p-8 border-2 border-dashed border-[var(--border)] rounded-[2.5rem] bg-[var(--secondary)]/30 flex flex-col items-center justify-center gap-6 relative group/logo">
                                     <div className="w-32 h-32 md:w-40 md:h-40 bg-[var(--surface)] rounded-[2rem] shadow-[var(--shadow)] border border-[var(--border)] flex items-center justify-center overflow-hidden relative">
                                         {state.logoUrl ? (
-                                            <Image src={state.logoUrl} alt="Logo" fill className="object-contain" />
+                                            <Image src={state.logoUrl} alt="Logo" fill className="object-contain p-3" />
                                         ) : (
                                             <StoreIcon className="w-16 h-16 text-[var(--text)]/20" />
                                         )}
@@ -239,25 +219,13 @@ export function StoreTab({ hook }: StoreTabProps) {
                         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                             <h3 className="text-sm font-black uppercase tracking-widest text-blue-600">Marketplace Público</h3>
                             <div className="grid grid-cols-1 gap-6">
-                                <div
-                                    onClick={() => actions.setIsPublic(!state.isPublic)}
-                                    className={cn("group cursor-pointer p-6 rounded-3xl border-2 transition-all relative overflow-hidden", state.isPublic ? "border-[var(--primary)] bg-[var(--primary)]/5 shadow-md shadow-[var(--primary)]/10" : "border-[var(--border)] bg-[var(--surface)]")}
-                                >
-                                    <div className="flex items-center justify-between relative z-10">
-                                        <div className="flex items-center gap-4">
-                                            <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center transition-all", state.isPublic ? "bg-[var(--primary)] text-white scale-110 shadow-lg" : "bg-[var(--secondary)] text-[var(--text)]/20")}>
-                                                <Globe className="w-6 h-6" />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <p className={cn("font-black text-base transition-colors", state.isPublic ? "text-[var(--text)]" : "text-[var(--text)]/40")}>Visibilidad en Marketplace</p>
-                                                <p className="text-xs text-[var(--text)]/30 font-bold uppercase">Aparecer en el directorio público</p>
-                                            </div>
-                                        </div>
-                                        <div className={cn("w-14 h-8 rounded-full transition-all flex items-center px-1", state.isPublic ? "bg-[var(--primary)]" : "bg-[var(--border)]")}>
-                                            <div className={cn("w-6 h-6 rounded-full bg-white shadow-xl transition-all transform", state.isPublic ? "translate-x-6 scale-90" : "translate-x-0 scale-75")} />
-                                        </div>
-                                    </div>
-                                </div>
+                                <ToggleCard
+                                    icon={Globe}
+                                    title="Visibilidad en Marketplace"
+                                    description="Aparecer en el directorio público"
+                                    checked={state.isPublic}
+                                    onChange={actions.setIsPublic}
+                                />
 
                                 {state.isPublic && (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 p-6 rounded-3xl bg-[var(--bg)] border-2 border-dashed border-[var(--border)] animate-in fade-in slide-in-from-top-4">
@@ -476,23 +444,14 @@ export function StoreTab({ hook }: StoreTabProps) {
                     {innerTab === 'promotions' && (
                         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                             <h3 className="text-sm font-black uppercase tracking-widest text-red-500">Descuentos y Promociones</h3>
-                            <div className="bg-[var(--bg)] rounded-3xl p-6 border-2 border-[var(--border)] space-y-6">
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-1">
-                                        <h4 className="font-black text-sm text-[var(--text)]">Descuento Global en toda la Tienda</h4>
-                                        <p className="text-xs text-[var(--text)]/60">Aplica un porcentaje de descuento masivo a todos los productos del catálogo.</p>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => actions.setGlobalDiscountActive(!state.globalDiscountActive)}
-                                        className={cn(
-                                            "relative w-12 h-6.5 rounded-full border border-black/5 shadow-inner transition-colors",
-                                            state.globalDiscountActive ? "bg-[var(--primary)]" : "bg-[var(--border)]"
-                                        )}
-                                    >
-                                        <div className={cn("absolute top-0.75 left-0.75 w-5 h-5 bg-white rounded-full transition-transform shadow-md", state.globalDiscountActive ? "translate-x-5.5" : "translate-x-0")} />
-                                    </button>
-                                </div>
+                            <div className="bg-[var(--bg)] rounded-3xl p-4 md:p-6 border-2 border-[var(--border)] space-y-6">
+                                <ToggleCard
+                                    icon={Percent}
+                                    title="Descuento Global en toda la Tienda"
+                                    description="Aplica un porcentaje de descuento masivo a todos los productos del catálogo."
+                                    checked={state.globalDiscountActive}
+                                    onChange={actions.setGlobalDiscountActive}
+                                />
 
                                 {state.globalDiscountActive && (
                                     <div className="space-y-4 pt-4 border-t border-[var(--border)] animate-in fade-in slide-in-from-top-2 duration-300">

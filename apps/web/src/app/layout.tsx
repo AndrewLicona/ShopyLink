@@ -38,7 +38,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.className} antialiased selection:bg-blue-100 selection:text-blue-900 bg-[var(--bg)]`} suppressHydrationWarning>
+      <body className={`${inter.className} antialiased selection:bg-blue-100 selection:text-blue-900 bg-[var(--bg)] pt-[var(--impersonation-banner-h,0px)]`} suppressHydrationWarning>
         <CartProvider>
           <ImpersonationBanner />
           {children}

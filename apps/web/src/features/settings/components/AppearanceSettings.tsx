@@ -3,6 +3,7 @@
 import React from 'react';
 import { Sun, Moon, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ToggleSwitch } from '@/components/atoms/ToggleSwitch';
 
 interface AppearanceSettingsProps {
     theme: string;
@@ -115,10 +116,12 @@ export function AppearanceSettings({
                                 </p>
                             </div>
                         </div>
-                        <div className="w-full sm:w-auto flex justify-end">
-                            <div className={cn("w-14 h-8 rounded-full transition-all flex items-center px-1", applyToDashboard ? "bg-[var(--primary)]" : "bg-[var(--border)]")}>
-                                <div className={cn("w-6 h-6 rounded-full bg-white shadow-xl transition-all transform", applyToDashboard ? "translate-x-6 scale-90" : "translate-x-0 scale-75")} />
-                            </div>
+                        <div className="w-full sm:w-auto flex justify-end shrink-0">
+                            <ToggleSwitch
+                                checked={applyToDashboard}
+                                onChange={onApplyToDashboardChange}
+                                label="Aplicar tema al Dashboard"
+                            />
                         </div>
                     </div>
                 </div>

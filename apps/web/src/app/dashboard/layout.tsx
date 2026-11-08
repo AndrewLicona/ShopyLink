@@ -115,7 +115,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             className="flex min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-300"
         >
             {/* Mobile Header */}
-            <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[var(--bg)] border-b border-[var(--border)] z-50 px-4 flex items-center justify-between transition-colors">
+            <header
+                className="md:hidden fixed left-0 right-0 top-[var(--impersonation-banner-h,0px)] h-16 bg-[var(--bg)] border-b border-[var(--border)] z-50 px-4 flex items-center justify-between transition-colors"
+            >
                 <StoreSwitcher
                     stores={stores}
                     activeStore={activeStore}
