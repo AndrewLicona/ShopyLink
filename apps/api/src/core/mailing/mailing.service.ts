@@ -11,8 +11,7 @@ export class MailingService {
   constructor(private configService: ConfigService) {
     const apiKey = this.configService.get<string>('RESEND_API_KEY');
     this.adminEmail =
-      this.configService.get<string>('SUPER_ADMIN_EMAILS')?.split(',')[0] ||
-      'andrewlicona1@gmail.com';
+      this.configService.get<string>('SUPER_ADMIN_EMAILS')?.split(',')[0]?.trim() || '';
 
     if (apiKey) {
       this.resend = new Resend(apiKey);
@@ -24,6 +23,13 @@ export class MailingService {
   }
 
   async sendAdminNotification(subject: string, content: string) {
+    if (!this.adminEmail) {
+      this.logger.warn(
+        `SUPER_ADMIN_EMAILS not configured. Skipping admin email for: ${subject}`,
+      );
+      return;
+    }
+
     const html = `
             <div style="font-family: sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 600px;">
                 <h2 style="color: #4f46e5; margin-top: 0;">Notificación de Administrador</h2>

@@ -10,17 +10,15 @@ const IV_LENGTH = 12; // Standard for GCM
 const KEY_SALT = 'salt';
 
 /**
- * Raised when the encryption key is missing from the environment.
+ * Raised when the encryption key is missing or invalid from the environment.
  *
  * The API never encrypts or decrypts with an implicit key: if
- * `DATABASE_ENCRYPTION_KEY` is not defined there is nothing safe to do.
+ * `DATABASE_ENCRYPTION_KEY` is not defined or has less than 32 bytes of raw input,
+ * there is nothing safe to do.
  */
 export class MissingEncryptionKeyError extends Error {
-  constructor() {
-    super(
-      'DATABASE_ENCRYPTION_KEY is not set. Refusing to encrypt or decrypt data. ' +
-        'Define it in the environment before starting the API.',
-    );
+  constructor(message = 'DATABASE_ENCRYPTION_KEY is not set or invalid. Refusing to start or encrypt/decrypt data.') {
+    super(message);
     this.name = 'MissingEncryptionKeyError';
   }
 }
@@ -28,43 +26,48 @@ export class MissingEncryptionKeyError extends Error {
 /**
  * Derives the 32-byte AES-256 key from the environment secret.
  *
- * `DATABASE_ENCRYPTION_KEY` is the only source of truth. It is defined on the
- * server in `/etc/dokploy/secrets/shopylink.env`, outside the repository.
+ * `DATABASE_ENCRYPTION_KEY` is the only source of truth. It must be at least 32 characters.
  */
 function getEncryptionKey(): Buffer {
   const rawKey = process.env.DATABASE_ENCRYPTION_KEY?.trim();
 
   if (!rawKey) {
-    throw new MissingEncryptionKeyError();
+    throw new MissingEncryptionKeyError(
+      'DATABASE_ENCRYPTION_KEY is not set. Refusing to encrypt or decrypt data.',
+    );
+  }
+
+  const byteLength = Buffer.byteLength(rawKey, 'utf8');
+  if (byteLength < 32) {
+    throw new MissingEncryptionKeyError(
+      `DATABASE_ENCRYPTION_KEY must have at least 32 bytes of entropy (received ${byteLength} bytes).`,
+    );
   }
 
   return scryptSync(rawKey, KEY_SALT, 32);
 }
 
 /**
- * Reports the encryption configuration on bootstrap.
- *
- * It never blocks the API unless `ENCRYPTION_STRICT=true`: a missing key must
- * not take the whole storefront down. When the key is missing it logs exactly
- * what to do to fix it.
+ * Strict validation of encryption key on bootstrap (R13 requirement).
+ * Throws a fatal exception if the key is missing or invalid.
  */
 export function assertEncryptionKeyConfigured(): void {
   const rawKey = process.env.DATABASE_ENCRYPTION_KEY?.trim();
 
-  if (rawKey) {
-    console.log('[encryption] DATABASE_ENCRYPTION_KEY configurada.');
-    return;
+  if (!rawKey) {
+    throw new MissingEncryptionKeyError(
+      'FATAL: DATABASE_ENCRYPTION_KEY is required in environment for secure startup.',
+    );
   }
 
-  if (process.env.ENCRYPTION_STRICT === 'true') {
-    throw new MissingEncryptionKeyError();
+  const byteLength = Buffer.byteLength(rawKey, 'utf8');
+  if (byteLength < 32) {
+    throw new MissingEncryptionKeyError(
+      `FATAL: DATABASE_ENCRYPTION_KEY must have at least 32 bytes (received ${byteLength} bytes).`,
+    );
   }
 
-  console.error(
-    '[encryption] ERROR: DATABASE_ENCRYPTION_KEY no está definida. ' +
-      'La API no puede cifrar ni descifrar datos. Defínela en el entorno ' +
-      '(en el servidor: /etc/dokploy/secrets/shopylink.env) y reinicia la API.',
-  );
+  console.log(`[encryption] DATABASE_ENCRYPTION_KEY validada correctamente (${byteLength} bytes).`);
 }
 
 function tryDecrypt(encryptedText: string, key: Buffer): string | null {
@@ -109,9 +112,6 @@ export function decrypt(encryptedText: string): string {
   const decrypted = tryDecrypt(encryptedText, getEncryptionKey());
   if (decrypted !== null) return decrypted;
 
-  // The value is not readable with the configured key: it was encrypted with a
-  // different one. Returning the ciphertext keeps the app alive but makes the
-  // misconfiguration loud in the logs.
   console.error(
     'Decryption failed (wrong DATABASE_ENCRYPTION_KEY or corrupted value):',
     encryptedText.slice(0, 24) + '...',

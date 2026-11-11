@@ -19,7 +19,7 @@ export class SupabaseStrategy extends PassportStrategy(Strategy) {
         jwksRequestsPerMinute: 5,
         jwksUri: `${supabaseUrl}/auth/v1/.well-known/jwks.json`,
       }),
-      algorithms: ['ES256', 'RS256', 'HS256'], // Support multiple algs
+      algorithms: ['ES256', 'RS256'], // Restricted to asymmetric algorithms for security against algorithm confusion
     });
   }
 

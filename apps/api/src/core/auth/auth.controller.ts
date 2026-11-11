@@ -6,6 +6,7 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { PrismaService } from '../prisma/prisma.module';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { RequestWithUser } from './interfaces/user.interface';
@@ -14,6 +15,7 @@ import { RequestWithUser } from './interfaces/user.interface';
 export class AuthController {
   constructor(private prisma: PrismaService) {}
 
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Get('resolve-username/:username')
   async resolveUsername(@Param('username') username: string) {
     const user = await this.prisma.user.findFirst({
@@ -57,12 +59,12 @@ export class AuthController {
       );
     }
 
-    // Auto-provision Super Admin role based on email
+    // Auto-provision Super Admin role based on email configuration (no default fallback)
     const adminEmails = process.env.SUPER_ADMIN_EMAILS
       ? process.env.SUPER_ADMIN_EMAILS.split(',').map((e) =>
           e.trim().toLowerCase(),
         )
-      : ['andrewlicona1@gmail.com'];
+      : [];
 
     const role = adminEmails.includes(userEmail.toLowerCase())
       ? 'SUPER_ADMIN'
