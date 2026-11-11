@@ -3,7 +3,14 @@ import { PrismaService } from './core/prisma/prisma.module';
 import { RedisService } from './core/cache/redis.service';
 
 export interface HealthStatus {
-  status: 'ok' | 'error';
+  /**
+   * `ok` cuando todo esta operativo, `degraded` cuando algo fallo pero el
+   * proceso sigue sirviendo. El endpoint responde SIEMPRE 200: es un chequeo
+   * de vida del proceso, no de sus dependencias. Si devolviera 503 cuando la
+   * base se demora, el healthcheck de Docker reiniciaria la API en cada
+   * micro-corte de la base.
+   */
+  status: 'ok' | 'degraded';
   database: 'up' | 'down';
   redis: string;
   timestamp: string;
@@ -29,10 +36,9 @@ export class AppService {
     }
 
     const redisStatus = await this.cache.ping();
-    const isHealthy = dbStatus === 'up';
 
     return {
-      status: isHealthy ? 'ok' : 'error',
+      status: dbStatus === 'up' ? 'ok' : 'degraded',
       database: dbStatus,
       redis: redisStatus,
       timestamp: new Date().toISOString(),

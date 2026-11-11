@@ -43,5 +43,32 @@ describe('AppController', () => {
       expect(result).toEqual(mockHealthResponse);
       expect(mockRes.status).toHaveBeenCalledWith(200);
     });
+
+    it('responde 200 aunque la base este caida (chequeo de vida)', async () => {
+      const mockRes = {
+        status: jest.fn().mockReturnThis(),
+      } as unknown as Response;
+
+      const degraded = {
+        status: 'degraded' as const,
+        database: 'down' as const,
+        redis: 'in-memory',
+        timestamp: new Date().toISOString(),
+      };
+      const mockAppService = {
+        getHealth: jest.fn().mockResolvedValue(degraded),
+        getHello: jest.fn(),
+      };
+      const app: TestingModule = await Test.createTestingModule({
+        controllers: [AppController],
+        providers: [{ provide: AppService, useValue: mockAppService }],
+      }).compile();
+
+      const controller = app.get<AppController>(AppController);
+      const result = await controller.getHealth(mockRes);
+
+      expect(result).toEqual(degraded);
+      expect(mockRes.status).toHaveBeenCalledWith(200);
+    });
   });
 });
