@@ -27,8 +27,19 @@ COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/package-lock.json ./package-lock.json
 
 # Install all dependencies
+# - El cache de npm se monta en /root/.npm: no entra en la imagen y se
+#   reusa entre los tres `npm ci` del build (builder y prod-deps) y entre
+#   deploys. Sin esto cada etapa baja el arbol completo otra vez.
+# - El eco cada 30s mantiene vivo el log: `npm ci` no imprime nada mientras
+#   instala y un build sin salida se ve como colgado (y el watchdog del
+#   orquestador lo corta).
 ENV CI=true
-RUN npm ci --no-audit --no-fund
+RUN --mount=type=cache,target=/root/.npm \
+    set -eux; \
+    ( while :; do echo "[shopylink] instalando dependencias (sigue en curso)..."; sleep 30; done ) & \
+    KEEPALIVE=$!; \
+    npm ci --no-audit --no-fund --prefer-offline; \
+    kill "${KEEPALIVE}" 2>/dev/null || true
 
 # Copy source files and build
 COPY --from=pruner /app/out/full/ .
@@ -43,7 +54,12 @@ FROM base AS prod-deps
 WORKDIR /app
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/package-lock.json ./package-lock.json
-RUN npm ci --omit=dev --no-audit --no-fund
+RUN --mount=type=cache,target=/root/.npm \
+    set -eux; \
+    ( while :; do echo "[shopylink] instalando dependencias de produccion (sigue en curso)..."; sleep 30; done ) & \
+    KEEPALIVE=$!; \
+    npm ci --omit=dev --no-audit --no-fund --prefer-offline; \
+    kill "${KEEPALIVE}" 2>/dev/null || true
 
 # Copy generated Prisma client (the actual artifacts)
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
@@ -52,8 +68,8 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 FROM base AS runner
 WORKDIR /app
 
-# Install openssl for Prisma
-RUN apk add --no-cache openssl
+# Install openssl for Prisma and libc6-compat for sharp (Alpine)
+RUN apk add --no-cache openssl libc6-compat
 
 # Don't run production as root
 RUN addgroup --system --gid 1001 nodejs

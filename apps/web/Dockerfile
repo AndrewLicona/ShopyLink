@@ -27,10 +27,20 @@ COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/package-lock.json ./package-lock.json
 
 # Install dependencies
+# - El cache de npm se monta en /root/.npm: no entra en la imagen y se reusa
+#   entre deploys. Sin esto cada build baja el arbol completo otra vez.
+# - El eco cada 30s mantiene vivo el log: `npm ci` no imprime nada mientras
+#   instala y un build sin salida se ve como colgado (y el watchdog del
+#   orquestador lo corta).
 ENV CI=true
-RUN npm ci --no-audit --no-fund
+RUN --mount=type=cache,target=/root/.npm \
+    set -eux; \
+    ( while :; do echo "[shopylink] instalando dependencias (sigue en curso)..."; sleep 30; done ) & \
+    KEEPALIVE=$!; \
+    npm ci --no-audit --no-fund --prefer-offline; \
+    kill "${KEEPALIVE}" 2>/dev/null || true
 
-# Build the project
+# Copy source files and build
 COPY --from=pruner /app/out/full/ .
 COPY turbo.json turbo.json
 
@@ -49,16 +59,26 @@ RUN npx turbo run build --filter=web... --concurrency=1
 
 # La ruta /api/og/[slug] usa `@vercel/og` para componer la imagen de compartir.
 # Ese modulo se queda como dependencia externa y lee la fuente (.ttf) y los
-# modulos wasm desde el disco con `import.meta.url`. El trazado de archivos de
-# Next solo copia el `index.node.js`, asi que sin estos archivos la ruta
-# revienta al generar la imagen. Se copian a mano junto al bundle.
+# modulos wasm desde el disco con `import.meta.url` (en la misma carpeta que
+# index.node.js). El trazado de archivos de Next solo copia el
+# `index.node.js`, asi que sin estos archivos la ruta revienta al generar la
+# imagen. Se copian a mano junto al bundle.
+# Si la ruta cambia en una version de Next, el paso no puede tumbar el
+# deploy: se avisa en el log y sigue.
 RUN set -eux; \
-    OG_SRC="$(find /app -type d -path '*/next/dist/compiled/@vercel/og' -not -path '*/.next/*' | head -n 1)"; \
     OG_DST=/app/apps/web/.next/standalone/node_modules/next/dist/compiled/@vercel/og; \
-    test -n "$OG_SRC"; \
-    mkdir -p "$OG_DST"; \
-    cp "$OG_SRC"/*.ttf "$OG_SRC"/*.wasm "$OG_DST"/; \
-    ls -la "$OG_DST"
+    if [ -d "$OG_DST" ]; then \
+        for OG_SRC in /app/node_modules/next/dist/compiled/@vercel/og /app/apps/web/node_modules/next/dist/compiled/@vercel/og; do \
+            if [ -d "$OG_SRC" ]; then \
+                cp -f "$OG_SRC"/*.ttf "$OG_SRC"/*.wasm "$OG_DST"/ 2>/dev/null || true; \
+                echo "[shopylink] assets de @vercel/og copiados desde $OG_SRC"; \
+                break; \
+            fi; \
+        done; \
+        ls -la "$OG_DST"; \
+    else \
+        echo "[shopylink] no hay bundle standalone: se omite copiar los assets de @vercel/og"; \
+    fi
 
 # Phase 3: Runner
 FROM base AS runner
