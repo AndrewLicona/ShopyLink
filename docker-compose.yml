@@ -1,3 +1,19 @@
+# Stack de ShopyLink.
+#
+# NOTA PARA EL DEPLOY: este archivo se despliega con
+# `docker compose up -d --build --remove-orphans`, que construye las tres
+# imagenes EN PARALELO. Cada una instala dependencias, asi que en un servidor
+# con RAM justa los tres `npm ci` compiten y el build se queda sin memoria o
+# sin salida en el log y Dokploy lo corta.
+#
+# Para que las imagenes se construyan de una en una, agrega esta variable al
+# entorno de la aplicacion en Dokploy (panel -> Environment):
+#
+#   COMPOSE_PARALLEL_LIMIT=1
+#
+# Compose la lee del .env que genera el propio Dokploy y la pasa a buildx
+# como limite de jobs. Requiere buildx 0.38 o superior; si el servidor tiene
+# una version anterior, compose avisa e ignora el limite.
 services:
   web:
     image: shopylink-web:latest

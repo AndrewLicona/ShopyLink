@@ -50,16 +50,11 @@ RUN npx prisma generate --schema=packages/database/prisma/schema.prisma
 RUN npx turbo run build --filter=api... --concurrency=1
 
 # Phase 2.5: Production Dependencies
-FROM base AS prod-deps
-WORKDIR /app
-COPY --from=pruner /app/out/json/ .
-COPY --from=pruner /app/out/package-lock.json ./package-lock.json
-RUN --mount=type=cache,target=/root/.npm \
-    set -eux; \
-    ( while :; do echo "[shopylink] instalando dependencias de produccion (sigue en curso)..."; sleep 30; done ) & \
-    KEEPALIVE=$!; \
-    npm ci --omit=dev --no-audit --no-fund --prefer-offline; \
-    kill "${KEEPALIVE}" 2>/dev/null || true
+# Se poda el node_modules del builder en vez de hacer un `npm ci --omit=dev`
+# aparte: el prune no descarga nada (los paquetes ya estan en disco), asi que
+# el build deja de instalar el arbol de dependencias por tercera vez.
+FROM builder AS prod-deps
+RUN npm prune --omit=dev --no-audit --no-fund
 
 # Copy generated Prisma client (the actual artifacts)
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
