@@ -32,6 +32,7 @@ export function useBanners() {
     const [linkUrl, setLinkUrl] = useState('');
     const [position, setPosition] = useState<'HERO' | 'TOP_BAR' | 'FLOATING' | 'BETWEEN_PRODUCTS'>('HERO');
     const [isActive, setIsActive] = useState(true);
+    const [focalPoint, setFocalPoint] = useState('center');
     const [startsAt, setStartsAt] = useState('');
     const [endsAt, setEndsAt] = useState('');
 
@@ -68,6 +69,7 @@ export function useBanners() {
         setLinkUrl('');
         setPosition('HERO');
         setIsActive(true);
+        setFocalPoint('center');
         setStartsAt('');
         setEndsAt('');
         setIsModalOpen(true);
@@ -82,6 +84,7 @@ export function useBanners() {
         setLinkUrl(banner.linkUrl || '');
         setPosition(banner.position);
         setIsActive(banner.isActive);
+        setFocalPoint(banner.focalPoint || 'center');
         setStartsAt((banner.startsAt ? new Date(banner.startsAt).toISOString().split('T')[0] : '') || '');
         setEndsAt((banner.endsAt ? new Date(banner.endsAt).toISOString().split('T')[0] : '') || '');
         setIsModalOpen(true);
@@ -121,6 +124,7 @@ export function useBanners() {
             linkUrl: linkUrl || null,
             position,
             isActive,
+            focalPoint,
             startsAt: startsAt ? new Date(startsAt).toISOString() : null,
             endsAt: endsAt ? new Date(endsAt).toISOString() : null,
         };
@@ -192,6 +196,7 @@ export function useBanners() {
                 linkUrl,
                 position,
                 isActive,
+                focalPoint,
                 startsAt,
                 endsAt,
             }
@@ -206,6 +211,7 @@ export function useBanners() {
             setLinkUrl,
             setPosition,
             setIsActive,
+            setFocalPoint,
             setStartsAt,
             setEndsAt,
             handleOpenNewModal,

@@ -1,11 +1,12 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 
 import { useProducts } from '@/hooks/useProducts';
 import { CategoryModal } from '@/features/catalogue/CategoryModal';
 import { ProductGrid } from '@/features/catalogue/ProductGrid';
 import { ProductFormModal } from '@/features/catalogue/ProductFormModal';
+import { BulkProductUploadModal } from '@/features/products/BulkProductUploadModal';
 
 import {
     Plus,
@@ -17,6 +18,7 @@ import {
     PackageCheck,
     Megaphone,
     MessageCircle,
+    FileSpreadsheet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LoadingState } from '@/components/atoms/LoadingState';
@@ -26,6 +28,7 @@ import { SectionHeader } from '@/components/molecules/SectionHeader';
 function ProductsContent() {
     const hook = useProducts();
     const { state, actions } = hook;
+    const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
 
     if (state.loading) {
         return <LoadingState message="Cargando catálogo..." fullPage />;
@@ -67,6 +70,14 @@ function ProductsContent() {
                             aria-label="Gestionar Categorías"
                         >
                             <Settings2 className="w-5 h-5" />
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            onClick={() => setIsBulkModalOpen(true)}
+                            className="p-3 md:px-5 md:py-3 rounded-2xl"
+                            leftIcon={<FileSpreadsheet className="w-5 h-5" />}
+                        >
+                            <span className="hidden md:inline">Carga Masiva</span>
                         </Button>
                         <Button
                             variant="primary"
@@ -125,6 +136,15 @@ function ProductsContent() {
             {/* Modals */}
             <ProductFormModal hook={hook} />
             <CategoryModal hook={hook} />
+            {hook.state.activeStore && (
+                <BulkProductUploadModal
+                    isOpen={isBulkModalOpen}
+                    onClose={() => setIsBulkModalOpen(false)}
+                    storeId={hook.state.activeStore.id}
+                    categories={state.categories}
+                    onSuccess={() => actions.loadData()}
+                />
+            )}
 
             {/* Confirmation Modal */}
             {state.confirmModal.show && (

@@ -9,11 +9,14 @@ import {
   UseGuards,
   Request,
   Query,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateInventoryDto } from './dto/update-inventory.dto';
+import { BulkCreateProductDto } from './dto/bulk-create-product.dto';
 import { JwtAuthGuard } from '../../core/auth/jwt-auth.guard';
 import { RequestWithUser } from '../../core/auth/interfaces/user.interface';
 
@@ -29,6 +32,17 @@ export class ProductsController {
   ): Promise<any> {
     const userId = req.user.sub;
     return this.productsService.create(userId, createProductDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('bulk')
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  createBulk(
+    @Request() req: RequestWithUser,
+    @Body() bulkDto: BulkCreateProductDto,
+  ): Promise<any> {
+    const userId = req.user.sub;
+    return this.productsService.createBulk(userId, bulkDto.storeId, bulkDto.products);
   }
 
   @Get()

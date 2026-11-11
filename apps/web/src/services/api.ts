@@ -135,6 +135,10 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(data),
     }),
+    createBulkProducts: (storeId: string, products: any[]) => fetchWithAuth('/products/bulk', {
+        method: 'POST',
+        body: JSON.stringify({ storeId, products }),
+    }),
     updateProduct: (id: string, data: Partial<Product>) => fetchWithAuth(`/products/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(data),

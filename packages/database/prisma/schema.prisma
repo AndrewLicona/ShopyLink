@@ -283,19 +283,20 @@ model counters {
 }
 
 model StoreBanner {
-  id        String    @id @default(uuid())
-  storeId   String
-  store     Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  title     String?
-  subtitle  String?
-  imageUrl  String?
-  linkUrl   String?
-  position  String    @default("HERO") // HERO | TOP_BAR | FLOATING | BETWEEN_PRODUCTS
-  isActive  Boolean   @default(true)
-  startsAt  DateTime?
-  endsAt    DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id         String    @id @default(uuid())
+  storeId    String
+  store      Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  title      String?
+  subtitle   String?
+  imageUrl   String?
+  linkUrl    String?
+  position   String    @default("HERO") // HERO | TOP_BAR | FLOATING | BETWEEN_PRODUCTS
+  isActive   Boolean   @default(true)
+  focalPoint String?   @default("center") // center | top | bottom | left | right
+  startsAt   DateTime?
+  endsAt     DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@index([storeId])
   @@index([storeId, isActive])

@@ -5,6 +5,7 @@ import {
   IsUUID,
   IsISO8601,
   IsNotEmpty,
+  IsIn,
 } from 'class-validator';
 
 export class CreateBannerDto {
@@ -35,6 +36,10 @@ export class CreateBannerDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @IsIn(['center', 'top', 'bottom', 'left', 'right'])
+  @IsOptional()
+  focalPoint?: string;
 
   @IsISO8601()
   @IsOptional()
