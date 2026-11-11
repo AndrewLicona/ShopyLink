@@ -16,6 +16,7 @@ import { PrismaService } from '../../core/prisma/prisma.module';
 import { MailingService } from '../../core/mailing/mailing.service';
 import { AdminLogsService } from '../../core/admin-logs/admin-logs.service';
 import { RedisService } from '../../core/cache/redis.service';
+import { StorageService } from '../../core/storage/storage.service';
 import { hashCacheKey } from '../../core/cache/cache.util';
 import { CreateStoreDto } from './dto/create-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
@@ -29,6 +30,7 @@ export class StoresService {
     private mailing: MailingService,
     private adminLogs: AdminLogsService,
     private cache: RedisService,
+    private storage: StorageService,
   ) {}
 
   async create(
@@ -43,7 +45,7 @@ export class StoresService {
       ? process.env.SUPER_ADMIN_EMAILS.split(',').map((e) =>
           e.trim().toLowerCase(),
         )
-      : ['andrewlicona1@gmail.com'];
+      : [];
 
     const role = adminEmails.includes(userEmail.toLowerCase())
       ? 'SUPER_ADMIN'
@@ -267,6 +269,23 @@ export class StoresService {
         where: { id },
         data,
       });
+
+      // Garbage collection: delete replaced logo or banner from storage
+      if (
+        updateStoreDto.logoUrl &&
+        previousStore.logoUrl &&
+        updateStoreDto.logoUrl !== previousStore.logoUrl
+      ) {
+        await this.storage.deleteFileByUrl(previousStore.logoUrl);
+      }
+      if (
+        updateStoreDto.bannerUrl &&
+        previousStore.bannerUrl &&
+        updateStoreDto.bannerUrl !== previousStore.bannerUrl
+      ) {
+        await this.storage.deleteFileByUrl(previousStore.bannerUrl);
+      }
+
       await this.invalidateStoreCachesBySlug(previousStore.slug);
       await this.invalidateStoreCachesBySlug(store.slug);
       await this.bumpMarketplaceVersion();
@@ -395,6 +414,14 @@ export class StoresService {
     await this.prisma.store.delete({
       where: { id },
     });
+
+    // Garbage collection: remove store logo and banner
+    if (store.logoUrl) {
+      await this.storage.deleteFileByUrl(store.logoUrl);
+    }
+    if (store.bannerUrl) {
+      await this.storage.deleteFileByUrl(store.bannerUrl);
+    }
 
     await this.invalidateStoreCachesBySlug(store.slug);
     await this.bumpMarketplaceVersion();

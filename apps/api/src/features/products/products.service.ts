@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.module';
 import { RedisService } from '../../core/cache/redis.service';
+import { StorageService } from '../../core/storage/storage.service';
 import { hashCacheKey } from '../../core/cache/cache.util';
 import { decrypt } from '../../core/common/encryption.util';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -28,6 +29,7 @@ export class ProductsService {
   constructor(
     private prisma: PrismaService,
     private cache: RedisService,
+    private storage: StorageService,
   ) {}
 
   async create(userId: string, createProductDto: CreateProductDto) {
@@ -330,6 +332,16 @@ export class ProductsService {
       });
     });
 
+    // Garbage collection: remove discarded product images
+    if (productData.images && product.images) {
+      const removedImages = product.images.filter(
+        (img) => !productData.images!.includes(img),
+      );
+      for (const imgUrl of removedImages) {
+        await this.storage.deleteFileByUrl(imgUrl);
+      }
+    }
+
     await this.invalidateCatalogCaches(product.store.id);
     return updated;
   }
@@ -346,8 +358,89 @@ export class ProductsService {
       throw new ForbiddenException('You do not own this product');
 
     const result = await this.prisma.product.delete({ where: { id } });
+
+    // Garbage collection: remove all images associated with the deleted product
+    if (product.images && product.images.length > 0) {
+      for (const imgUrl of product.images) {
+        await this.storage.deleteFileByUrl(imgUrl);
+      }
+    }
+
     await this.invalidateCatalogCaches(product.store.id);
     return result;
+  }
+
+  async createBulk(
+    userId: string,
+    storeId: string,
+    products: {
+      name: string;
+      description?: string;
+      price?: number;
+      discountPrice?: number;
+      images?: string[];
+      isActive?: boolean;
+      sku?: string;
+      categoryId?: string;
+      itemType?: 'product' | 'service';
+      pricingMode?: 'fixed' | 'from' | 'hourly' | 'quote';
+    }[],
+  ) {
+    const store = await this.prisma.withRetry(() =>
+      this.prisma.store.findUnique({ where: { id: storeId } }),
+    );
+    if (!store) throw new NotFoundException('Store not found');
+    if (store.userId !== userId)
+      throw new ForbiddenException('You do not own this store');
+
+    // Freemium Limit Check
+    if (store.planType === 'FREE') {
+      const currentCount = await this.prisma.product.count({
+        where: { storeId },
+      });
+      if (currentCount + products.length > 10) {
+        throw new ForbiddenException(
+          `Límite de 10 productos alcanzado en el plan Gratis (actuales: ${currentCount}, intentando agregar: ${products.length}). Actualiza a Pro para productos ilimitados.`,
+        );
+      }
+    }
+
+    // Process products in batches of 20
+    const batches: typeof products[] = [];
+    for (let i = 0; i < products.length; i += 20) {
+      batches.push(products.slice(i, i + 20));
+    }
+
+    const created: any[] = [];
+    for (const batch of batches) {
+      const batchResults = await this.prisma.$transaction(
+        batch.map((productData) => {
+          const generatedSku = productData.sku?.trim()
+            ? productData.sku.trim()
+            : `SKU-${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
+
+          return this.prisma.product.create({
+            data: {
+              name: productData.name,
+              description: productData.description,
+              price: productData.price,
+              discountPrice: productData.discountPrice,
+              images: productData.images || [],
+              isActive: productData.isActive ?? true,
+              sku: generatedSku,
+              storeId,
+              categoryId: productData.categoryId || null,
+              itemType: (productData.itemType as any) || 'product',
+              pricingMode: productData.pricingMode as any,
+            },
+          });
+        }),
+      );
+      created.push(...batchResults);
+    }
+
+    await this.invalidateCatalogCaches(storeId);
+    return { created: created.length, products: created };
   }
 
   private generateSku(sku?: string, currentSku?: string): string {

@@ -5,13 +5,30 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.module';
 import { RedisService } from '../../core/cache/redis.service';
+import { StorageService } from '../../core/storage/storage.service';
 import { CreateBannerDto } from './dto/create-banner.dto';
+import { UpdateBannerDto } from './dto/update-banner.dto';
+
+/**
+ * Campos que un PATCH puede tocar. `storeId` queda fuera a proposito: mover
+ * un banner a otra tienda exigiria verificar la propiedad del destino.
+ */
+const UPDATABLE_BANNER_FIELDS = [
+  'title',
+  'subtitle',
+  'imageUrl',
+  'linkUrl',
+  'position',
+  'isActive',
+  'focalPoint',
+] as const;
 
 @Injectable()
 export class BannersService {
   constructor(
     private prisma: PrismaService,
     private cache: RedisService,
+    private storage: StorageService,
   ) {}
 
   private async verifyStoreOwnership(storeId: string, userId: string) {
@@ -51,7 +68,14 @@ export class BannersService {
     return banner;
   }
 
-  async findAll(storeId: string, onlyActive = false) {
+  async findAll(storeId: string, onlyActive = false, userId?: string) {
+    if (!onlyActive) {
+      if (!userId) {
+        throw new ForbiddenException('User authentication required to view inactive banners');
+      }
+      await this.verifyStoreOwnership(storeId, userId);
+    }
+
     const where: any = { storeId };
 
     if (onlyActive) {
@@ -98,14 +122,23 @@ export class BannersService {
   async update(
     id: string,
     userId: string,
-    updateBannerDto: Partial<CreateBannerDto>,
+    updateBannerDto: UpdateBannerDto,
   ) {
     const banner = await this.findOne(id);
     await this.verifyStoreOwnership(banner.storeId, userId);
 
-    const { startsAt, endsAt, ...rest } = updateBannerDto;
+    // Solo se escriben los campos declarados en la lista: nada de asignacion
+    // masiva. `storeId` no esta en la lista a proposito (el banner no cambia
+    // de tienda con un PATCH).
+    const data: any = {};
+    for (const key of UPDATABLE_BANNER_FIELDS) {
+      const value = updateBannerDto[key];
+      if (value !== undefined) {
+        data[key] = value;
+      }
+    }
 
-    const data: any = { ...rest };
+    const { startsAt, endsAt } = updateBannerDto;
     if (startsAt !== undefined) {
       data.startsAt = startsAt ? new Date(startsAt) : null;
     }
@@ -120,6 +153,15 @@ export class BannersService {
       }),
     );
 
+    // Garbage collection: delete old image if a new one was provided
+    if (
+      updateBannerDto.imageUrl &&
+      banner.imageUrl &&
+      updateBannerDto.imageUrl !== banner.imageUrl
+    ) {
+      await this.storage.deleteFileByUrl(banner.imageUrl);
+    }
+
     await this.invalidateStoreCaches(banner.storeId);
     return updated;
   }
@@ -133,6 +175,11 @@ export class BannersService {
         where: { id },
       }),
     );
+
+    // Garbage collection: remove banner image from Supabase Storage
+    if (banner.imageUrl) {
+      await this.storage.deleteFileByUrl(banner.imageUrl);
+    }
 
     await this.invalidateStoreCaches(banner.storeId);
     return removed;
