@@ -1,5 +1,6 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './all-exceptions.filter';
 import { assertEncryptionKeyConfigured } from './core/common/encryption.util';
@@ -11,8 +12,11 @@ async function bootstrap() {
   // La suplantacion queda deshabilitada si no hay secreto de firma.
   assertJwtSecretConfigured();
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.setGlobalPrefix('api');
+  // nginx es el unico proxy delante de la API: con un salto confiable el
+  // throttle ve la IP real del visitante en vez de la del contenedor.
+  app.set('trust proxy', 1);
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -21,10 +25,28 @@ async function bootstrap() {
     }),
   );
   app.useGlobalFilters(new AllExceptionsFilter());
-  console.log('Enabling permissive CORS for debugging...');
+  app.enableShutdownHooks();
+
+  const allowedOrigins = (
+    process.env.FRONTEND_URL ||
+    'https://shopylinks.shop,https://www.shopylinks.shop,http://localhost:3000,http://localhost:8191'
+  )
+    .split(',')
+    .map((o) => o.trim());
+
   app.enableCors({
-    origin: '*',
-    credentials: false, // Must be false if origin is *
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      if (!origin) return callback(null, true);
+      if (
+        allowedOrigins.includes(origin) ||
+        /^https:\/\/[a-zA-Z0-9-]+\.shopylinks\.shop$/.test(origin) ||
+        /^http:\/\/localhost:\d+$/.test(origin)
+      ) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS blocked for origin: ${origin}`), false);
+    },
+    credentials: true,
   });
 
   const port = process.env.PORT || 3001;

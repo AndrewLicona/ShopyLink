@@ -9,6 +9,7 @@ import {
   Request,
   Query,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
@@ -20,6 +21,7 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   // Public endpoint for customers to place orders
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post()
   create(@Body() createOrderDto: CreateOrderDto): Promise<any> {
     return this.ordersService.create(createOrderDto);
