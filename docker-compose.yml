@@ -13,9 +13,16 @@ services:
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
       - NEXTAUTH_URL=${NEXTAUTH_URL}
-      # NEXTAUTH_SECRET no se inyecta: el frontend usa Supabase Auth y ningun
-      # codigo lee esa variable. Mantenerla solo dejaba el secreto expuesto.
       - INTERNAL_API_URL=http://api:3001/api
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - shopynet
 
@@ -28,10 +35,11 @@ services:
     env_file:
       # Secretos que viven FUERA del repositorio (en el servidor) para que nunca
       # lleguen a git ni al panel de Dokploy. El archivo se crea una sola vez:
-      #   cat > /etc/dokploy/secrets/shopylink.env <<'EOF'
+      #   cat > /etc/dokploy/secrets/shopylink.env << 'EOF'
       #   DATABASE_URL="postgresql://..."
       #   DATABASE_ENCRYPTION_KEY="<clave>"
       #   JWT_SECRET="<clave>"
+      #   SUPABASE_KEY="<service_role_key>"
       #   EOF
       # `required: false` para que el compose siga siendo usable en entornos
       # donde ese archivo todavia no existe.
@@ -39,12 +47,25 @@ services:
         required: false
     environment:
       # DATABASE_URL NO se inyecta desde el .env del stack: llega por `env_file`.
-      # Dokploy regenera ese .env en cada deploy, asi que interpolarlo desde alli
-      # reviria a la credencial vieja en cuanto se rotara la clave de la base.
       - SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - FRONTEND_URL=${FRONTEND_URL}
       - PORT=3001
       - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3001/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     networks:
       - shopynet
 
@@ -54,6 +75,15 @@ services:
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - shopynet
 
@@ -68,6 +98,11 @@ services:
     depends_on:
       - web
       - api
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - shopynet
 

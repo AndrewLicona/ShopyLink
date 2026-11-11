@@ -281,7 +281,23 @@ export class RedisService implements OnModuleDestroy {
       return next;
     }
 
+    if (name === 'PING') {
+      return 'PONG';
+    }
+
     throw new Error(`Unsupported in-memory Redis command: ${name}`);
+  }
+
+  async ping(): Promise<string> {
+    if (this.fallbackMode) {
+      return 'in-memory';
+    }
+    try {
+      const reply = await this.exec(['PING']);
+      return reply === 'PONG' ? 'up' : 'in-memory';
+    } catch {
+      return 'in-memory';
+    }
   }
 
   async get<T = string>(key: string): Promise<T | null> {
