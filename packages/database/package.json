@@ -9,7 +9,8 @@
         "seed": "ts-node --transpile-only prisma/seed.ts",
         "prisma": "prisma",
         "prisma:generate": "prisma generate --schema=prisma/schema.prisma",
-        "encrypt:rotate": "node rotate-encryption-key.mjs"
+        "encrypt:rotate": "node rotate-encryption-key.mjs",
+        "images:optimize": "node scripts/optimize-existing-images.mjs"
     },
     "devDependencies": {
         "@prisma/config": "^7.2.0",
@@ -20,6 +21,10 @@
         "typescript": "5.9.2"
     },
     "dependencies": {
-        "@prisma/client": "^7.4.2"
+        "@prisma/adapter-pg": "^7.2.0",
+        "@prisma/client": "^7.4.2",
+        "@supabase/supabase-js": "^2.119.0",
+        "pg": "^8.16.0",
+        "sharp": "^0.33.5"
     }
 }

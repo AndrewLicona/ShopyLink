@@ -45,4 +45,14 @@ yarn-error.log*
 .DS_Store
 *.pem
 
+# Artefactos locales de pruebas (no son codigo del producto)
+.pdfcheck-out*/
+*.pdfcheck-out*/
+andtech-catalogo.pdf
+.tmp-prisma-probe.cjs
+
+# Skills de agentes copiadas al arbol local
+.claude/skills/
+skills-lock.json
+
 .agents/
