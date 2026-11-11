@@ -24,11 +24,13 @@ function BannerMedia({
     alt,
     priority = false,
     sizes = '100vw',
+    focalPoint = 'center',
 }: {
     src: string;
     alt: string;
     priority?: boolean;
     sizes?: string;
+    focalPoint?: string | null;
 }) {
     const [ratio, setRatio] = useState<number | null>(null);
 
@@ -44,6 +46,8 @@ function BannerMedia({
         return () => { cancelled = true; };
     }, [src]);
 
+    const objectPositionStyle = focalPoint || 'center';
+
     return (
         <>
             {/* Móvil: la altura la manda la proporción real del archivo */}
@@ -58,6 +62,7 @@ function BannerMedia({
                     priority={priority}
                     sizes={sizes}
                     className="object-contain"
+                    style={{ objectPosition: objectPositionStyle }}
                 />
             </div>
 
@@ -70,6 +75,7 @@ function BannerMedia({
                     priority={priority}
                     sizes={sizes}
                     className="object-cover transition-transform duration-700"
+                    style={{ objectPosition: objectPositionStyle }}
                 />
             </div>
         </>
@@ -154,6 +160,7 @@ export function PublicBanners({ banners, position }: PublicBannersProps) {
                                         src={banner.imageUrl}
                                         alt={banner.title || 'Oferta especial'}
                                         priority
+                                        focalPoint={banner.focalPoint}
                                     />
                                 ) : (
                                     <div className="w-full h-full min-h-[180px] sm:min-h-0 bg-gradient-to-br from-[var(--primary)]/20 to-[var(--primary)]/5 flex flex-col items-center justify-center p-4 text-center select-none">

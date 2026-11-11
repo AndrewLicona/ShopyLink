@@ -13,6 +13,7 @@ import { PhoneInput } from '@/components/atoms/PhoneInput';
 import { TabSelector } from '@/components/molecules/TabSelector';
 import { ToggleCard } from '@/components/molecules/ToggleCard';
 import { DangerZone } from '@/components/molecules/DangerZone';
+import { ImageCropperModal } from '@/components/molecules/ImageCropperModal';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
 import { AppearanceSettings } from './components/AppearanceSettings';
 import { BusinessHoursEditor } from './components/BusinessHoursEditor';
@@ -54,6 +55,15 @@ export function StoreTab({ hook }: StoreTabProps) {
 
     return (
         <motion.div key="store" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="pb-20 space-y-6">
+            {/* Logo crop modal */}
+            {state.cropImageSrc && (
+                <ImageCropperModal
+                    imageSrc={state.cropImageSrc}
+                    onCropComplete={actions.handleLogoCropDone}
+                    onClose={actions.handleLogoCropClose}
+                    aspectRatio={1}
+                />
+            )}
             <TabSelector
                 options={subTabs}
                 activeTab={innerTab}
@@ -196,7 +206,7 @@ export function StoreTab({ hook }: StoreTabProps) {
                                         <label className="flex-1 flex items-center justify-center gap-2 py-4 bg-[var(--surface)] border-2 border-[var(--border)] rounded-2xl font-bold text-sm text-[var(--text)]/60 cursor-pointer hover:bg-[var(--secondary)] active:scale-95 transition-all shadow-[var(--shadow)]">
                                             <Camera className="w-4 h-4" />
                                             {state.logoUrl ? 'Cambiar' : 'Subir Logo'}
-                                            <input type="file" className="hidden" accept="image/*" onChange={actions.handleLogoUpload} disabled={state.uploading} />
+                                            <input type="file" className="hidden" accept="image/*" onChange={actions.handleLogoFileSelect} disabled={state.uploading} />
                                         </label>
                                         {state.logoUrl && (
                                             <button

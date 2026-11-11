@@ -47,6 +47,19 @@ ENV NEXT_PUBLIC_FRONTEND_URL=$NEXT_PUBLIC_FRONTEND_URL
 # Build web - this generates the standalone server
 RUN npx turbo run build --filter=web... --concurrency=1
 
+# La ruta /api/og/[slug] usa `@vercel/og` para componer la imagen de compartir.
+# Ese modulo se queda como dependencia externa y lee la fuente (.ttf) y los
+# modulos wasm desde el disco con `import.meta.url`. El trazado de archivos de
+# Next solo copia el `index.node.js`, asi que sin estos archivos la ruta
+# revienta al generar la imagen. Se copian a mano junto al bundle.
+RUN set -eux; \
+    OG_SRC="$(find /app -type d -path '*/next/dist/compiled/@vercel/og' -not -path '*/.next/*' | head -n 1)"; \
+    OG_DST=/app/apps/web/.next/standalone/node_modules/next/dist/compiled/@vercel/og; \
+    test -n "$OG_SRC"; \
+    mkdir -p "$OG_DST"; \
+    cp "$OG_SRC"/*.ttf "$OG_SRC"/*.wasm "$OG_DST"/; \
+    ls -la "$OG_DST"
+
 # Phase 3: Runner
 FROM base AS runner
 WORKDIR /app

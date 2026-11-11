@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Store as StoreIcon, MapPin, Eye, ShoppingBag, ExternalLink, ShieldCheck, Star } from 'lucide-react';
 import { api } from '@/services/api';
 import { Store, Product } from '@/types/types';
+import { StoreLogo } from '@/components/atoms/StoreLogo';
 import { MarketplaceProductCard } from '@/features/marketplace/MarketplaceProductCard';
 
 export default function MarketplaceStoreClient() {
@@ -87,13 +87,16 @@ export default function MarketplaceStoreClient() {
                 >
                     <div className="flex flex-col md:flex-row gap-8 items-center md:items-start text-center md:text-left">
                         {/* Logo */}
-                        <div className="w-32 h-32 md:w-40 md:h-40 shrink-0 rounded-[2rem] bg-white shadow-lg border-8 border-white flex items-center justify-center overflow-hidden -mt-24 md:-mt-32 relative z-20">
-                            {store.logoUrl ? (
-                                <Image src={store.logoUrl} alt={store.name} fill className="object-contain p-2" />
-                            ) : (
-                                <StoreIcon className="w-16 h-16 text-gray-300" />
-                            )}
-                        </div>
+                        <StoreLogo
+                            src={store.logoUrl}
+                            alt={store.name}
+                            widthClass="w-32 md:w-40"
+                            maxHeightClass="max-h-40"
+                            className="shrink-0 rounded-[2rem] bg-white shadow-lg border-8 border-white -mt-24 md:-mt-32 relative z-20"
+                            imageClassName="p-2"
+                            sizes="160px"
+                            fallback={<StoreIcon className="w-16 h-16 text-gray-300" />}
+                        />
 
                         {/* Info */}
                         <div className="flex-1 space-y-4">

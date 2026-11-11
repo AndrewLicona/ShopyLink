@@ -11,6 +11,7 @@ import { useCart } from '@/contexts/CartContext';
 import { Product } from '@/types/types';
 import { formatCurrency } from '@/lib/utils';
 import { getServicePriceLabel, isProductAvailable } from '@/lib/pricing';
+import { StoreLogo } from '@/components/atoms/StoreLogo';
 import { buildWhatsAppLink } from '@/lib/whatsapp';
 
 export default function ProductDetailClient() {
@@ -152,13 +153,16 @@ export default function ProductDetailClient() {
                             
                             {/* Store mini-header */}
                             <Link href={`/marketplace/tienda/${product.store.slug}`} className="inline-flex items-center gap-3 bg-white border border-gray-200 px-4 py-2 rounded-2xl mb-6 hover:border-blue-300 hover:shadow-md transition-all w-max group">
-                                <div className="w-8 h-8 relative rounded-lg bg-gray-100 overflow-hidden border border-gray-200">
-                                    {product.store.logoUrl ? (
-                                        <Image src={product.store.logoUrl} alt={product.store.name} fill className="object-contain p-0.5" />
-                                    ) : (
-                                        <StoreIcon className="w-full h-full p-1.5 text-gray-400" />
-                                    )}
-                                </div>
+                                <StoreLogo
+                                    src={product.store.logoUrl}
+                                    alt={product.store.name}
+                                    widthClass="w-8"
+                                    maxHeightClass="max-h-8"
+                                    className="overflow-hidden rounded-lg bg-gray-100 border border-gray-200"
+                                    imageClassName="p-0.5"
+                                    sizes="32px"
+                                    fallback={<StoreIcon className="w-full h-full p-1.5 text-gray-400" />}
+                                />
                                 <span className="font-bold text-sm text-gray-700 group-hover:text-blue-600">Por {product.store.name}</span>
                                 <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-500" />
                             </Link>

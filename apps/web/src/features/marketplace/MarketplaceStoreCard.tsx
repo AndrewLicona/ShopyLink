@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { MapPin, Store as StoreIcon } from 'lucide-react';
+import { StoreLogo } from '@/components/atoms/StoreLogo';
 import { Store } from '@/types/types';
 
 /**
@@ -33,21 +33,20 @@ export function MarketplaceStoreCard({
                 className="group flex h-full items-start gap-4 rounded-2xl border border-gray-200 bg-white p-5 transition-all duration-300 hover:border-gray-300 hover:shadow-lg hover:shadow-gray-900/5"
             >
                 {/* Logo */}
-                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-gray-100 bg-gray-50">
-                    {store.logoUrl ? (
-                        <Image
-                            src={store.logoUrl}
-                            alt={store.name}
-                            fill
-                            className="object-contain p-1.5 transition-transform duration-500 group-hover:scale-105"
-                            sizes="56px"
-                        />
-                    ) : (
+                <StoreLogo
+                    src={store.logoUrl}
+                    alt={store.name}
+                    widthClass="w-14"
+                    maxHeightClass="max-h-14"
+                    className="shrink-0 overflow-hidden rounded-2xl border border-gray-100 bg-gray-50"
+                    imageClassName="p-1.5 transition-transform duration-500 group-hover:scale-105"
+                    sizes="56px"
+                    fallback={
                         <div className="flex h-full w-full items-center justify-center text-gray-300">
                             <StoreIcon className="h-6 w-6" />
                         </div>
-                    )}
-                </div>
+                    }
+                />
 
                 {/* Body */}
                 <div className="min-w-0 flex-1">

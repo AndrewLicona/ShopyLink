@@ -2,6 +2,7 @@ import Image from 'next/image';
 import { ShoppingBag, MapPin, ExternalLink, Store as StoreIcon } from 'lucide-react';
 import type { Store } from '@/types/types';
 import { isStoreOpen } from '@/lib/businessHours';
+import { StoreLogo } from '@/components/atoms/StoreLogo';
 
 interface StoreHeaderProps {
     store: Store;
@@ -17,19 +18,16 @@ export function StoreHeader({ store, cartCount, onOpenCart }: StoreHeaderProps) 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between min-h-20 py-3 gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-12 h-12 bg-[var(--surface)] rounded-2xl overflow-hidden shadow-sm flex items-center justify-center border border-[var(--border)] relative shrink-0">
-                            {store?.logoUrl ? (
-                                <Image
-                                    src={store.logoUrl}
-                                    alt={store.name}
-                                    fill
-                                    className="object-contain p-1"
-                                    sizes="48px"
-                                />
-                            ) : (
-                                <StoreIcon className="w-5 h-5 text-[var(--text)]/30" />
-                            )}
-                        </div>
+                        <StoreLogo
+                            src={store?.logoUrl}
+                            alt={store?.name || 'Logo de la tienda'}
+                            widthClass="w-12"
+                            maxHeightClass="max-h-12"
+                            className="bg-[var(--surface)] rounded-2xl shadow-sm border border-[var(--border)]"
+                            imageClassName="p-1"
+                            sizes="48px"
+                            fallback={<StoreIcon className="w-5 h-5 text-[var(--text)]/30" />}
+                        />
                         <div className="min-w-0">
                             <h1 className="text-lg sm:text-xl font-black text-[var(--text)] uppercase tracking-tight leading-tight truncate">
                                 {store?.name || 'Cargando...'}

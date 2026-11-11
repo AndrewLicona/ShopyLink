@@ -115,6 +115,7 @@ export interface StoreBanner {
     linkUrl?: string | null;
     position: 'HERO' | 'TOP_BAR' | 'FLOATING' | 'BETWEEN_PRODUCTS';
     isActive: boolean;
+    focalPoint?: string | null;
     startsAt?: string | null;
     endsAt?: string | null;
     createdAt: string;

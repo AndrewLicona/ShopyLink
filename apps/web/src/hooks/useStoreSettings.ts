@@ -145,13 +145,39 @@ export function useStoreSettings() {
         }
     };
 
-    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+    const [cropInputRef, setCropInputRef] = useState<HTMLInputElement | null>(null);
+
+    const handleLogoFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
+
+        // Store a reference to reset the input later
+        setCropInputRef(e.target);
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            setCropImageSrc(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        // Legacy: kept for back-compat; the new flow uses handleLogoFileSelect + handleLogoCropDone
+        return handleLogoFileSelect(e);
+    };
+
+    const handleLogoCropDone = async (blob: Blob) => {
+        setCropImageSrc(null);
+        if (cropInputRef) {
+            cropInputRef.value = '';
+        }
 
         setUploading(true);
         setError(null);
         try {
+            // Upload the cropped WebP blob to Supabase
+            const file = new File([blob], 'logo.webp', { type: 'image/webp' });
             const url = await storage.uploadImage(file, 'logos');
             setLogoUrl(url);
             setSuccess('Logo subido correctamente.');
@@ -160,6 +186,13 @@ export function useStoreSettings() {
             console.error(err);
         } finally {
             setUploading(false);
+        }
+    };
+
+    const handleLogoCropClose = () => {
+        setCropImageSrc(null);
+        if (cropInputRef) {
+            cropInputRef.value = '';
         }
     };
 
@@ -198,7 +231,8 @@ export function useStoreSettings() {
             isPublic, marketplaceCategory, city, country, tags,
             isDeleteModalOpen, deleteConfirmationName, deleting,
             suggestedSlug,
-            globalDiscountActive, globalDiscountPercentage
+            globalDiscountActive, globalDiscountPercentage,
+            cropImageSrc,
         },
         actions: {
             setName: handleNameChange,
@@ -232,6 +266,9 @@ export function useStoreSettings() {
             setSuggestedSlug,
             handleUpdateStore,
             handleLogoUpload,
+            handleLogoFileSelect,
+            handleLogoCropDone,
+            handleLogoCropClose,
             handleDeleteStore
         }
     };

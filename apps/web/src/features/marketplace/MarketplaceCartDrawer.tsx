@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { formatCurrency, getCurrencyForCountry } from '@/lib/utils';
+import { StoreLogo } from '@/components/atoms/StoreLogo';
 import { Overlay } from '@/components/molecules/Overlay';
 
 /**
@@ -161,19 +162,16 @@ export function MarketplaceCartDrawer({
                                             >
                                                 {/* Store header */}
                                                 <div className="flex items-center gap-3 border-b border-gray-100 bg-white px-4 py-3">
-                                                    <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
-                                                        {group.storeLogoUrl ? (
-                                                            <Image
-                                                                src={group.storeLogoUrl}
-                                                                alt={group.storeName}
-                                                                fill
-                                                                className="object-contain p-1"
-                                                                sizes="36px"
-                                                            />
-                                                        ) : (
-                                                            <StoreIcon className="h-4 w-4" />
-                                                        )}
-                                                    </span>
+                                                    <StoreLogo
+                                                        src={group.storeLogoUrl}
+                                                        alt={group.storeName}
+                                                        widthClass="w-9"
+                                                        maxHeightClass="max-h-9"
+                                                        className="shrink-0 overflow-hidden rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-100"
+                                                        imageClassName="p-1"
+                                                        sizes="36px"
+                                                        fallback={<StoreIcon className="h-4 w-4" />}
+                                                    />
                                                     <div className="min-w-0 flex-1">
                                                         <Link
                                                             href={`/marketplace/tienda/${group.storeSlug}`}

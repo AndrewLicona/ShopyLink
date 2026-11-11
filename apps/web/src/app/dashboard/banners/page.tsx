@@ -306,6 +306,36 @@ export default function BannersPage() {
                                     </div>
                                 )}
 
+                                {/* Focal Point Selector */}
+                                {state.form.position !== 'TOP_BAR' && (
+                                    <div className="space-y-2 pt-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text)]/40">Punto Focal de la Imagen</label>
+                                        <div className="grid grid-cols-5 gap-2">
+                                            {[
+                                                { id: 'center', label: 'Centro' },
+                                                { id: 'top', label: 'Arriba' },
+                                                { id: 'bottom', label: 'Abajo' },
+                                                { id: 'left', label: 'Izquierda' },
+                                                { id: 'right', label: 'Derecha' },
+                                            ].map((fp) => (
+                                                <button
+                                                    key={fp.id}
+                                                    type="button"
+                                                    onClick={() => actions.setFocalPoint(fp.id)}
+                                                    className={cn(
+                                                        "py-2.5 px-2 rounded-xl border text-center text-xs font-bold transition-all duration-300",
+                                                        (state.form.focalPoint || 'center') === fp.id
+                                                            ? "bg-[var(--primary)] text-white border-[var(--primary)] shadow-sm"
+                                                            : "bg-[var(--bg)] border-[var(--border)] text-[var(--text)] hover:border-[var(--primary)]/30"
+                                                    )}
+                                                >
+                                                    {fp.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Link CTA */}
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text)]/40 flex items-center gap-1">

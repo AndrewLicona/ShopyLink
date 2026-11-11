@@ -22,6 +22,11 @@ export async function generateMetadata({ params, searchParams }: {
         const shareImage =
             getAbsoluteUrl(store.logoUrl) || getAbsoluteUrl(store.bannerUrl) || null;
 
+        // La imagen OG generada por la ruta /api/og/<slug>: 1200x630 con el
+        // logo centrado y la paleta de la tienda. Es la que WhatsApp sabe
+        // mostrar bien (el logo crudo es cuadrado y salía recortado).
+        const ogImage = `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://shopylinks.shop'}/api/og/${slug}`;
+
         const storeDescription =
             store.description ||
             [
@@ -91,15 +96,13 @@ export async function generateMetadata({ params, searchParams }: {
                 description: storeDescription,
                 type: 'website',
                 url: storeUrl,
-                images: shareImage
-                    ? [{ url: shareImage, alt: store.name, width: 1200, height: 630 }]
-                    : [],
+                images: [{ url: ogImage, alt: store.name, width: 1200, height: 630 }],
             },
             twitter: {
                 card: 'summary_large_image',
                 title: `${store.name} | Catálogo`,
                 description: storeDescription,
-                images: shareImage ? [shareImage] : [],
+                images: [ogImage],
             },
         };
     } catch {

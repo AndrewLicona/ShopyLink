@@ -206,21 +206,28 @@ export async function renderPosterToPng(options: PosterOptions): Promise<string>
     if (options.logoUrl) {
         const logo = await loadImage(options.logoUrl, true);
         if (logo) {
-            const boxX = (W - LOGO_BOX) / 2;
+            // El marco se adapta a la proporción real del logo: los logos
+            // cuadrados llenan el medallón y los rectangulares (horizontales)
+            // ya no quedan con franjas vacías a los lados. El alto se mantiene
+            // para que la maqueta del afiche no cambie.
+            const ratio = logo.width / logo.height;
+            const boxH = LOGO_BOX;
+            const boxW = Math.round(LOGO_BOX * Math.min(Math.max(ratio, 0.72), 1.8));
+            const boxX = (W - boxW) / 2;
             const boxY = cursorY;
-
+            const radius = Math.min(LOGO_RADIUS, boxH / 2, boxW / 2);
             // Medallón: sombra suave + base blanca
             ctx.save();
             ctx.shadowColor = 'rgba(15, 23, 42, 0.16)';
             ctx.shadowBlur = 34;
             ctx.shadowOffsetY = 12;
             ctx.fillStyle = COLORS.card;
-            drawRoundedRect(ctx, boxX, boxY, LOGO_BOX, LOGO_BOX, LOGO_RADIUS);
+            drawRoundedRect(ctx, boxX, boxY, boxW, boxH, radius);
             ctx.fill();
             ctx.restore();
 
             // Anillo con el degradado del tema
-            const ring = ctx.createLinearGradient(boxX, boxY, boxX + LOGO_BOX, boxY + LOGO_BOX);
+            const ring = ctx.createLinearGradient(boxX, boxY, boxX + boxW, boxY + boxH);
             ring.addColorStop(0, COLORS.emerald400);
             ring.addColorStop(0.5, primary);
             ring.addColorStop(1, COLORS.emerald500);
@@ -231,9 +238,9 @@ export async function renderPosterToPng(options: PosterOptions): Promise<string>
                 ctx,
                 boxX + 5,
                 boxY + 5,
-                LOGO_BOX - 10,
-                LOGO_BOX - 10,
-                LOGO_RADIUS - 5
+                boxW - 10,
+                boxH - 10,
+                Math.max(radius - 5, 12)
             );
             ctx.stroke();
             ctx.restore();
@@ -241,13 +248,14 @@ export async function renderPosterToPng(options: PosterOptions): Promise<string>
             // El logo va centrado con aire: nunca se corta ni toca el borde
             ctx.save();
             ctx.fillStyle = COLORS.card;
-            drawRoundedRect(ctx, boxX, boxY, LOGO_BOX, LOGO_BOX, LOGO_RADIUS);
+            drawRoundedRect(ctx, boxX, boxY, boxW, boxH, radius);
             ctx.fill();
             ctx.clip();
-            const scale = Math.min(LOGO_BOX / logo.width, LOGO_BOX / logo.height) * 0.68;
+            // 0.86 deja un margen justo: el logo llena el marco sin pegarse.
+            const scale = Math.min((boxW - 44) / logo.width, (boxH - 44) / logo.height);
             const lw = logo.width * scale;
             const lh = logo.height * scale;
-            ctx.drawImage(logo, (W - lw) / 2, boxY + (LOGO_BOX - lh) / 2, lw, lh);
+            ctx.drawImage(logo, (W - lw) / 2, boxY + (boxH - lh) / 2, lw, lh);
             ctx.restore();
         }
     }

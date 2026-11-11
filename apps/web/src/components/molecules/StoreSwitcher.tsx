@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronDown, PlusCircle, Link as LinkIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { StoreLogo } from '@/components/atoms/StoreLogo';
 import type { Store } from '@/types/types';
 
 interface StoreSwitcherProps {
@@ -35,24 +35,20 @@ export function StoreSwitcher({
                     variant === 'mobile' ? "pr-3" : "w-full p-2 hover:bg-[var(--secondary)] border-transparent"
                 )}
             >
-                <div className={cn(
-                    "rounded-xl overflow-hidden relative border border-[var(--border)] bg-[var(--bg)] shadow-inner shrink-0",
-                    variant === 'mobile' ? "w-9 h-9" : "w-10 h-10"
-                )}>
-                    {activeStore?.logoUrl ? (
-                        <Image
-                            src={activeStore.logoUrl}
-                            alt="Logo"
-                            fill
-                            className="object-contain p-1.5"
-                            sizes={variant === 'mobile' ? "36px" : "40px"}
-                        />
-                    ) : (
+                <StoreLogo
+                    src={activeStore?.logoUrl}
+                    alt="Logo"
+                    widthClass={variant === 'mobile' ? 'w-9' : 'w-10'}
+                    maxHeightClass={variant === 'mobile' ? 'max-h-9' : 'max-h-10'}
+                    className="rounded-xl border border-[var(--border)] bg-[var(--bg)] shadow-inner"
+                    imageClassName="p-1"
+                    sizes={variant === 'mobile' ? '36px' : '40px'}
+                    fallback={
                         <div className="w-full h-full bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] font-black text-xs">
                             {activeStore?.name?.[0] || 'T'}
                         </div>
-                    )}
-                </div>
+                    }
+                />
                 <div className="flex flex-col items-start gap-0 flex-1 min-w-0">
                     <span className={cn(
                         "font-black text-[var(--text)] leading-none truncate",
@@ -91,13 +87,18 @@ export function StoreSwitcher({
                                         activeStore?.id === s.id ? "bg-[var(--primary)]/10" : ""
                                     )}
                                 >
-                                    <div className="w-8 h-8 rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--bg)] relative">
-                                        {s.logoUrl ? (
-                                            <Image src={s.logoUrl} alt={s.name} fill className="object-contain p-0.5" sizes="32px" />
-                                        ) : (
+                                    <StoreLogo
+                                        src={s.logoUrl}
+                                        alt={s.name}
+                                        widthClass="w-8"
+                                        maxHeightClass="max-h-8"
+                                        className="rounded-lg border border-[var(--border)] bg-[var(--bg)]"
+                                        imageClassName="p-0.5"
+                                        sizes="32px"
+                                        fallback={
                                             <div className="w-full h-full bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] font-bold text-xs">{s.name[0]}</div>
-                                        )}
-                                    </div>
+                                        }
+                                    />
                                     <span className={cn("text-sm font-bold", activeStore?.id === s.id ? "text-[var(--primary)]" : "text-[var(--text)]")}>{s.name}</span>
                                 </button>
                             ))}

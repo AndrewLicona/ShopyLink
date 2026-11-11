@@ -141,6 +141,10 @@ export const pdfService = {
                 doc.rect((pageWidth / steps) * i, 0, pageWidth / steps + 0.4, BAND_H, 'F');
             }
 
+            // Filete inferior de la banda: separa el encabezado del contenido.
+            setFill(shade(accent, 0.22));
+            doc.rect(0, BAND_H - 1.2, pageWidth, 1.2, 'F');
+
             // Logo en un cuadro blanco (igual que la web)
             const boxSize = 19;
             const boxY = (BAND_H - boxSize) / 2;
@@ -187,14 +191,28 @@ export const pdfService = {
 
             /* ---------- Título de la categoría ---------- */
             currentY = BAND_H + 8;
+
+            // Chip con el color de la tienda: el nombre de la categoría va
+            // sobre una pastilla del acento, en vez de un simple subrayado.
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(13);
-            setText(accentDark);
-            doc.text(category.name.toUpperCase(), margin, currentY);
-            const titleW = doc.getTextWidth(category.name.toUpperCase());
+            doc.setFontSize(12);
+            const catLabel = category.name.toUpperCase();
+            const catTextW = doc.getTextWidth(catLabel);
+            const chipH = 8.4;
             setFill(accent);
-            doc.rect(margin, currentY + 2, Math.min(titleW + 4, contentWidth), 1.2, 'F');
-            currentY += 12;
+            doc.roundedRect(margin, currentY - 1, catTextW + 12, chipH, chipH / 2, chipH / 2, 'F');
+            setText('#ffffff');
+            doc.text(catLabel, margin + 6, currentY + 5);
+
+            // Contador de productos de la categoría, a la derecha del chip.
+            const catCount = category.products.length;
+            const countLabel = catCount === 1 ? '1 producto' : `${catCount} productos`;
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8.5);
+            doc.setTextColor(mutedColor[0], mutedColor[1], mutedColor[2]);
+            doc.text(countLabel, pageWidth - margin, currentY + 5, { align: 'right' });
+
+            currentY += chipH + 6;
 
             // 2nd Step: Draw products
             const colWidth = (contentWidth - 8) / 2;
@@ -245,23 +263,28 @@ export const pdfService = {
                     doc.text(`-${pct}%`, x + colWidth - 12, currentY + 14.5, { align: 'center' });
                 }
 
-                // Big Price at top
-                setText(accentDark);
-                doc.setFontSize(13);
-                doc.setFont('helvetica', 'bold');
+                // Big Price at top, on a pill of the store colour so it pops
                 const currentPrice = product.discountPrice || product.price || 0;
-                doc.text(formatCurrency(Number(currentPrice), country), x + 5, currentY + 67);
+                const priceLabel = formatCurrency(Number(currentPrice), country);
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                const priceTextW = doc.getTextWidth(priceLabel);
+                const pricePillH = 7.4;
+                setFill(accentSoft);
+                doc.roundedRect(x + 4, currentY + 60, priceTextW + 8, pricePillH, pricePillH / 2, pricePillH / 2, 'F');
+                setText(accentDark);
+                doc.text(priceLabel, x + 8, currentY + 65.6);
 
                 // Old Price cross-out
                 if (product.discountPrice) {
                     doc.setFontSize(8);
                     doc.setTextColor(mutedColor[0], mutedColor[1], mutedColor[2]);
                     const oldP = formatCurrency(Number(product.price), country);
-                    const priceWidth = doc.getTextWidth(formatCurrency(Number(currentPrice), country));
-                    doc.text(oldP, x + 5 + priceWidth + 5, currentY + 67);
+                    const oldX = x + 4 + priceTextW + 14;
+                    doc.text(oldP, oldX, currentY + 65.6);
                     const oldW = doc.getTextWidth(oldP);
                     doc.setDrawColor(mutedColor[0], mutedColor[1], mutedColor[2]);
-                    doc.line(x + 5 + priceWidth + 5, currentY + 66, x + 5 + priceWidth + 5 + oldW, currentY + 66);
+                    doc.line(oldX, currentY + 64.6, oldX + oldW, currentY + 64.6);
                 }
 
                 // Product Name
@@ -302,7 +325,11 @@ export const pdfService = {
                         setText('#6b7280');
                         doc.text(v.name.substring(0, 16), vx + 4, vY);
 
-                        const vP = v.useParentPrice ? (product.discountPrice || product.price) : v.price;
+                        // Una variante sin precio propio hereda el del producto:
+                        // si no, salia "$ 0 COP" en el catalogo.
+                        const vP = (v.useParentPrice || !v.price)
+                            ? (product.discountPrice || product.price)
+                            : v.price;
                         doc.setFontSize(9);
                         doc.setFont('helvetica', 'bold');
                         setText(accentDark);
@@ -344,6 +371,12 @@ export const pdfService = {
             // referencia de ubicación de la tienda.
             const contact = store.referenceLocation || '';
             if (contact) doc.text(contact, margin, pageHeight - 7);
+
+            // URL de la tienda: el catálogo impreso lleva a la tienda online.
+            const storeUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://shopylinks.shop'}/${store.slug}`;
+            doc.setFontSize(7);
+            setText('#b6bfcd');
+            doc.text(storeUrl, margin, pageHeight - 12.5);
 
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(8);

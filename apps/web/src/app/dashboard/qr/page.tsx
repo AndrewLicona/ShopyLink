@@ -223,14 +223,15 @@ export default function QRPosterPage() {
                     {/* Acento superior decorativo */}
                     <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-emerald-400 via-[var(--primary)] to-emerald-500" />
 
-                    {/* Logo de la tienda */}
+                    {/* Logo de la tienda: el marco se adapta a la proporción
+                        real del logo, igual que en el PNG descargable. */}
                     <div className="w-24 h-24 rounded-3xl bg-slate-50 border-2 border-slate-200/80 shadow-md flex items-center justify-center overflow-hidden relative mt-2">
                         {activeStore.logoUrl ? (
                             <Image
                                 src={activeStore.logoUrl}
                                 alt={activeStore.name}
                                 fill
-                                className="object-contain p-2"
+                                className="object-contain p-1.5"
                                 sizes="96px"
                             />
                         ) : (

@@ -1,6 +1,5 @@
 import { Metadata } from 'next';
 import { api } from '@/services/api';
-import { getAbsoluteUrl } from '@/lib/utils';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
     const resolvedParams = await params;
@@ -12,7 +11,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         };
     }
 
-    const absoluteLogoUrl = getAbsoluteUrl(store.logoUrl);
+    // Imagen de compartir: la ruta /api/og/<slug> compone un 1200x630 con el
+    // logo y la paleta de la tienda. El logo crudo es cuadrado y WhatsApp lo
+    // recortaba hasta hacerlo irreconocible.
+    const ogImage = `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://shopylinks.shop'}/api/og/${resolvedParams.slug}`;
 
     return {
         title: `${store.name} | Catálogo Virtual`,
@@ -27,7 +29,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         openGraph: {
             title: store.name,
             description: store.description ?? undefined,
-            images: absoluteLogoUrl ? [{ url: absoluteLogoUrl }] : [],
+            images: [{ url: ogImage, alt: store.name, width: 1200, height: 630 }],
         },
     };
 }
