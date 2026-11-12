@@ -22,10 +22,11 @@ export async function generateMetadata({ params, searchParams }: {
         const shareImage =
             getAbsoluteUrl(store.logoUrl) || getAbsoluteUrl(store.bannerUrl) || null;
 
-        // La imagen OG generada por la ruta /api/og/<slug>: 1200x630 con el
+        // La imagen OG generada por la ruta /og/<slug>: 1200x630 con el
         // logo centrado y la paleta de la tienda. Es la que WhatsApp sabe
         // mostrar bien (el logo crudo es cuadrado y salía recortado).
-        const ogImage = `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://shopylinks.shop'}/api/og/${slug}`;
+        // Va fuera de /api porque nginx manda todo /api al contenedor de la API.
+        const ogImage = `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://shopylinks.shop'}/og/${slug}`;
 
         const storeDescription =
             store.description ||

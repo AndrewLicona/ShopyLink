@@ -8,6 +8,10 @@ import { getThemePrimary } from '@/lib/theme';
  * cuadrada y WhatsApp la recortaba hasta dejarla irreconocible (por eso
  * "ya no se ve el logo al compartir"). Aquí se compone una imagen 1200x630
  * con la paleta de la tienda, el logo centrado sin deformarse y el nombre.
+ *
+ * La ruta vive en `/og/<slug>` y no en `/api/og/<slug>` a propósito: nginx
+ * manda todo lo que empieza por `/api` al contenedor de la API, asi que una
+ * ruta de Next bajo `/api` nunca llega al frontend y devolvia 404.
  */
 
 /**

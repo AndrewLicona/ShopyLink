@@ -57,7 +57,7 @@ ENV NEXT_PUBLIC_FRONTEND_URL=$NEXT_PUBLIC_FRONTEND_URL
 # Build web - this generates the standalone server
 RUN npx turbo run build --filter=web... --concurrency=1
 
-# La ruta /api/og/[slug] usa `@vercel/og` para componer la imagen de compartir.
+# La ruta /og/[slug] usa `@vercel/og` para componer la imagen de compartir.
 # Ese modulo se queda como dependencia externa y lee la fuente (.ttf) y los
 # modulos wasm desde el disco con `import.meta.url` (en la misma carpeta que
 # index.node.js). El trazado de archivos de Next solo copia el

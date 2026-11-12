@@ -11,10 +11,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         };
     }
 
-    // Imagen de compartir: la ruta /api/og/<slug> compone un 1200x630 con el
+    // Imagen de compartir: la ruta /og/<slug> compone un 1200x630 con el
     // logo y la paleta de la tienda. El logo crudo es cuadrado y WhatsApp lo
     // recortaba hasta hacerlo irreconocible.
-    const ogImage = `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://shopylinks.shop'}/api/og/${resolvedParams.slug}`;
+    // Ojo: la ruta vive fuera de /api porque nginx manda todo /api al
+    // contenedor de la API y una ruta de Next bajo /api nunca llegaba aqui.
+    const ogImage = `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://shopylinks.shop'}/og/${resolvedParams.slug}`;
 
     return {
         title: `${store.name} | Catálogo Virtual`,
