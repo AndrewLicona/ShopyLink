@@ -1,4 +1,8 @@
-FROM node:20-alpine AS base
+# Node 22 y no 20: `@supabase/supabase-js` 2.119 exige Node 22+ y al crear el
+# cliente de Supabase revienta con "Node.js detected but native WebSocket not
+# found" en Node 20. Sin eso la API no puede tener SUPABASE_KEY (y con ella no
+# puede subir ni borrar archivos en el bucket).
+FROM node:22-alpine AS base
 
 # Configure npm for resilient downloads globally
 RUN npm config set fetch-retries 10 && \
