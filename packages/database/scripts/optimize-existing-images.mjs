@@ -33,12 +33,15 @@ import fs from 'node:fs';
 /* ---------- entorno ---------- */
 const envPaths = [
     new URL('../../../.env', import.meta.url), // raíz del monorepo
-    new URL('../../apps/api/.env', import.meta.url), // secrets de la API
+    new URL('../../../apps/api/.env', import.meta.url), // secrets de la API
 ];
 for (const envPath of envPaths) {
     if (!fs.existsSync(envPath)) continue;
     const env = fs.readFileSync(envPath, 'utf8');
-    for (const line of env.split('\n')) {
+    // Se parte con /\r?\n/ y no con '\n': en Windows los .env vienen con
+    // finales CRLF y el `\r` queda pegado al final de la linea, lo que hace
+    // que el patron de abajo no matchee y el archivo entero se lea vacio.
+    for (const line of env.split(/\r?\n/)) {
         const m = line.match(/^\s*([A-Za-z0-9_]+)\s*=\s*(.*)$/);
         if (!m) continue;
         const [, key, rawValue] = m;
