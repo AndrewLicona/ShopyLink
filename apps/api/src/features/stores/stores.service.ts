@@ -22,6 +22,7 @@ import { CreateStoreDto } from './dto/create-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
 import { encrypt, decrypt } from '../../core/common/encryption.util';
 import { Store } from '@prisma/client';
+import sharp from 'sharp';
 
 @Injectable()
 export class StoresService {
@@ -514,6 +515,41 @@ export class StoresService {
     });
   }
 
+  /**
+   * Logo de la tienda convertido a PNG, para la imagen OG del storefront.
+   *
+   * El motor del render (satori/resvg) solo decodifica PNG, JPEG, GIF y SVG:
+   * con el logo guardado en WebP -como lo deja la migracion de imagenes- el
+   * render revienta con "a is not iterable" y la imagen sale vacia. Convertir
+   * el archivo aca deja la imagen para compartir independiente del formato en
+   * que este guardado el original.
+   */
+  async getStoreLogoPng(slug: string): Promise<Buffer | null> {
+    const cacheKey = this.storeLogoPngKey(slug);
+
+    const cached = await this.cache.get<string>(cacheKey);
+    if (cached) return Buffer.from(cached, 'base64');
+
+    const store = await this.prisma.withRetry(() =>
+      this.prisma.store.findUnique({
+        where: { slug },
+        select: { logoUrl: true },
+      }),
+    );
+    if (!store?.logoUrl) return null;
+
+    try {
+      const res = await fetch(store.logoUrl);
+      if (!res.ok) return null;
+      const original = Buffer.from(await res.arrayBuffer());
+      const png = await sharp(original).png().toBuffer();
+      await this.cache.set(cacheKey, png.toString('base64'), 3600);
+      return png;
+    } catch {
+      return null;
+    }
+  }
+
   private filterVisibleProducts(products: any[]) {
     // Products without stock stay visible on purpose: the storefront renders them
     // with the "Por encargo" badge, so the customer can request them via WhatsApp
@@ -543,7 +579,15 @@ export class StoresService {
   }
 
   private async invalidateStoreCachesBySlug(slug: string) {
-    await this.cache.del(this.publicStoreKey(slug), this.publicStorePageKey(slug));
+    await this.cache.del(
+      this.publicStoreKey(slug),
+      this.publicStorePageKey(slug),
+      this.storeLogoPngKey(slug),
+    );
+  }
+
+  private storeLogoPngKey(slug: string) {
+    return `storeLogoPng:${slug}`;
   }
 
   private async marketplaceStoresKey(filters: Record<string, unknown>) {

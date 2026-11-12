@@ -33,7 +33,6 @@ const H = 630;
 
 interface OgStore {
     name?: string;
-    logoUrl?: string | null;
     theme?: string | null;
     city?: string | null;
     referenceLocation?: string | null;
@@ -73,26 +72,27 @@ export async function GET(
 
     // El logo se incrusta como data URL: ImageResponse no puede leer URLs
     // remotas sin CORS y el crawler de WhatsApp necesita una imagen propia.
+    // Se pide a la API ya convertido a PNG porque el motor del render
+    // (satori/resvg) solo decodifica PNG, JPEG, GIF y SVG: con el logo en
+    // WebP -como lo guarda la migracion de imagenes- el render falla y la
+    // imagen sale vacia.
     let logoData: string | null = null;
-    if (store?.logoUrl) {
-        try {
-            const res = await fetch(store.logoUrl);
-            if (res.ok) {
-                const type = res.headers.get('content-type') || 'image/png';
-                const buffer = await res.arrayBuffer();
-                let binary = '';
-                const bytes = new Uint8Array(buffer);
-                const chunk = 0x8000;
-                for (let i = 0; i < bytes.length; i += chunk) {
-                    binary += String.fromCharCode(
-                        ...bytes.subarray(i, Math.min(i + chunk, bytes.length)),
-                    );
-                }
-                logoData = `data:${type};base64,${btoa(binary)}`;
+    try {
+        const res = await fetch(`${API_URL}/stores/${slug}/logo.png`);
+        if (res.ok) {
+            const buffer = await res.arrayBuffer();
+            let binary = '';
+            const bytes = new Uint8Array(buffer);
+            const chunk = 0x8000;
+            for (let i = 0; i < bytes.length; i += chunk) {
+                binary += String.fromCharCode(
+                    ...bytes.subarray(i, Math.min(i + chunk, bytes.length)),
+                );
             }
-        } catch {
-            logoData = null;
+            logoData = `data:image/png;base64,${btoa(binary)}`;
         }
+    } catch {
+        logoData = null;
     }
 
     return new ImageResponse(

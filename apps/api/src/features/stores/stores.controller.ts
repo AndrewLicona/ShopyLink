@@ -10,11 +10,12 @@ import {
   Request,
   NotFoundException,
   UsePipes,
+  Res,
   ValidationPipe,
   Req,
   Query,
 } from '@nestjs/common';
-import { Request as ExpressRequest } from 'express';
+import { Request as ExpressRequest, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { ConfigService } from '@nestjs/config';
 import { AdminLogsService } from '../../core/admin-logs/admin-logs.service';
@@ -154,6 +155,24 @@ export class StoresController {
     const page = await this.storesService.getPublicStorePage(slug);
     if (!page) throw new NotFoundException('Store not found');
     return page;
+  }
+
+  /**
+   * Logo de la tienda en PNG. Es publico porque lo consume la imagen OG del
+   * storefront, que se genera sin sesion y la consulta el crawler de WhatsApp.
+   */
+  @Get(':slug/logo.png')
+  async getStoreLogoPng(
+    @Param('slug') slug: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<any> {
+    const png = await this.storesService.getStoreLogoPng(slug);
+    if (!png) throw new NotFoundException('Store logo not found');
+    res.set({
+      'Content-Type': 'image/png',
+      'Cache-Control': 'public, max-age=3600',
+    });
+    return png;
   }
 
   @Get(':slug')
