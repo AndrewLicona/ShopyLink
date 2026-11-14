@@ -164,15 +164,23 @@ export class StoresController {
   @Get(':slug/logo.png')
   async getStoreLogoPng(
     @Param('slug') slug: string,
-    @Res({ passthrough: true }) res: Response,
-  ): Promise<any> {
+    @Res() res: Response,
+  ): Promise<void> {
     const png = await this.storesService.getStoreLogoPng(slug);
-    if (!png) throw new NotFoundException('Store logo not found');
+    if (!png) {
+      res.status(404).json({ message: 'Store logo not found' });
+      return;
+    }
+    // Se manda con res.end() y no devolviendo el Buffer: con passthrough
+    // Nest serializa la respuesta a JSON (
+    // {type:'Buffer',data:[...]}) y el navegador recibe un JSON en vez de
+    // los bytes del PNG, que es justo lo que no puede leer el motor del
+    // render OG.
     res.set({
       'Content-Type': 'image/png',
       'Cache-Control': 'public, max-age=3600',
     });
-    return png;
+    res.end(png);
   }
 
   @Get(':slug')
