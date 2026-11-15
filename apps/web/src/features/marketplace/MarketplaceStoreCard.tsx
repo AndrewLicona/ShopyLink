@@ -2,15 +2,16 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { MapPin, Store as StoreIcon } from 'lucide-react';
+import { ArrowUpRight, MapPin, Store as StoreIcon } from 'lucide-react';
 import { StoreLogo } from '@/components/atoms/StoreLogo';
 import { Store } from '@/types/types';
 
 /**
- * Store card used across the marketplace (stores listing).
+ * Tarjeta de tienda del marketplace (listado de tiendas).
  *
- * Minimal by design: only the store logo identifies the business, no cover
- * banner and no coloured badges.
+ * El logo es el protagonista: entra con `object-cover` en un marco redondeado
+ * para que el arte cuadrado llene el marco y sus esquinas queden recortadas.
+ * Sin banner ni badges de color: la ficha es sobria y el logo hace el trabajo.
  */
 export function MarketplaceStoreCard({
     store,
@@ -30,16 +31,16 @@ export function MarketplaceStoreCard({
         >
             <Link
                 href={`/marketplace/tienda/${store.slug}`}
-                className="group flex h-full items-start gap-4 rounded-2xl border border-gray-200 bg-white p-5 transition-all duration-300 hover:border-gray-300 hover:shadow-lg hover:shadow-gray-900/5"
+                className="group flex h-full items-center gap-3.5 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200/80 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:ring-gray-300 sm:gap-4 sm:p-5"
             >
                 {/* Logo */}
                 <StoreLogo
                     src={store.logoUrl}
                     alt={store.name}
-                    widthClass="w-14"
+                    widthClass="w-12 sm:w-14"
                     maxHeightClass="max-h-14"
-                    className="shrink-0 overflow-hidden rounded-2xl border border-gray-100 bg-gray-50"
-                    imageClassName="p-1.5 transition-transform duration-500 group-hover:scale-105"
+                    className="shrink-0 bg-gray-50 ring-1 ring-gray-200"
+                    imageClassName="transition-transform duration-500 group-hover:scale-105"
                     sizes="56px"
                     fallback={
                         <div className="flex h-full w-full items-center justify-center text-gray-300">
@@ -48,25 +49,27 @@ export function MarketplaceStoreCard({
                     }
                 />
 
-                {/* Body */}
+                {/* Cuerpo */}
                 <div className="min-w-0 flex-1">
-                    <h3 className="truncate text-[15px] font-black text-gray-900 transition-colors group-hover:text-gray-600">
-                        {store.name}
-                    </h3>
+                    <div className="flex items-start gap-2">
+                        <h3 className="truncate text-sm font-black leading-tight text-gray-900 transition-colors group-hover:text-blue-600 sm:text-[15px]">
+                            {store.name}
+                        </h3>
+                        <ArrowUpRight className="h-4 w-4 shrink-0 text-gray-300 transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-blue-500" />
+                    </div>
 
-                    <p className="mt-0.5 truncate text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                    <p className="mt-0.5 truncate text-[10px] font-bold uppercase tracking-wider text-gray-400 sm:text-[11px]">
                         {store.marketplaceCategory || 'Variedades'}
                     </p>
 
-                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold text-gray-500">
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] font-semibold text-gray-500 sm:mt-3 sm:text-xs">
                         {store.city && (
                             <span className="inline-flex items-center gap-1">
                                 <MapPin className="h-3.5 w-3.5 text-gray-300" />
                                 {store.city.trim()}
                             </span>
                         )}
-                        <span className="text-gray-300">·</span>
-                        <span>
+                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-500 sm:text-[11px]">
                             {productCount} {productCount === 1 ? 'producto' : 'productos'}
                         </span>
                     </div>

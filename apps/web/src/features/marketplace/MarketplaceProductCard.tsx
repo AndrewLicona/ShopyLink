@@ -15,6 +15,7 @@ import {
 import { useCart } from '@/contexts/CartContext';
 import { formatCurrency } from '@/lib/utils';
 import { buildWhatsAppLink } from '@/lib/whatsapp';
+import { StoreLogo } from '@/components/atoms/StoreLogo';
 import {
     getPricingLabel,
     getPricingSuffix,
@@ -26,18 +27,19 @@ import {
 import type { Product } from '@/types/types';
 
 /**
- * Marketplace product card.
+ * Tarjeta de producto del marketplace.
  *
- * Shared by the marketplace feed, the category pages and the search page so the
- * "add to cart" behaviour is identical everywhere.
+ * La comparten el feed del marketplace, las páginas de categoría y la búsqueda,
+ * así que el comportamiento del carrito es idéntico en todas partes.
  *
- * Design notes:
- * - The image keeps a clean surface (no blurred backdrop) so catalogue posters
- *   stay crisp instead of turning muddy.
- * - The cart action is a compact circular button over the image instead of a
- *   full-width solid bar: a grid of solid blue buttons used to dominate the
- *   whole feed and made it look like a wall of CTAs.
- * - Badges are stacked in a single corner and never overlap the price.
+ * Notas de diseño:
+ * - La imagen mantiene una superficie limpia (sin fondo desenfocado) para que los
+ *   afiches de catálogo sigan nitidos en lugar de verse embarrados.
+ * - En móvil la tarjeta se compacta: imagen cuadrada, tipografía y espaciados
+ *   más pequeños y la acción de carrito sigue siendo un botón tactile de 40px.
+ * - La tienda se identifica con SU logo real (no un icono genérico): el marco
+ *   redondeado recorta el arte cuadrado, así no se ven las esquinas.
+ * - Los badges se apilan en una esquina y nunca se solapan con el precio.
  */
 export function MarketplaceProductCard({
     product,
@@ -63,7 +65,7 @@ export function MarketplaceProductCard({
         event.preventDefault();
         event.stopPropagation();
 
-        // Never go over the available stock: the order would be rejected later.
+        // Nunca se pasa del stock disponible: el pedido se rechazaría después.
         const available = getAvailableStock(product);
         if (available !== null) {
             const inCart = items
@@ -116,71 +118,71 @@ export function MarketplaceProductCard({
             className="h-full"
         >
             <article
-                className={`group relative flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:ring-transparent ${
-                    product.discountPrice ? 'ring-emerald-200' : 'ring-gray-100'
-                }`}
+                className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200/80 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:ring-gray-300"
             >
-                {/* Image + overlay actions. The link only wraps the image so the
-                    cart button stays a valid sibling (no nested interactives). */}
-                <div className="relative aspect-[4/5] w-full overflow-hidden bg-gradient-to-b from-gray-50 to-white">
+                {/* Imagen + acciones. El enlace solo envuelve la imagen para que el
+                    botón del carrito siga siendo un hermano válido (sin anidar
+                    elementos interactivos). */}
+                <div className="relative aspect-square w-full overflow-hidden bg-gradient-to-b from-gray-50 to-gray-100/70 sm:aspect-[4/5]">
                     <Link
                         href={`/marketplace/producto/${product.id}`}
                         className="absolute inset-0 flex items-center justify-center"
+                        aria-label={`Ver ${product.name}`}
                     >
                         {imageUrl ? (
-                            /* Plain <img> on purpose: marketplace product images can
-                               come from any merchant-hosted URL, not only the hosts
-                               whitelisted in next.config.js remotePatterns. */
+                            /* <img> a propósito: las imágenes de producto pueden
+                               venir de cualquier URL del comercio, no solo de los
+                               hosts permitidos en next.config.js remotePatterns. */
                             /* eslint-disable-next-line @next/next/no-img-element */
                             <img
                                 src={imageUrl}
                                 alt={product.name}
                                 loading="lazy"
-                                className="h-full w-full object-contain p-3 transition-transform duration-500 group-hover:scale-[1.04]"
+                                className="h-full w-full object-contain p-2.5 transition-transform duration-500 group-hover:scale-[1.05] sm:p-4"
                             />
                         ) : (
                             <div className="flex h-full w-full items-center justify-center">
-                                <ShoppingBag className="h-9 w-9 text-gray-200" />
+                                <ShoppingBag className="h-9 w-9 text-gray-300" />
                             </div>
                         )}
                     </Link>
 
-                    {/* Badges — stacked top-left, never over the price */}
-                    <div className="pointer-events-none absolute left-3 top-3 flex flex-col items-start gap-1.5">
+                    {/* Badges — apilados arriba a la izquierda, nunca sobre el precio */}
+                    <div className="pointer-events-none absolute left-2.5 top-2.5 flex flex-col items-start gap-1.5 sm:left-3 sm:top-3">
                         {product.discountPrice && (
-                            <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-500 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-md shadow-emerald-500/30">
+                            <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-500 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-white shadow-md shadow-emerald-500/30 sm:px-2 sm:py-1">
                                 <Tag className="h-2.5 w-2.5" />
                                 Oferta
                             </span>
                         )}
                         {service && (
-                            <span className="rounded-lg bg-violet-500 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-md shadow-violet-500/30">
+                            <span className="rounded-lg bg-violet-500 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-white shadow-md shadow-violet-500/30 sm:px-2 sm:py-1">
                                 Servicio
                             </span>
                         )}
                         {!service && !available && (
-                            <span className="rounded-lg bg-amber-500 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-md shadow-amber-500/30">
+                            <span className="rounded-lg bg-amber-500 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-white shadow-md shadow-amber-500/30 sm:px-2 sm:py-1">
                                 Por encargo
                             </span>
                         )}
                     </div>
 
-                    {/* Stock notice */}
+                    {/* Aviso de stock */}
                     {notice && (
-                        <div className="pointer-events-none absolute right-3 top-3 z-20 rounded-lg bg-red-500 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow-lg">
+                        <div className="pointer-events-none absolute right-2.5 top-2.5 z-20 max-w-[85%] rounded-lg bg-red-500 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow-lg sm:right-3 sm:top-3">
                             {notice}
                         </div>
                     )}
 
-                    {/* Cart action — compact, over the bottom-right of the image */}
-                    <div className="absolute bottom-3 right-3 z-10">
+                    {/* Acción de carrito — compacta, sobre la esquina inferior derecha */}
+                    <div className="absolute bottom-2.5 right-2.5 z-10 sm:bottom-3 sm:right-3">
                         {service ? (
                             whatsappHref ? (
                                 <a
                                     href={whatsappHref}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex h-11 w-11 items-center justify-center rounded-full bg-green-500 text-white shadow-lg shadow-green-500/30 transition-all hover:scale-110 hover:bg-green-600 active:scale-95"
+                                    className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500 text-white shadow-lg shadow-green-500/30 transition-all hover:scale-110 hover:bg-green-600 active:scale-95 sm:h-11 sm:w-11"
                                     aria-label={`Consultar ${product.name} por WhatsApp`}
                                     title="Consultar por WhatsApp"
                                 >
@@ -189,7 +191,7 @@ export function MarketplaceProductCard({
                             ) : (
                                 <Link
                                     href={`/marketplace/tienda/${store?.slug ?? ''}`}
-                                    className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-900 text-white shadow-lg transition-all hover:scale-110 active:scale-95"
+                                    className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-900 text-white shadow-lg transition-all hover:scale-110 active:scale-95 sm:h-11 sm:w-11"
                                     aria-label="Ver en la tienda"
                                     title="Ver en la tienda"
                                 >
@@ -199,7 +201,7 @@ export function MarketplaceProductCard({
                         ) : !available ? (
                             <Link
                                 href={`/marketplace/producto/${product.id}`}
-                                className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-gray-400 shadow-lg shadow-gray-900/10 ring-1 ring-gray-200 transition-all hover:scale-110 hover:bg-gray-50 hover:text-gray-700 active:scale-95"
+                                className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-gray-400 shadow-lg shadow-gray-900/10 ring-1 ring-gray-200 transition-all hover:scale-110 hover:bg-gray-50 hover:text-gray-700 active:scale-95 sm:h-11 sm:w-11"
                                 aria-label={`Pedir ${product.name} por encargo`}
                                 title="Pedir por encargo"
                             >
@@ -208,7 +210,7 @@ export function MarketplaceProductCard({
                         ) : (
                             <button
                                 onClick={handleAdd}
-                                className={`flex h-11 w-11 items-center justify-center rounded-full shadow-lg transition-all active:scale-95 ${
+                                className={`flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-all active:scale-95 sm:h-11 sm:w-11 ${
                                     justAdded
                                         ? 'bg-emerald-500 text-white shadow-emerald-500/30'
                                         : 'bg-white text-gray-900 shadow-gray-900/10 ring-1 ring-gray-200 hover:bg-blue-600 hover:text-white hover:ring-blue-600'
@@ -226,22 +228,37 @@ export function MarketplaceProductCard({
                     </div>
                 </div>
 
-                {/* Body */}
-                <div className="flex flex-1 flex-col px-4 pb-4 pt-3.5">
-                    <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-blue-600">
-                        <StoreIcon className="h-3 w-3 shrink-0" />
-                        <span className="truncate">{store?.name || 'Tienda'}</span>
+                {/* Cuerpo */}
+                <div className="flex flex-1 flex-col px-3 pb-3 pt-2.5 sm:px-4 sm:pb-4 sm:pt-3.5">
+                    {/* Tienda — logo real en un marco redondeado, sin esquinas a la vista */}
+                    <div className="mb-1.5 flex items-center gap-1.5">
+                        <StoreLogo
+                            src={store?.logoUrl}
+                            alt={store?.name || 'Tienda'}
+                            widthClass="w-5"
+                            maxHeightClass="max-h-5"
+                            className="bg-gray-100 ring-1 ring-gray-200"
+                            sizes="20px"
+                            fallback={
+                                <div className="flex h-full w-full items-center justify-center text-gray-400">
+                                    <StoreIcon className="h-3 w-3" />
+                                </div>
+                            }
+                        />
+                        <span className="truncate text-[10px] font-black uppercase tracking-wider text-blue-600 sm:text-[11px]">
+                            {store?.name || 'Tienda'}
+                        </span>
                     </div>
 
-                    <h3 className="mb-3 line-clamp-2 text-[13px] font-bold leading-snug text-gray-900 transition-colors group-hover:text-blue-600">
+                    <h3 className="line-clamp-2 text-[13px] font-bold leading-snug text-gray-900 transition-colors group-hover:text-blue-600 sm:mb-3 sm:text-[15px]">
                         {product.name}
                     </h3>
 
-                    <div className="mt-auto flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <div className="mt-auto flex flex-wrap items-baseline gap-x-2 gap-y-1 pt-2">
                         {service ? (
-                            /* Services quote their price by mode: "Desde $ X COP",
-                               "$ X COP / hr" or "A convenir". */
-                            <span className="text-[17px] font-black tracking-tight text-gray-900">
+                            /* Los servicios cotizan su precio por modality:
+                               "Desde $ X COP", "$ X COP / hr" o "A convenir". */
+                            <span className="text-[15px] font-black tracking-tight text-gray-900 sm:text-[17px]">
                                 {getServicePriceLabel(
                                     price != null ? Number(price) : null,
                                     product.pricingMode,
@@ -249,26 +266,26 @@ export function MarketplaceProductCard({
                                 )}
                             </span>
                         ) : price == null ? (
-                            <span className="rounded-lg bg-blue-50 px-2 py-1 text-xs font-black text-blue-600">
+                            <span className="rounded-lg bg-blue-50 px-2 py-1 text-[10px] font-black text-blue-600 sm:text-xs">
                                 Precio a consultar
                             </span>
                         ) : (
                             <>
                                 {pricingLabel && (
-                                    <span className="rounded-lg bg-violet-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-violet-600">
+                                    <span className="rounded-lg bg-violet-50 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-violet-600 sm:px-2">
                                         {pricingLabel}
                                     </span>
                                 )}
-                                <span className="text-[17px] font-black tracking-tight text-gray-900">
+                                <span className="text-[15px] font-black tracking-tight text-gray-900 sm:text-[17px]">
                                     {formatCurrency(Number(price), store?.country)}
                                 </span>
                                 {pricingSuffix && (
-                                    <span className="text-[11px] font-bold text-gray-400">
+                                    <span className="text-[10px] font-bold text-gray-400 sm:text-[11px]">
                                         {pricingSuffix}
                                     </span>
                                 )}
                                 {product.discountPrice && (
-                                    <span className="text-[11px] font-bold text-gray-400 line-through">
+                                    <span className="text-[10px] font-bold text-gray-400 line-through sm:text-[11px]">
                                         {formatCurrency(product.price || 0, store?.country)}
                                     </span>
                                 )}

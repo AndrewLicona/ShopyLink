@@ -158,8 +158,8 @@ export default function ProductDetailClient() {
                                     alt={product.store.name}
                                     widthClass="w-8"
                                     maxHeightClass="max-h-8"
-                                    className="overflow-hidden rounded-lg bg-gray-100 border border-gray-200"
-                                    imageClassName="p-0.5"
+                                    shape="circle"
+                                    className="bg-gray-100 ring-1 ring-gray-200"
                                     sizes="32px"
                                     fallback={<StoreIcon className="w-full h-full p-1.5 text-gray-400" />}
                                 />

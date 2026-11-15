@@ -90,12 +90,15 @@ export default function MarketplaceStoreClient() {
                         <StoreLogo
                             src={store.logoUrl}
                             alt={store.name}
-                            widthClass="w-32 md:w-40"
+                            widthClass="w-28 sm:w-32 md:w-40"
                             maxHeightClass="max-h-40"
-                            className="shrink-0 rounded-[2rem] bg-white shadow-lg border-8 border-white -mt-24 md:-mt-32 relative z-20"
-                            imageClassName="p-2"
+                            className="shrink-0 rounded-[2rem] bg-white shadow-lg shadow-gray-900/10 ring-1 ring-gray-100 -mt-24 md:-mt-32 relative z-20"
                             sizes="160px"
-                            fallback={<StoreIcon className="w-16 h-16 text-gray-300" />}
+                            fallback={
+                                <div className="flex h-full w-full items-center justify-center text-gray-300">
+                                    <StoreIcon className="h-16 w-16" />
+                                </div>
+                            }
                         />
 
                         {/* Info */}
