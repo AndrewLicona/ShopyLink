@@ -40,8 +40,7 @@ export function StoreSwitcher({
                     alt="Logo"
                     widthClass={variant === 'mobile' ? 'w-9' : 'w-10'}
                     maxHeightClass={variant === 'mobile' ? 'max-h-9' : 'max-h-10'}
-                    className="rounded-xl border border-[var(--border)] bg-[var(--bg)] shadow-inner"
-                    imageClassName="p-1"
+                    className="bg-[var(--surface)] ring-1 ring-[var(--border)] shadow-sm shadow-black/5"
                     sizes={variant === 'mobile' ? '36px' : '40px'}
                     fallback={
                         <div className="w-full h-full bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] font-black text-xs">
@@ -92,8 +91,7 @@ export function StoreSwitcher({
                                         alt={s.name}
                                         widthClass="w-8"
                                         maxHeightClass="max-h-8"
-                                        className="rounded-lg border border-[var(--border)] bg-[var(--bg)]"
-                                        imageClassName="p-0.5"
+                                        className="bg-[var(--bg)] ring-1 ring-[var(--border)]"
                                         sizes="32px"
                                         fallback={
                                             <div className="w-full h-full bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] font-bold text-xs">{s.name[0]}</div>

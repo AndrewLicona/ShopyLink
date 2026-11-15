@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { ShoppingBag, MapPin, ExternalLink, Store as StoreIcon } from 'lucide-react';
 import type { Store } from '@/types/types';
 import { isStoreOpen } from '@/lib/businessHours';
@@ -21,12 +20,16 @@ export function StoreHeader({ store, cartCount, onOpenCart }: StoreHeaderProps) 
                         <StoreLogo
                             src={store?.logoUrl}
                             alt={store?.name || 'Logo de la tienda'}
-                            widthClass="w-12"
-                            maxHeightClass="max-h-12"
-                            className="bg-[var(--surface)] rounded-2xl shadow-sm border border-[var(--border)]"
-                            imageClassName="p-1"
-                            sizes="48px"
-                            fallback={<StoreIcon className="w-5 h-5 text-[var(--text)]/30" />}
+                            widthClass="w-12 sm:w-14"
+                            maxHeightClass="max-h-14"
+                            className="bg-[var(--surface)] ring-1 ring-[var(--border)] shadow-sm shadow-black/5"
+                            sizes="56px"
+                            priority
+                            fallback={
+                                <div className="flex h-full w-full items-center justify-center bg-[var(--primary)]/10">
+                                    <StoreIcon className="w-1/2 h-1/2 text-[var(--primary)]/40" />
+                                </div>
+                            }
                         />
                         <div className="min-w-0">
                             <h1 className="text-lg sm:text-xl font-black text-[var(--text)] uppercase tracking-tight leading-tight truncate">
