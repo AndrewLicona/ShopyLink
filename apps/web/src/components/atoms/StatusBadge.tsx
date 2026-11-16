@@ -4,7 +4,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { CheckCircle2, XCircle, Clock, AlertCircle } from 'lucide-react';
 
-type StatusType = 'active' | 'paused' | 'pending' | 'completed' | 'cancelled' | 'error';
+type StatusType = 'active' | 'paused' | 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'error';
 
 interface StatusBadgeProps {
     status: StatusType;
@@ -28,6 +28,11 @@ export function StatusBadge({ status, className, label }: StatusBadgeProps) {
             icon: Clock,
             style: 'bg-orange-500/10 text-orange-600',
             text: 'Pendiente'
+        },
+        confirmed: {
+            icon: CheckCircle2,
+            style: 'bg-blue-500/10 text-blue-600',
+            text: 'Confirmado'
         },
         completed: {
             icon: CheckCircle2,

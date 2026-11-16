@@ -22,6 +22,8 @@ export function useDashboard() {
     const [analytics, setAnalytics] = useState<{ date: string, amount: number }[]>([]);
     const [topProducts, setTopProducts] = useState<{ name: string, quantity: number, percentage: number }[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+    const [refreshKey, setRefreshKey] = useState(0);
     const [copied, setCopied] = useState(false);
 
     const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || (typeof window !== 'undefined' ? window.location.origin : '');
@@ -67,6 +69,7 @@ export function useDashboard() {
             if (!activeStore) return;
 
             setLoading(true);
+            setError(false);
             try {
                 const [productsData, ordersData, categoriesData] = await Promise.all([
                     api.getProducts(activeStore.id),
@@ -134,7 +137,7 @@ export function useDashboard() {
                 // Top Products Logic
                 const productSales: Record<string, number> = {};
                 let totalQty = 0;
-                orders.forEach((o: Order) => {
+                completedOrders.forEach((o: Order) => {
                     o.items?.forEach(item => {
                         productSales[item.productName] = (productSales[item.productName] || 0) + item.quantity;
                         totalQty += item.quantity;
@@ -153,13 +156,14 @@ export function useDashboard() {
                 setTopProducts(sortedProducts);
             } catch (err) {
                 console.error('Error loading dashboard:', err);
+                setError(true);
             } finally {
                 setLoading(false);
             }
         };
 
         loadDashboardData();
-    }, [activeStore]);
+    }, [activeStore, refreshKey]);
 
     return {
         state: {
@@ -170,12 +174,14 @@ export function useDashboard() {
             analytics,
             topProducts,
             loading,
+            error,
             copied,
             storeName,
             storeUrl,
             activeStore
         },
         actions: {
+            retry: () => setRefreshKey(key => key + 1),
             handleCopyLink,
             handleShare
         }

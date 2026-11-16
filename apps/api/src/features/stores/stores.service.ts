@@ -461,7 +461,7 @@ export class StoresService {
   async getPublicStorePage(slug: string) {
     const cacheKey = this.publicStorePageKey(slug);
 
-    return this.cache.getOrSetJson(cacheKey, 120, async () => {
+    const page = await this.cache.getOrSetJson(cacheKey, 120, async () => {
       const store = await this.prisma.withRetry(() =>
         this.prisma.store.findUnique({
           where: { slug },
@@ -513,6 +513,12 @@ export class StoresService {
         banners,
       };
     });
+    if (!page) return null;
+    const now = Date.now();
+    return { ...page, banners: page.banners.filter(banner =>
+      (!banner.startsAt || new Date(banner.startsAt).getTime() <= now) &&
+      (!banner.endsAt || new Date(banner.endsAt).getTime() >= now),
+    ) };
   }
 
   /**

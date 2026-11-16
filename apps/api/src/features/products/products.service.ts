@@ -405,39 +405,30 @@ export class ProductsService {
       }
     }
 
-    // Process products in batches of 20
-    const batches: typeof products[] = [];
-    for (let i = 0; i < products.length; i += 20) {
-      batches.push(products.slice(i, i + 20));
+    const categoryIds = [...new Set(products.map(p => p.categoryId).filter((id): id is string => !!id))];
+    if (categoryIds.length) {
+      const count = await this.prisma.category.count({ where: { id: { in: categoryIds }, storeId } });
+      if (count !== categoryIds.length) throw new ForbiddenException('Una categoría no pertenece a esta tienda');
     }
 
-    const created: any[] = [];
-    for (const batch of batches) {
-      const batchResults = await this.prisma.$transaction(
-        batch.map((productData) => {
-          const generatedSku = productData.sku?.trim()
-            ? productData.sku.trim()
-            : `SKU-${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
-
-          return this.prisma.product.create({
-            data: {
-              name: productData.name,
-              description: productData.description,
-              price: productData.price,
-              discountPrice: productData.discountPrice,
-              images: productData.images || [],
-              isActive: productData.isActive ?? true,
-              sku: generatedSku,
-              storeId,
-              categoryId: productData.categoryId || null,
-              itemType: (productData.itemType as any) || 'product',
-              pricingMode: productData.pricingMode as any,
-            },
-          });
-        }),
-      );
-      created.push(...batchResults);
-    }
+    // Una sola transacción evita importaciones parcialmente creadas.
+    const created = await this.prisma.$transaction(
+      products.map((productData) => this.prisma.product.create({
+        data: {
+          name: productData.name.trim(),
+          description: productData.description,
+          price: productData.price,
+          discountPrice: productData.discountPrice,
+          images: productData.images || [],
+          isActive: productData.isActive ?? true,
+          sku: this.generateSku(productData.sku),
+          storeId,
+          categoryId: productData.categoryId || null,
+          itemType: productData.itemType || 'product',
+          pricingMode: productData.pricingMode,
+        },
+      })),
+    );
 
     await this.invalidateCatalogCaches(storeId);
     return { created: created.length, products: created };

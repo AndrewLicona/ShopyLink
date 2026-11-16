@@ -12,6 +12,8 @@ export function useBanners() {
 
     const [banners, setBanners] = useState<StoreBanner[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
+    const [busyId, setBusyId] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
     
@@ -39,11 +41,13 @@ export function useBanners() {
     const fetchBanners = useCallback(async () => {
         if (!storeId) return;
         setLoading(true);
+        setLoadError(false);
         try {
             const data = await api.getBanners(storeId, false);
             setBanners(data);
         } catch (err: unknown) {
             console.error('Error fetching banners:', err);
+            setLoadError(true);
             setErrorAlert({
                 show: true,
                 title: 'Error de carga',
@@ -85,8 +89,9 @@ export function useBanners() {
         setPosition(banner.position);
         setIsActive(banner.isActive);
         setFocalPoint(banner.focalPoint || 'center');
-        setStartsAt((banner.startsAt ? new Date(banner.startsAt).toISOString().split('T')[0] : '') || '');
-        setEndsAt((banner.endsAt ? new Date(banner.endsAt).toISOString().split('T')[0] : '') || '');
+        const localDate = (value?: string | null) => { if (!value) return ''; const date = new Date(value); if (date.getUTCHours() === 0 && date.getUTCMinutes() === 0 && date.getUTCSeconds() === 0 && date.getUTCMilliseconds() === 0) return date.toISOString().slice(0, 10); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; };
+        setStartsAt(localDate(banner.startsAt));
+        setEndsAt(localDate(banner.endsAt));
         setIsModalOpen(true);
     };
 
@@ -113,20 +118,29 @@ export function useBanners() {
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!storeId) return;
-        if (!imageUrl && position !== 'TOP_BAR') return;
+        if (uploading || saving) return;
+        const showValidation = (message: string) => setErrorAlert({ show: true, title: 'Revisa el banner', message });
+        if (!imageUrl && position !== 'TOP_BAR') { showValidation('Añade una imagen para este tipo de banner.'); return; }
+        if (position === 'TOP_BAR' && !title.trim() && !subtitle.trim()) { showValidation('Añade un título o subtítulo para la barra superior.'); return; }
+        if (startsAt && endsAt && startsAt > endsAt) { showValidation('La fecha final debe ser igual o posterior a la fecha inicial.'); return; }
+        const link = linkUrl.trim();
+        if (link) {
+            try { if (!link.startsWith('/') || link.startsWith('//')) { const parsed = new URL(link); if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error(); } }
+            catch { showValidation('Usa un enlace que empiece por https://, http:// o una ruta interna con /.'); return; }
+        }
 
         setSaving(true);
         const data = {
             storeId,
-            title: title || null,
-            subtitle: subtitle || null,
+            title: title.trim() || null,
+            subtitle: subtitle.trim() || null,
             imageUrl: imageUrl || null,
-            linkUrl: linkUrl || null,
+            linkUrl: linkUrl.trim() || null,
             position,
             isActive,
             focalPoint,
-            startsAt: startsAt ? new Date(startsAt).toISOString() : null,
-            endsAt: endsAt ? new Date(endsAt).toISOString() : null,
+            startsAt: startsAt ? new Date(`${startsAt}T00:00:00`).toISOString() : null,
+            endsAt: endsAt ? new Date(`${endsAt}T23:59:59.999`).toISOString() : null,
         };
 
         try {
@@ -151,20 +165,23 @@ export function useBanners() {
 
     // Toggle Active Status
     const handleToggleActive = async (banner: StoreBanner) => {
+        if (busyId) return;
+        setBusyId(banner.id);
         try {
             // Optimistic update
             setBanners(prev => prev.map(b => b.id === banner.id ? { ...b, isActive: !b.isActive } : b));
             await api.updateBanner(banner.id, { isActive: !banner.isActive });
         } catch (err: unknown) {
             console.error('Error toggling banner status:', err);
-            // Revert state
-            fetchBanners();
-        }
+            setBanners(prev => prev.map(b => b.id === banner.id ? { ...b, isActive: banner.isActive } : b));
+            setErrorAlert({ show: true, title: 'Error al cambiar estado', message: (err as Error)?.message || 'No se pudo cambiar el estado del banner.' });
+        } finally { setBusyId(null); }
     };
 
     // Delete Banner
     const handleDelete = async () => {
-        if (!confirmDeleteId) return;
+        if (!confirmDeleteId || busyId) return;
+        setBusyId(confirmDeleteId);
         try {
             await api.deleteBanner(confirmDeleteId);
             setConfirmDeleteId(null);
@@ -176,13 +193,15 @@ export function useBanners() {
                 title: 'Error al eliminar',
                 message: (err as Error)?.message || 'No se pudo eliminar el banner.'
             });
-        }
+        } finally { setBusyId(null); }
     };
 
     return {
         state: {
             banners,
             loading,
+            loadError,
+            busyId,
             saving,
             uploading,
             isModalOpen,
@@ -202,6 +221,7 @@ export function useBanners() {
             }
         },
         actions: {
+            fetchBanners,
             setIsModalOpen,
             setConfirmDeleteId,
             setErrorAlert,

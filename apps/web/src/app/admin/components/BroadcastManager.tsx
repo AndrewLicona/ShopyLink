@@ -29,7 +29,7 @@ interface BroadcastManagerProps {
         type: 'INFO' | 'WARNING' | 'PROMOTION' | 'SUCCESS';
         expiresAt: string;
     };
-    onNewBroadcastChange: (data: any) => void;
+    onNewBroadcastChange: (data: BroadcastManagerProps['newBroadcast']) => void;
     onCreateBroadcast: () => void;
     onDeactivateBroadcast: (id: string) => void;
     updating: string | null;
@@ -57,7 +57,7 @@ export function BroadcastManager({
     return (
         <div className="p-4 md:p-8 space-y-8">
             {/* Create Broadcast Form */}
-            <div className="bg-slate-50 rounded-3xl p-6 border border-slate-200">
+            <div className="bg-slate-50 rounded-3xl p-4 sm:p-6 border border-slate-200">
                 <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
                     <Megaphone className="w-5 h-5 text-indigo-600" /> Nuevo Comunicado
                 </h4>
@@ -79,19 +79,19 @@ export function BroadcastManager({
                         />
                     </div>
                     <div className="space-y-4">
-                        <div className="flex gap-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                             {(['INFO', 'WARNING', 'PROMOTION', 'SUCCESS'] as const).map(type => (
                                 <button
                                     key={type}
                                     onClick={() => onNewBroadcastChange({ ...newBroadcast, type })}
                                     className={cn(
-                                        "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all",
+                                        "min-w-0 px-1 py-3 rounded-xl text-[10px] font-bold border transition-all",
                                         newBroadcast.type === type
                                             ? "bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-600/20"
                                             : "bg-white text-slate-400 border-slate-200 hover:border-slate-300"
                                     )}
                                 >
-                                    {type}
+                                    {({ INFO: 'Información', WARNING: 'Aviso', PROMOTION: 'Promoción', SUCCESS: 'Novedad' } as const)[type]}
                                 </button>
                             ))}
                         </div>
@@ -141,7 +141,8 @@ export function BroadcastManager({
                                 </span>
                                 <button
                                     onClick={() => setConfirmDeactivateId(broadcast.id)}
-                                    className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                    aria-label={`Desactivar ${broadcast.title}`}
+                                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
                                 >
                                     <X className="w-4 h-4" />
                                 </button>
@@ -191,7 +192,7 @@ export function BroadcastManager({
                         </h3>
                         {broadcastToDeactivate && (
                             <p className="text-slate-500 font-medium text-sm leading-relaxed mb-8">
-                                Estás a punto de desactivar <span className="text-slate-900 font-bold">"{broadcastToDeactivate.title}"</span>. Ya no será visible para los usuarios.
+                                Estás a punto de desactivar <span className="text-slate-900 font-bold">&ldquo;{broadcastToDeactivate.title}&rdquo;</span>. Ya no será visible para los usuarios.
                             </p>
                         )}
 

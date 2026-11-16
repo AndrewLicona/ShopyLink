@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     X,
     ShoppingCart,
@@ -12,7 +12,7 @@ import {
 import { cn, formatPrice } from '@/lib/utils';
 import { getServicePriceLabel } from '@/lib/pricing';
 import { buildWhatsAppLink } from '@/lib/whatsapp';
-import type { Product, Category, Store, ProductVariant } from '@/types/types';
+import type { Product, Category, Store } from '@/types/types';
 import { ProductImageGallery } from './components/ProductImageGallery';
 import { VariantSelector } from './components/VariantSelector';
 
@@ -33,16 +33,40 @@ export function ProductModal({
     onAddToCart,
     categories,
     store,
+    cartItems,
 }: ProductModalProps) {
     const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
     const country = store?.country;
-    const [localQuantities, setLocalQuantities] = useState<Record<string, number>>({});
+    const [quantity, setQuantity] = useState(1);
     const [isCopied, setIsCopied] = useState(false);
-    const [, setShowManualShare] = useState(false);
+    const [showManualShare, setShowManualShare] = useState(false);
+    const closeHandler = useRef(onClose);
+    const closeButton = useRef<HTMLButtonElement>(null);
+    const desktopCloseButton = useRef<HTMLButtonElement>(null);
+    const modalRef = useRef<HTMLDivElement>(null);
 
     const [stockAlert, setStockAlert] = useState<{ show: boolean, message: string }>({ show: false, message: '' });
 
-    const currentQty = localQuantities[selectedVariantId || 'base'] || 1;
+    useEffect(() => { closeHandler.current = onClose; }, [onClose]);
+    useEffect(() => {
+        if (!isOpen) return;
+        const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        const overflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        (closeButton.current?.getClientRects().length ? closeButton.current : desktopCloseButton.current)?.focus();
+        const handleKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') { closeHandler.current(); return; }
+            if (event.key !== 'Tab' || !modalRef.current) return;
+            const controls = Array.from(modalRef.current.querySelectorAll<HTMLElement>('a[href], button:not(:disabled), input:not(:disabled), [tabindex]:not([tabindex="-1"])')).filter(element => element.getClientRects().length > 0);
+            const first = controls[0];
+            const last = controls[controls.length - 1];
+            if (!first || !last) return;
+            if (event.shiftKey && (document.activeElement === first || !modalRef.current.contains(document.activeElement))) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && (document.activeElement === last || !modalRef.current.contains(document.activeElement))) { event.preventDefault(); first.focus(); }
+        };
+        window.addEventListener('keydown', handleKey);
+        return () => { document.body.style.overflow = overflow; window.removeEventListener('keydown', handleKey); previousFocus?.focus(); };
+    }, [isOpen]);
 
     useEffect(() => {
         if (selectedProduct) {
@@ -57,7 +81,9 @@ export function ProductModal({
             } else {
                 setSelectedVariantId(null);
             }
-            setLocalQuantities({});
+            setQuantity(1);
+            setIsCopied(false);
+            setShowManualShare(false);
         }
     }, [selectedProduct]);
 
@@ -77,31 +103,24 @@ export function ProductModal({
         return price;
     };
 
-    const getFinalEntries = () => {
-        const entries = { ...localQuantities };
-        const currentKey = selectedVariantId || 'base';
-        if (entries[currentKey] === undefined) entries[currentKey] = 1;
-        return Object.entries(entries).filter(([, qty]) => qty > 0);
-    };
+    const variant = selectedProduct.variants?.find(v => v.id === selectedVariantId);
+    const tracked = selectedProduct.trackInventory !== false && variant?.trackInventory !== false;
+    const availableStock = !tracked ? Infinity : variant && !variant.useParentStock ? variant.stock : (selectedProduct.inventory?.stock ?? 0);
+    const inCart = cartItems.filter(item => {
+        if (item.id !== selectedProduct.id) return false;
+        if (selectedVariantId && variant && !variant.useParentStock) return item.variantId === selectedVariantId;
+        if (!item.variantId) return true;
+        return Boolean(selectedProduct.variants?.find(option => option.id === item.variantId)?.useParentStock);
+    }).reduce((total, item) => total + item.quantity, 0);
 
     const handleAddToCart = () => {
-        getFinalEntries().forEach(([key, qty]) => {
-            onAddToCart(selectedProduct, qty, key === 'base' ? null : key);
-        });
+        if (quantity + inCart > availableStock) {
+            showMessage(inCart > 0 ? `Ya tienes ${inCart} en tu carrito. Hay ${availableStock} disponibles.` : `Hay ${availableStock} disponibles.`);
+            return;
+        }
+        onAddToCart(selectedProduct, quantity, selectedVariantId);
         onClose();
     };
-
-    const getTotalPrice = () => {
-        return getFinalEntries().reduce((total, [key, qty]) => {
-            const vId = key === 'base' ? null : key;
-            const v = selectedProduct.variants?.find((v: ProductVariant) => v.id === vId);
-            let price = selectedProduct.discountPrice ?? selectedProduct.price ?? null;
-            if (v && !v.useParentPrice) price = v.price;
-            return total + ((price ?? 0) * qty);
-        }, 0);
-    };
-
-    const variant = selectedProduct.variants?.find(v => v.id === selectedVariantId);
     const displayImages = (variant?.images && variant.images.length > 0) ? variant.images : (selectedProduct.images || []);
 
     // Services are an inquiry: no variants, no stock and no quantity picker.
@@ -116,7 +135,7 @@ export function ProductModal({
         : null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center sm:p-6 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center sm:p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" role="dialog" aria-modal="true" aria-labelledby="product-modal-title">
             {stockAlert.show && (
                 <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-[var(--surface)] px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-orange-500/20 animate-in zoom-in-95">
@@ -126,14 +145,14 @@ export function ProductModal({
                 </div>
             )}
 
-            <div className="bg-[var(--surface)] w-full h-full sm:h-fit md:max-w-4xl max-h-[100dvh] md:max-h-[85vh] sm:rounded-xl rounded-none shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col md:grid md:grid-cols-2 md:border border-[var(--border)] relative self-center">
+            <div ref={modalRef} className="bg-[var(--surface)] w-full h-[100dvh] sm:h-fit md:max-w-4xl max-h-[100dvh] md:max-h-[88dvh] sm:rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col md:grid md:grid-cols-2 md:border border-[var(--border)] relative self-center">
                 <div className="md:hidden absolute top-4 right-4 z-50">
-                    <button onClick={onClose} className="w-10 h-10 bg-[var(--bg)]/80 backdrop-blur-xl rounded-full flex items-center justify-center shadow-xl text-[var(--text)] border border-[var(--border)] active:scale-90 transition-all">
+                    <button ref={closeButton} onClick={onClose} aria-label="Cerrar detalle del producto" className="w-10 h-10 bg-[var(--bg)]/90 backdrop-blur-xl rounded-full flex items-center justify-center shadow-xl text-[var(--text)] border border-[var(--border)] active:scale-90 transition-all">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
-                <ProductImageGallery images={displayImages} productName={selectedProduct.name} />
+                <ProductImageGallery key={`${selectedProduct.id}-${selectedVariantId || 'base'}`} images={displayImages} productName={selectedProduct.name} />
 
                 <div className="w-full flex-1 flex flex-col min-h-0 bg-[var(--surface)] border-t md:border-t-0 md:border-l border-[var(--border)] max-h-none md:max-h-[85vh]">
                     <div className="flex items-center justify-end gap-2 p-4 sm:p-5 pb-1 shrink-0">
@@ -148,7 +167,9 @@ export function ProductModal({
                                         setIsCopied(true);
                                         setTimeout(() => setIsCopied(false), 2000);
                                     }
-                                } catch { setShowManualShare(true); }
+                                } catch (error) {
+                                    if (!(error instanceof Error && error.name === 'AbortError')) setShowManualShare(true);
+                                }
                             }}
                             className={cn(
                                 "flex items-center gap-2 px-4 py-2 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 relative",
@@ -158,19 +179,20 @@ export function ProductModal({
                             {isCopied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
                             {isCopied ? 'Copiado' : 'Compartir'}
                         </button>
-                        <button onClick={onClose} className="hidden md:flex w-12 h-12 bg-[var(--secondary)] hover:bg-[var(--bg)] border border-[var(--border)] rounded-2xl items-center justify-center text-[var(--text)]/40 hover:text-[var(--text)] transition-all active:scale-95">
+                        <button ref={desktopCloseButton} onClick={onClose} aria-label="Cerrar detalle del producto" className="hidden md:flex w-10 h-10 bg-[var(--secondary)] hover:bg-[var(--bg)] border border-[var(--border)] rounded-xl items-center justify-center text-[var(--text)]/60 hover:text-[var(--text)] transition-all active:scale-95">
                             <X className="w-6 h-6" />
                         </button>
                     </div>
 
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-5 sm:p-7 pt-0 space-y-5">
+                        {showManualShare && <div role="status" className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3"><p className="mb-2 text-xs font-bold text-[var(--text)]">Copia este enlace para compartirlo</p><input aria-label="Enlace del producto" readOnly onFocus={(event) => event.currentTarget.select()} value={`${process.env.NEXT_PUBLIC_FRONTEND_URL || (typeof window !== 'undefined' ? window.location.origin : '')}${typeof window !== 'undefined' ? window.location.pathname : ''}?p=${selectedProduct.id}`} className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)]" /></div>}
                         <div className="space-y-4">
                             <div className="flex items-center gap-2">
                                 {selectedProduct.sku && <span className="bg-[var(--primary)] text-[var(--primary-foreground)] px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest">#{selectedProduct.sku}</span>}
                                 {selectedProduct.categoryId && <span className="text-[var(--primary)] font-black text-[10px] uppercase tracking-[0.2em]">{categories.find(c => c.id === selectedProduct.categoryId)?.name}</span>}
                             </div>
                             <div className="space-y-1">
-                                <h2 className="text-2xl sm:text-3xl font-black text-[var(--text)] leading-tight tracking-tight break-words">{selectedProduct.name}</h2>
+                                <h2 id="product-modal-title" className="text-xl sm:text-3xl font-black text-[var(--text)] leading-tight tracking-tight break-words">{selectedProduct.name}</h2>
                                 <div className="flex items-center gap-4">
                                     {isService ? (
                                         <p className="text-2xl font-black text-[var(--primary)]">
@@ -194,10 +216,11 @@ export function ProductModal({
                             <VariantSelector
                                 product={selectedProduct}
                                 selectedVariantId={selectedVariantId}
-                                onSelectVariant={setSelectedVariantId}
-                                quantity={currentQty}
-                                onQuantityChange={(val) => setLocalQuantities(prev => ({ ...prev, [selectedVariantId || 'base']: val }))}
+                                onSelectVariant={(id) => { setSelectedVariantId(id); setQuantity(1); }}
+                                quantity={quantity}
+                                onQuantityChange={setQuantity}
                                 onShowMessage={showMessage}
+                                inCart={inCart}
                             />
                         )}
 
@@ -212,7 +235,7 @@ export function ProductModal({
                         )}
                     </div>
 
-                    <div className="p-5 sm:p-7 pt-3 mt-auto border-t border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur-sm z-10">
+                    <div className="p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))] mt-auto border-t border-[var(--border)] bg-[var(--surface)] z-10">
                         {isService ? (
                             serviceWhatsAppHref ? (
                                 <a
@@ -229,7 +252,7 @@ export function ProductModal({
                                     Esta tienda no tiene un número de WhatsApp configurado.
                                 </p>
                             )
-                        ) : getEffectivePrice() === null ? (
+                        ) : getEffectivePrice() === null || availableStock <= 0 ? store?.whatsappNumber ? (
                             <a
                                 href={`https://wa.me/${store?.whatsappNumber?.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, me interesa: ${selectedProduct.name}\n${process.env.NEXT_PUBLIC_FRONTEND_URL || (typeof window !== 'undefined' ? window.location.origin : '')}${window.location.pathname}?p=${selectedProduct.id}`)}`}
                                 target="_blank"
@@ -239,13 +262,13 @@ export function ProductModal({
                                 <MessageCircle className="w-5 h-5 md:w-6 md:h-6" />
                                 Consultar por WhatsApp
                             </a>
-                        ) : (
+                        ) : <p className="w-full text-center text-sm font-bold text-[var(--text)]/60 py-4">{availableStock <= 0 ? 'Producto no disponible por el momento.' : 'Consulta el precio con la tienda.'}</p> : (
                             <button
                                 onClick={handleAddToCart}
-                                className="w-full bg-[var(--primary)] text-[var(--primary-foreground)] py-4 md:py-5 rounded-2xl md:rounded-[2rem] font-black text-lg md:text-xl flex items-center justify-center gap-3 hover:scale-[1.02] transition-all shadow-xl active:scale-[0.98]"
+                                className="w-full min-h-12 bg-[var(--primary)] text-[var(--primary-foreground)] px-4 py-3 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-lg active:scale-[0.98]"
                             >
                                 <ShoppingCart className="w-5 h-5 md:w-6 md:h-6" />
-                                Añadir • {formatPrice(getTotalPrice(), country)}
+                                Añadir al pedido · {formatPrice((getEffectivePrice() ?? 0) * quantity, country)}
                             </button>
                         )}
                     </div>

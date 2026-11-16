@@ -60,6 +60,11 @@ export function MarketplaceProductCard({
 
     const price = product.discountPrice || product.price;
     const store = product.store;
+    const originalPrice = Number(product.price);
+    const discountedPrice = Number(product.discountPrice);
+    const discountPercent = originalPrice > 0 && discountedPrice > 0 && discountedPrice < originalPrice
+        ? Math.round((1 - discountedPrice / originalPrice) * 100)
+        : 0;
 
     const handleAdd = (event: React.MouseEvent) => {
         event.preventDefault();
@@ -118,12 +123,12 @@ export function MarketplaceProductCard({
             className="h-full"
         >
             <article
-                className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200/80 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:ring-gray-300"
+                className="group relative flex h-full min-w-0 flex-col overflow-hidden rounded-2xl bg-white shadow-[0_2px_12px_rgba(15,23,42,0.05)] ring-1 ring-slate-200/80 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(15,23,42,0.12)] hover:ring-blue-200"
             >
                 {/* Imagen + acciones. El enlace solo envuelve la imagen para que el
                     botón del carrito siga siendo un hermano válido (sin anidar
                     elementos interactivos). */}
-                <div className="relative aspect-square w-full overflow-hidden bg-gradient-to-b from-gray-50 to-gray-100/70 sm:aspect-[4/5]">
+                <div className="relative aspect-square w-full overflow-hidden border-b border-slate-100 bg-[#f7f8fa] sm:aspect-[4/5]">
                     <Link
                         href={`/marketplace/producto/${product.id}`}
                         className="absolute inset-0 flex items-center justify-center"
@@ -138,7 +143,7 @@ export function MarketplaceProductCard({
                                 src={imageUrl}
                                 alt={product.name}
                                 loading="lazy"
-                                className="h-full w-full object-contain p-2.5 transition-transform duration-500 group-hover:scale-[1.05] sm:p-4"
+                                className="h-full w-full object-contain p-2.5 transition-transform duration-500 group-hover:scale-[1.02] sm:p-4"
                             />
                         ) : (
                             <div className="flex h-full w-full items-center justify-center">
@@ -150,9 +155,9 @@ export function MarketplaceProductCard({
                     {/* Badges — apilados arriba a la izquierda, nunca sobre el precio */}
                     <div className="pointer-events-none absolute left-2.5 top-2.5 flex flex-col items-start gap-1.5 sm:left-3 sm:top-3">
                         {product.discountPrice && (
-                            <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-500 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-white shadow-md shadow-emerald-500/30 sm:px-2 sm:py-1">
+                            <span className="inline-flex items-center gap-1 rounded-lg bg-rose-600 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-white shadow-sm sm:text-[10px]">
                                 <Tag className="h-2.5 w-2.5" />
-                                Oferta
+                                {discountPercent > 0 ? `-${discountPercent}%` : 'Oferta'}
                             </span>
                         )}
                         {service && (
@@ -229,9 +234,9 @@ export function MarketplaceProductCard({
                 </div>
 
                 {/* Cuerpo */}
-                <div className="flex flex-1 flex-col px-3 pb-3 pt-2.5 sm:px-4 sm:pb-4 sm:pt-3.5">
+                <div className="flex min-w-0 flex-1 flex-col px-3 pb-3 pt-3 sm:px-4 sm:pb-4 sm:pt-3.5">
                     {/* Tienda — logo real en un marco redondeado, sin esquinas a la vista */}
-                    <div className="mb-1.5 flex items-center gap-1.5">
+                    <div className="mb-2 flex min-w-0 items-center gap-1.5">
                         <StoreLogo
                             src={store?.logoUrl}
                             alt={store?.name || 'Tienda'}
@@ -245,16 +250,14 @@ export function MarketplaceProductCard({
                                 </div>
                             }
                         />
-                        <span className="truncate text-[10px] font-black uppercase tracking-wider text-blue-600 sm:text-[11px]">
-                            {store?.name || 'Tienda'}
-                        </span>
+                        {store?.slug ? <Link href={`/marketplace/tienda/${store.slug}`} className="min-w-0 truncate text-[10px] font-bold text-slate-500 transition-colors hover:text-blue-600 sm:text-xs">{store.name}</Link> : <span className="min-w-0 truncate text-[10px] font-bold text-slate-500 sm:text-xs">{store?.name || 'Tienda'}</span>}
                     </div>
 
-                    <h3 className="line-clamp-2 text-[13px] font-bold leading-snug text-gray-900 transition-colors group-hover:text-blue-600 sm:mb-3 sm:text-[15px]">
-                        {product.name}
+                    <h3 className="line-clamp-2 text-[13px] font-bold leading-snug text-slate-900 sm:mb-2 sm:text-[15px]">
+                        <Link href={`/marketplace/producto/${product.id}`} className="transition-colors hover:text-blue-600 focus-visible:outline-2 focus-visible:outline-blue-600">{product.name}</Link>
                     </h3>
 
-                    <div className="mt-auto flex flex-wrap items-baseline gap-x-2 gap-y-1 pt-2">
+                    <div className="mt-auto flex flex-wrap items-baseline gap-x-2 gap-y-1 pt-3">
                         {service ? (
                             /* Los servicios cotizan su precio por modality:
                                "Desde $ X COP", "$ X COP / hr" o "A convenir". */
@@ -276,7 +279,7 @@ export function MarketplaceProductCard({
                                         {pricingLabel}
                                     </span>
                                 )}
-                                <span className="text-[15px] font-black tracking-tight text-gray-900 sm:text-[17px]">
+                                <span className={`text-[15px] font-black tracking-tight sm:text-[17px] ${discountPercent > 0 ? 'text-rose-700' : 'text-slate-900'}`}>
                                     {formatCurrency(Number(price), store?.country)}
                                 </span>
                                 {pricingSuffix && (

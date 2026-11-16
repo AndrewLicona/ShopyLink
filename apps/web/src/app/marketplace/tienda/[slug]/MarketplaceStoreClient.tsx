@@ -1,199 +1,121 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { Store as StoreIcon, MapPin, Eye, ShoppingBag, ExternalLink, ShieldCheck, Star } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, MapPin, MessageCircle, Search, ShoppingBag, Store as StoreIcon, X } from 'lucide-react';
 import { api } from '@/services/api';
-import { Store, Product } from '@/types/types';
+import type { Category, Product, Store } from '@/types/types';
+import { LoadingState } from '@/components/atoms/LoadingState';
 import { StoreLogo } from '@/components/atoms/StoreLogo';
 import { MarketplaceProductCard } from '@/features/marketplace/MarketplaceProductCard';
 
 export default function MarketplaceStoreClient() {
     const params = useParams();
     const slug = params.slug as string;
-
     const [store, setStore] = useState<Store | null>(null);
     const [products, setProducts] = useState<Product[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
+    const [query, setQuery] = useState('');
+    const [category, setCategory] = useState('all');
 
     useEffect(() => {
+        let active = true;
         const fetchStore = async () => {
             try {
                 const data = await api.getPublicStorePage(slug);
+                if (!active) return;
                 setStore(data.store);
-                // The public page does not embed the store on every product, but the
-                // marketplace card needs it (store name, slug, WhatsApp).
-                setProducts(
-                    ((data.products || []) as Product[]).map((product) => ({
-                        ...product,
-                        store: data.store,
-                    })),
-                );
-
-                // Increment view count in the background
-                if (data.store?.id) {
-                    api.incrementStoreView(data.store.id).catch(console.error);
-                }
+                setCategories(data.categories || data.store?.categories || []);
+                setProducts(((data.products || []) as Product[]).map((product) => ({ ...product, store: data.store })));
+                if (data.store?.id) api.incrementStoreView(data.store.id).catch(console.error);
             } catch (error) {
                 console.error('Error fetching store:', error);
             } finally {
-                setLoading(false);
+                if (active) setLoading(false);
             }
         };
-
         if (slug) fetchStore();
+        return () => { active = false; };
     }, [slug]);
 
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            </div>
+    const visibleCategories = useMemo(() => categories.filter((item) => products.some((product) => product.categoryId === item.id)), [categories, products]);
+    const filteredProducts = useMemo(() => {
+        const search = query.trim().toLocaleLowerCase('es');
+        return products.filter((product) =>
+            (category === 'all' || product.categoryId === category) &&
+            (!search || `${product.name} ${product.description || ''}`.toLocaleLowerCase('es').includes(search)),
         );
-    }
+    }, [products, query, category]);
+
+    if (loading) return <LoadingState message="Cargando tienda..." fullPage />;
 
     if (!store) {
         return (
-            <div className="min-h-[70vh] flex flex-col items-center justify-center bg-gray-50 text-center px-4">
-                <StoreIcon className="w-20 h-20 text-gray-300 mb-6" />
-                <h1 className="text-3xl font-black text-gray-900 mb-4">Tienda no encontrada</h1>
-                <p className="text-gray-500 mb-8 max-w-md">La tienda que estás buscando no existe o ha sido dada de baja del marketplace.</p>
-                <Link href="/marketplace" className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-blue-700 transition-colors">
-                    Volver al Marketplace
-                </Link>
+            <div className="flex min-h-[65vh] flex-col items-center justify-center bg-slate-50 px-5 text-center">
+                <StoreIcon className="mb-5 h-14 w-14 text-slate-300" />
+                <h1 className="text-2xl font-black text-slate-900">No pudimos cargar esta tienda</h1>
+                <p className="mt-3 max-w-md text-sm leading-6 text-slate-500">Comprueba la dirección o vuelve a intentarlo en unos momentos.</p>
+                <Link href="/marketplace" className="mt-6 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-700">Volver al marketplace</Link>
             </div>
         );
     }
 
+    const location = [store.city, store.country].filter(Boolean).join(', ');
+    const whatsapp = store.whatsappNumber?.replace(/[^0-9]/g, '');
+
     return (
-        <div className="bg-gray-50 min-h-screen pb-24">
-            {/* Store Cover */}
-            <div className="h-64 md:h-80 w-full relative bg-gradient-to-br from-blue-900 via-indigo-800 to-blue-600 overflow-hidden">
-                {store.featured && (
-                    <div className="absolute top-6 right-6 lg:right-10 bg-yellow-400 text-yellow-900 px-4 py-2 rounded-full font-black text-xs uppercase tracking-widest flex items-center gap-2 shadow-lg z-10">
-                        <Star className="w-4 h-4 fill-yellow-900" />
-                        Tienda Destacada
-                    </div>
-                )}
-            </div>
-
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative -mt-24 z-10">
-                <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-white rounded-[3rem] shadow-xl p-8 md:p-12 border border-gray-100"
-                >
-                    <div className="flex flex-col md:flex-row gap-8 items-center md:items-start text-center md:text-left">
-                        {/* Logo */}
-                        <StoreLogo
-                            src={store.logoUrl}
-                            alt={store.name}
-                            widthClass="w-28 sm:w-32 md:w-40"
-                            maxHeightClass="max-h-40"
-                            className="shrink-0 rounded-[2rem] bg-white shadow-lg shadow-gray-900/10 ring-1 ring-gray-100 -mt-24 md:-mt-32 relative z-20"
-                            sizes="160px"
-                            fallback={
-                                <div className="flex h-full w-full items-center justify-center text-gray-300">
-                                    <StoreIcon className="h-16 w-16" />
-                                </div>
-                            }
-                        />
-
-                        {/* Info */}
-                        <div className="flex-1 space-y-4">
-                            <div className="flex flex-col md:flex-row md:items-center gap-3">
-                                <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight">{store.name}</h1>
-                                <div className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mx-auto md:mx-0 w-max">
-                                    <ShieldCheck className="w-4 h-4" />
-                                    Verificada
-                                </div>
-                            </div>
-
-                            <p className="text-lg text-gray-600 font-medium max-w-2xl">
-                                {store.description || 'Bienvenido a nuestra tienda oficial en ShopyLink. Descubre nuestros productos y realiza tu pedido de forma segura.'}
-                            </p>
-
-                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm font-bold text-gray-500 pt-2">
-                                <div className="flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-xl">
-                                    <MapPin className="w-4 h-4 text-gray-400" />
-                                    {store.city || store.country || 'Ubicación no especificada'}
-                                </div>
-                                <div className="flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-xl">
-                                    <ShoppingBag className="w-4 h-4 text-emerald-500" />
-                                    {store.orderCount || 0} pedidos
-                                </div>
-                                <div className="flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-xl">
-                                    <Eye className="w-4 h-4 text-blue-500" />
-                                    {(store.viewCount || 0) + 1} visitas
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* CTA */}
-                        <div className="shrink-0 w-full md:w-auto flex flex-col gap-3">
-                            <Link 
-                                href={`/${store.slug}`}
-                                className="w-full bg-blue-600 text-white px-8 py-5 rounded-[1.5rem] font-black text-lg hover:bg-blue-700 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-blue-600/20 flex items-center justify-center gap-3 group"
-                            >
-                                Visitar Tienda
-                                <ExternalLink className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                            </Link>
-                            {store.whatsappNumber && (
-                                <a 
-                                    href={`https://wa.me/${store.whatsappNumber.replace(/[^0-9]/g, '')}`} 
-                                    target="_blank" 
-                                    rel="noreferrer"
-                                    className="w-full bg-green-50 text-green-700 px-8 py-4 rounded-[1.5rem] font-bold text-center hover:bg-green-100 transition-colors"
-                                >
-                                    Contactar WhatsApp
-                                </a>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Tags */}
-                    {store.tags && store.tags.length > 0 && (
-                        <div className="mt-12 pt-8 border-t border-gray-100">
-                            <h4 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-4 text-center md:text-left">Especialidades</h4>
-                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-                                {store.tags.map((tag, i) => (
-                                    <span key={i} className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-bold">
-                                        {tag}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </motion.div>
-
-                {/* Catálogo de la tienda */}
-                {products.length > 0 && (
-                    <section className="mt-12">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-2xl font-black text-gray-900">
-                                Productos de {store.name}
-                            </h2>
-                            <span className="text-xs font-black text-gray-400 uppercase tracking-widest">
-                                {products.length}{' '}
-                                {products.length === 1 ? 'producto' : 'productos'}
-                            </span>
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-                            {products.map((product, i) => (
-                                <MarketplaceProductCard key={product.id} product={product} index={i} />
-                            ))}
-                        </div>
-                    </section>
-                )}
-
-                {/* Information Notice */}
-                <div className="mt-8 text-center text-gray-400 font-medium text-sm flex items-center justify-center gap-2">
-                    <ShieldCheck className="w-5 h-5" />
-                    Compras procesadas a través de la infraestructura segura de ShopyLink
+        <main className="min-h-screen bg-[#f7f8fb] pb-24 text-slate-900">
+            <div className="relative overflow-hidden bg-[#14234a]">
+                <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-br from-[#15264f] via-[#1e3a78] to-[#3767e8]" />
+                <div aria-hidden="true" className="absolute -right-16 -top-40 h-80 w-80 rounded-full border-[50px] border-white/[0.04] sm:right-12" />
+                <div className="relative mx-auto max-w-7xl px-4 pb-14 pt-5 sm:px-6 sm:pb-16 sm:pt-7 lg:px-8">
+                    <Link href="/marketplace/tiendas" className="inline-flex items-center gap-2 text-xs font-bold text-blue-100 transition-colors hover:text-white sm:text-sm">
+                        <ArrowLeft className="h-4 w-4" /> Explorar tiendas
+                    </Link>
+                    <p className="mt-7 text-[10px] font-bold uppercase tracking-[0.2em] text-blue-200 sm:mt-8">Marketplace / Tienda</p>
+                    <p className="mt-2 text-xl font-bold tracking-tight text-white sm:text-2xl">Descubre {store.name}</p>
                 </div>
             </div>
-        </div>
+
+            <div className="relative mx-auto -mt-8 max-w-7xl px-4 sm:px-6 lg:px-8">
+                <section aria-label="Información de la tienda" className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_12px_35px_-20px_rgba(15,23,42,0.24)] sm:rounded-3xl sm:p-6">
+                    <div className="flex flex-wrap items-start gap-4 sm:gap-5 lg:flex-nowrap lg:items-center">
+                        <StoreLogo src={store.logoUrl} alt={store.name} widthClass="w-16 sm:w-20" maxHeightClass="max-h-20" className="aspect-square rounded-2xl bg-slate-100 ring-1 ring-slate-100" sizes="80px" fallback={<div className="flex h-full w-full items-center justify-center text-slate-400"><StoreIcon className="h-8 w-8" /></div>} />
+                        <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                <h1 className="break-words text-xl font-black tracking-tight sm:text-2xl">{store.name}</h1>
+                                {store.featured && <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700">Tienda destacada</span>}
+                            </div>
+                            {store.description && <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">{store.description}</p>}
+                            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-medium text-slate-500 sm:text-sm">
+                                {location && <span className="inline-flex items-center gap-1.5"><MapPin className="h-4 w-4 text-slate-400" />{location}</span>}
+                                <span className="inline-flex items-center gap-1.5"><ShoppingBag className="h-4 w-4 text-slate-400" />{products.length} {products.length === 1 ? 'producto' : 'productos'}</span>
+                            </div>
+                        </div>
+                        <div className="flex w-full flex-wrap gap-2 lg:w-auto lg:shrink-0">
+                            <Link href={`/${store.slug}`} className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-blue-600 px-3 py-2.5 text-sm font-bold text-white transition-colors hover:bg-blue-700 sm:flex-none sm:px-4">Visitar tienda <ArrowUpRight className="h-4 w-4 shrink-0" /></Link>
+                            {whatsapp && <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer" className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-700 transition-colors hover:bg-emerald-100 sm:flex-none"><MessageCircle className="h-4 w-4" /> WhatsApp</a>}
+                        </div>
+                    </div>
+                    {store.tags && store.tags.length > 0 && <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">{store.tags.map((tag, i) => <span key={`${tag}-${i}`} className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{tag}</span>)}</div>}
+                </section>
+
+                <section className="mt-8 sm:mt-10" aria-labelledby="catalog-title">
+                    <div className="flex flex-wrap items-end justify-between gap-4">
+                        <div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-600">Explora la tienda</p><h2 id="catalog-title" className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">Su catálogo</h2><p className="mt-1 text-sm text-slate-500">Encuentra los productos de {store.name} en un solo lugar.</p></div>
+                        <span className="text-sm font-semibold text-slate-500" aria-live="polite">{filteredProducts.length} {filteredProducts.length === 1 ? 'resultado' : 'resultados'}</span>
+                    </div>
+
+                    {products.length > 0 && <div className="mt-5 space-y-3 rounded-2xl border border-slate-200/80 bg-white p-3 sm:p-4">
+                        <div className="relative max-w-md"><Search aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Buscar productos en esta tienda" placeholder="Buscar en esta tienda..." className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-10 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100" />{query && <button type="button" onClick={() => setQuery('')} aria-label="Borrar búsqueda" className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-700"><X className="h-4 w-4" /></button>}</div>
+                        {visibleCategories.length > 0 && <div aria-label="Filtrar por categoría" className="flex flex-wrap gap-2"><button type="button" onClick={() => setCategory('all')} aria-pressed={category === 'all'} className={`rounded-lg px-3 py-2 text-xs font-bold transition-colors ${category === 'all' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Todos</button>{visibleCategories.map((item) => <button key={item.id} type="button" onClick={() => setCategory(item.id)} aria-pressed={category === item.id} className={`rounded-lg px-3 py-2 text-xs font-bold transition-colors ${category === item.id ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{item.name}</button>)}</div>}
+                    </div>}
+
+                    {filteredProducts.length > 0 ? <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 xl:grid-cols-5">{filteredProducts.map((product, index) => <MarketplaceProductCard key={product.id} product={product} index={index} />)}</div> : <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-white px-5 py-12 text-center"><ShoppingBag className="mx-auto h-9 w-9 text-slate-300" /><p className="mt-3 font-bold text-slate-700">{products.length ? 'No encontramos productos' : 'Esta tienda aún no tiene productos'}</p><p className="mt-1 text-sm text-slate-500">{products.length ? 'Prueba con otra búsqueda o categoría.' : 'Vuelve más tarde para descubrir su catálogo.'}</p>{products.length > 0 && <button type="button" onClick={() => { setQuery(''); setCategory('all'); }} className="mt-4 text-sm font-bold text-blue-600 hover:text-blue-700">Limpiar filtros</button>}</div>}
+                </section>
+            </div>
+        </main>
     );
 }

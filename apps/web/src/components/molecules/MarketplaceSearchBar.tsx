@@ -12,13 +12,14 @@ export function MarketplaceSearchBar() {
     const [query, setQuery] = useState(initialQuery);
     const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
-    // Sync input with URL if it changes externally
+    // Only sync when the URL changes; local typing must not restore the old query.
     useEffect(() => {
-        const urlQuery = searchParams.get('q');
-        if (urlQuery !== null && urlQuery !== query) {
-            setQuery(urlQuery);
-        }
-    }, [searchParams, query]);
+        setQuery(initialQuery);
+    }, [initialQuery]);
+
+    useEffect(() => () => {
+        if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    }, []);
 
     const handleSearch = (newQuery: string) => {
         setQuery(newQuery);

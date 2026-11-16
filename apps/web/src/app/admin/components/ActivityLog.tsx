@@ -40,7 +40,7 @@ export function ActivityLog({ logs }: ActivityLogProps) {
                         <div className="flex items-center gap-2">
                             <StoreIcon className="w-4 h-4 text-emerald-500" />
                             <p className="text-sm font-bold text-slate-700">
-                                Actualizada tienda <span className="text-indigo-600">"{details.storeName}"</span>
+                                Actualizada tienda <span className="text-indigo-600">&ldquo;{details.storeName}&rdquo;</span>
                             </p>
                         </div>
                         {changeLabels && (
@@ -63,13 +63,14 @@ export function ActivityLog({ logs }: ActivityLogProps) {
                 );
             }
             return <p className="text-sm text-slate-600 break-words font-medium">{detailsStr}</p>;
-        } catch (e) {
+        } catch {
             return <p className="text-sm text-slate-600 break-words font-medium">{detailsStr}</p>;
         }
     };
 
     return (
-        <div className="p-4 md:p-8 space-y-4 max-h-[700px] overflow-y-auto custom-scrollbar">
+        <div className="p-4 md:p-8 space-y-4 md:max-h-[700px] md:overflow-y-auto custom-scrollbar">
+            {logs.length === 0 && <p className="rounded-2xl bg-slate-50 p-8 text-center text-sm text-slate-500">Todavía no hay actividad registrada.</p>}
             {logs.map((log) => (
                 <div key={log.id} className="group relative flex items-start gap-4 p-4 rounded-2xl border border-slate-100 bg-white hover:border-indigo-100 transition-all shadow-sm">
                     <div className={cn(
@@ -84,8 +85,8 @@ export function ActivityLog({ logs }: ActivityLogProps) {
                                 <ShieldCheck className="w-5 h-5" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-4">
-                            <div className="flex-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
+                            <div className="flex-1 min-w-0 break-words">
                                 {formatLogDetails(log.action, log.details)}
                             </div>
                             <span className="text-[10px] font-black text-slate-400 whitespace-nowrap uppercase tracking-tighter">
@@ -93,7 +94,7 @@ export function ActivityLog({ logs }: ActivityLogProps) {
                             </span>
                         </div>
                         <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{log.admin?.email || 'Sistema'}</span>
+                            <span className="text-[10px] font-bold text-slate-400 break-all">{log.admin?.email || 'Sistema'}</span>
                         </div>
                     </div>
                 </div>

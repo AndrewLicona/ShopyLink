@@ -50,17 +50,17 @@ export function MarketplaceHeader() {
         <>
             <header className="sticky top-0 z-50 border-b border-gray-200 bg-white">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="flex h-16 items-center gap-3 lg:h-[72px] lg:gap-6">
+                    <div className="flex h-16 items-center gap-2 lg:h-[72px] lg:gap-6">
                         {/* Brand */}
                         <Link
                             href="/marketplace"
-                            className="group flex shrink-0 items-center gap-2.5"
+                            className="group flex shrink-0 items-center gap-1.5 sm:gap-2.5"
                         >
                             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-600/25 transition-transform duration-300 group-hover:scale-105">
                                 <ShoppingBag className="h-5 w-5" />
                             </span>
                             <span className="flex flex-col leading-none">
-                                <span className="text-lg font-black tracking-tight text-gray-900">
+                                <span className="text-base font-black tracking-tight text-gray-900 sm:text-lg">
                                     ShopyLink
                                 </span>
                                 <span className="mt-1 hidden text-[10px] font-bold uppercase tracking-[0.2em] text-blue-600 sm:inline">
@@ -101,7 +101,7 @@ export function MarketplaceHeader() {
                         </div>
 
                         {/* Actions */}
-                        <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-0 lg:gap-3">
+                        <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2 lg:ml-0 lg:gap-3">
                             <button
                                 type="button"
                                 onClick={() => setMobileNavOpen(true)}
@@ -123,7 +123,7 @@ export function MarketplaceHeader() {
 
                             <Link
                                 href="/dashboard"
-                                className="flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-bold text-white transition-all hover:bg-gray-800 active:scale-95"
+                                className="flex items-center gap-2 rounded-xl bg-gray-900 px-3 py-2.5 text-sm font-bold text-white transition-all hover:bg-gray-800 active:scale-95 sm:px-4"
                             >
                                 <span className="hidden sm:inline">Mi panel</span>
                                 <span className="sm:hidden">Panel</span>

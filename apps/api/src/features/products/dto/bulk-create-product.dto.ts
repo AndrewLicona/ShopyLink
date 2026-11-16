@@ -1,5 +1,7 @@
 import {
   IsString,
+  IsNotEmpty,
+  MaxLength,
   IsNumber,
   IsOptional,
   IsBoolean,
@@ -16,6 +18,8 @@ import { Type } from 'class-transformer';
 
 export class BulkProductItemDto {
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
   name: string;
 
   @IsString()

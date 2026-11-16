@@ -115,9 +115,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
     const { slug } = await params;
 
     try {
-        const publicPage = await api.getPublicStorePage(slug, {
-            next: { revalidate: 120 }
-        });
+        const publicPage = await api.getPublicStorePage(slug, { cache: 'no-store' });
 
         return (
             <StoreView

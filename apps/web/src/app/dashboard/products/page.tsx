@@ -1,7 +1,9 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 
+import { api } from '@/services/api';
+import { StyledSelect } from '@/components/ui/StyledSelect';
 import { useProducts } from '@/hooks/useProducts';
 import { CategoryModal } from '@/features/catalogue/CategoryModal';
 import { ProductGrid } from '@/features/catalogue/ProductGrid';
@@ -23,11 +25,12 @@ import {
 import { cn } from '@/lib/utils';
 import { LoadingState } from '@/components/atoms/LoadingState';
 import { Button } from '@/components/atoms/Button';
-import { SectionHeader } from '@/components/molecules/SectionHeader';
 
 function ProductsContent() {
     const hook = useProducts();
     const { state, actions } = hook;
+    const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+    useEffect(() => { api.getProfile().then(profile => setIsSuperAdmin(profile?.role === 'SUPER_ADMIN')).catch(() => setIsSuperAdmin(false)); }, []);
     const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
 
     if (state.loading) {
@@ -35,99 +38,30 @@ function ProductsContent() {
     }
 
     return (
-        <div className="space-y-8 pb-20">
-            {/* Header */}
-            <SectionHeader
-                title="Catálogo"
-                description="Gestiona tus productos"
-            >
-                <div className="flex flex-col md:flex-row items-end md:items-center gap-3 w-full justify-end">
-                    {/* Indicador de límite para Plan FREE */}
-                    {hook.state.activeStore?.planType === 'FREE' && (
-                        <div className="bg-[var(--surface)] border border-[var(--border)] px-4 py-2 rounded-2xl flex flex-col items-end hidden md:flex">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text)]/40 mb-1">
-                                Límite Plan Gratis
-                            </span>
-                            <div className="flex items-center justify-between w-full gap-3">
-                                <div className="h-1.5 w-24 bg-[var(--text)]/10 rounded-full overflow-hidden">
-                                    <div
-                                        className={cn("h-full rounded-full transition-all", hook.state.allProducts.length >= 10 ? 'bg-red-500' : 'bg-[var(--primary)]')}
-                                        style={{ width: `${Math.min((hook.state.allProducts.length / 10) * 100, 100)}%` }}
-                                    />
-                                </div>
-                                <span className={cn("text-xs font-black", hook.state.allProducts.length >= 10 ? 'text-red-500' : 'text-[var(--text)]')}>
-                                    {hook.state.allProducts.length}/10
-                                </span>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="secondary"
-                            onClick={() => actions.setIsCatModalOpen(true)}
-                            className="p-3 md:p-3.5 rounded-2xl"
-                            aria-label="Gestionar Categorías"
-                        >
-                            <Settings2 className="w-5 h-5" />
-                        </Button>
-                        <Button
-                            variant="secondary"
-                            onClick={() => setIsBulkModalOpen(true)}
-                            className="p-3 md:px-5 md:py-3 rounded-2xl"
-                            leftIcon={<FileSpreadsheet className="w-5 h-5" />}
-                        >
-                            <span className="hidden md:inline">Carga Masiva</span>
-                        </Button>
-                        <Button
-                            variant="primary"
-                            onClick={actions.openCreateModal}
-                            className="p-3 md:px-6 md:py-3 rounded-2xl"
-                            leftIcon={<Plus className="w-6 h-6 md:w-5 md:h-5" />}
-                        >
-                            <span className="hidden md:inline">Nuevo Producto</span>
-                        </Button>
-                    </div>
+        <div className="mx-auto max-w-[1500px] space-y-5 pb-10 md:space-y-6">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                <div><p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--primary)]">Tu tienda</p><h1 className="mt-2 text-3xl font-black tracking-tight text-[var(--text)] sm:text-4xl">Catálogo</h1><p className="mt-2 text-sm text-[var(--text)]/55">Organiza tus productos y mantén tu tienda al día.</p></div>
+                <div className="flex flex-wrap gap-2">
+                    <Button variant="secondary" onClick={() => actions.setIsCatModalOpen(true)} className="min-h-11 rounded-xl px-4 py-3" leftIcon={<Settings2 className="h-4 w-4" />}>Categorías</Button>
+                    {isSuperAdmin && <Button variant="secondary" onClick={() => setIsBulkModalOpen(true)} className="min-h-11 rounded-xl px-4 py-3" leftIcon={<FileSpreadsheet className="h-4 w-4" />}>Carga masiva</Button>}
+                    <Button variant="primary" onClick={actions.openCreateModal} className="min-h-11 flex-1 rounded-xl px-4 py-3 sm:flex-none" leftIcon={<Plus className="h-4 w-4" />}>Nuevo producto</Button>
                 </div>
-            </SectionHeader>
+            </div>
 
-            {/* Filters bar */}
-            <div className="flex flex-col gap-3 md:gap-4">
-                <div className="relative group">
-                    <Search className="absolute left-4 md:left-5 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-[var(--text)]/20 group-focus-within:text-[var(--primary)] transition-colors" />
-                    <input
-                        type="text"
-                        placeholder="Buscar productos..."
-                        className="w-full pl-11 md:pl-14 pr-6 py-3 md:py-4 rounded-xl md:rounded-2xl bg-[var(--surface)] border border-[var(--border)] focus:border-[var(--primary)] outline-none transition-all font-bold text-sm md:text-base text-[var(--text)] shadow-sm"
-                        value={state.searchTerm}
-                        onChange={(e) => actions.setSearchTerm(e.target.value)}
-                    />
-                </div>
-                <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
-                    <select
-                        className="flex-1 px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl bg-[var(--surface)] border border-[var(--border)] font-bold text-sm md:text-base text-[var(--text)] outline-none focus:border-[var(--primary)] cursor-pointer appearance-none"
-                        value={state.categoryFilter}
-                        onChange={(e) => actions.setCategoryFilter(e.target.value)}
-                    >
-                        <option value="all">Categorías</option>
-                        {state.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                <div className="min-w-0 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 sm:p-4"><p className="text-xs text-[var(--text)]/50">Total</p><p className="mt-1 text-xl font-black text-[var(--text)]">{state.allProducts.length}</p></div>
+                <div className="min-w-0 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 sm:p-4"><p className="text-xs text-[var(--text)]/50">En venta</p><p className="mt-1 text-xl font-black text-emerald-600">{state.allProducts.filter(product => product.isActive).length}</p></div>
+                <div className="min-w-0 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 sm:p-4"><p className="text-xs text-[var(--text)]/50">Pausados</p><p className="mt-1 text-xl font-black text-[var(--text)]">{state.allProducts.filter(product => !product.isActive).length}</p></div>
+            </div>
+            {state.activeStore?.planType === 'FREE' && <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-xs"><span className="font-bold text-[var(--text)]">Plan gratis</span><div className="h-1.5 min-w-20 flex-1 overflow-hidden rounded-full bg-[var(--secondary)]"><div className="h-full rounded-full bg-[var(--primary)]" style={{width: `${Math.min(state.allProducts.length * 10, 100)}%`}} /></div><span className="font-bold text-[var(--text)]/60">{state.allProducts.length} de 10 productos</span></div>}
 
-                    <div className="bg-[var(--surface)] border border-[var(--border)] p-1 rounded-xl md:rounded-2xl flex w-full sm:w-auto h-[50px] md:h-[60px] items-stretch">
-                        {(['active', 'paused'] as const).map((tab) => (
-                            <button
-                                key={tab}
-                                onClick={() => actions.setStatusTab(tab)}
-                                className={cn(
-                                    "flex-1 sm:w-40 px-4 md:px-6 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center",
-                                    state.statusTab === tab ? "bg-[var(--primary)] text-[var(--bg)] shadow-lg" : "text-[var(--text)]/40 hover:text-[var(--text)] font-bold"
-                                )}
-                            >
-                                {tab === 'active' ? 'En venta' : 'Pausados'}
-                            </button>
-                        ))}
-                    </div>
+            <div className="space-y-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 sm:p-4">
+                <div className="flex flex-col gap-3 lg:flex-row">
+                    <div className="relative flex-1"><Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text)]/40" /><input type="search" aria-label="Buscar productos" placeholder="Buscar productos..." className="min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] py-3 pl-11 pr-4 text-sm text-[var(--text)] outline-none focus:border-[var(--primary)]" value={state.searchTerm} onChange={e => actions.setSearchTerm(e.target.value)} /></div>
+                    <div className="w-full lg:w-52"><StyledSelect label="Filtrar por categoría" value={state.categoryFilter} onChange={actions.setCategoryFilter} options={[{ value: 'all', label: 'Todas las categorías' }, ...state.categories.map(category => ({ value: category.id, label: category.name }))]} /></div>
+                    <div aria-label="Estado de productos" className="grid grid-cols-2 gap-1 rounded-xl bg-[var(--secondary)] p-1 lg:min-w-60">{(['active', 'paused'] as const).map(tab => <button type="button" key={tab} onClick={() => actions.setStatusTab(tab)} aria-pressed={state.statusTab === tab} className={cn('min-h-10 rounded-lg px-4 text-xs font-bold transition-colors', state.statusTab === tab ? 'bg-[var(--surface)] text-[var(--text)] shadow-sm' : 'text-[var(--text)]/50 hover:text-[var(--text)]')}>{tab === 'active' ? 'En venta' : 'Pausados'}</button>)}</div>
                 </div>
+                <p className="px-1 text-xs text-[var(--text)]/50">{state.products.length} {state.products.length === 1 ? 'producto' : 'productos'} en esta vista</p>
             </div>
 
             {/* Grid */}
@@ -136,12 +70,13 @@ function ProductsContent() {
             {/* Modals */}
             <ProductFormModal hook={hook} />
             <CategoryModal hook={hook} />
-            {hook.state.activeStore && (
+            {isSuperAdmin && hook.state.activeStore && (
                 <BulkProductUploadModal
                     isOpen={isBulkModalOpen}
                     onClose={() => setIsBulkModalOpen(false)}
                     storeId={hook.state.activeStore.id}
                     categories={state.categories}
+                    existingProducts={state.allProducts}
                     onSuccess={() => actions.loadData()}
                 />
             )}

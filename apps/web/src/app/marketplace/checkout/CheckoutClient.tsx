@@ -85,7 +85,7 @@ export default function CheckoutClient() {
                     storeName: group.storeName,
                     storeSlug: group.storeSlug,
                     storeCountry: group.storeCountry,
-                    total: group.total,
+                    total: Number(response.total),
                     whatsappLink: response.whatsappLink,
                 });
 
@@ -275,7 +275,7 @@ export default function CheckoutClient() {
                                                         src={item.image}
                                                         alt={item.name}
                                                         fill
-                                                        className="object-cover"
+                                                        className="object-contain p-1"
                                                         sizes="64px"
                                                     />
                                                 ) : (

@@ -10,6 +10,9 @@ export function useOrders() {
     const { activeStore } = useStore();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [loadingStatus, setLoadingStatus] = useState<string | null>(null);
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -20,12 +23,14 @@ export function useOrders() {
     const loadOrders = useCallback(async () => {
         if (!activeStore) return [];
         setLoading(true);
+        setLoadError(false);
         try {
             const data = await api.getOrders(activeStore.id);
             setOrders(data);
             return data;
         } catch (err: unknown) {
             console.error('Error loading orders:', err);
+            setLoadError(true);
             return [];
         } finally {
             setLoading(false);
@@ -45,25 +50,24 @@ export function useOrders() {
     }, [loadOrders, searchParams]);
 
     const filteredOrders = orders.filter(order => {
-        const matchesSearch =
-            order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            order.id.toLowerCase().includes(searchTerm.toLowerCase());
-
+        const query = searchTerm.trim().toLocaleLowerCase();
+        const matchesSearch = !query || [order.customerName, order.id, order.customerPhone || '', ...(order.items || []).flatMap(item => [item.productName, item.variantName || '', item.sku || ''])].some(value => value.toLocaleLowerCase().includes(query));
         const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-
-        return matchesSearch && matchesStatus;
+        const date = new Date(order.createdAt);
+        const localDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        return matchesSearch && matchesStatus && (!dateFrom || localDate >= dateFrom) && (!dateTo || localDate <= dateTo);
     });
 
-    const handleUpdateStatus = async (orderId: string, newStatus: string) => {
+    const handleUpdateStatus = async (orderId: string, newStatus: Order['status']) => {
         setUpdatingId(orderId);
         setLoadingStatus(newStatus);
         try {
             await api.updateOrderStatus(orderId, newStatus);
 
-            setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus as Order['status'] } : o));
+            setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
 
             if (selectedOrder?.id === orderId) {
-                setSelectedOrder((prev) => prev ? ({ ...prev, status: newStatus as Order['status'] }) : null);
+                setSelectedOrder((prev) => prev ? ({ ...prev, status: newStatus }) : null);
             }
             return { success: true };
         } catch (err: unknown) {
@@ -80,6 +84,9 @@ export function useOrders() {
             orders: filteredOrders,
             allOrders: orders,
             loading,
+            loadError,
+            dateFrom,
+            dateTo,
             updatingId,
             loadingStatus,
             selectedOrder,
@@ -88,6 +95,8 @@ export function useOrders() {
             activeStore
         },
         actions: {
+            setDateFrom,
+            setDateTo,
             setSelectedOrder,
             setSearchTerm,
             setStatusFilter,

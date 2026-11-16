@@ -1,7 +1,6 @@
 'use client';
 
-import React from 'react';
-import { Loader2 } from 'lucide-react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 interface LoadingStateProps {
@@ -10,29 +9,20 @@ interface LoadingStateProps {
     className?: string;
 }
 
-export function LoadingState({
-    message = 'Cargando datos...',
-    fullPage = false,
-    className
-}: LoadingStateProps) {
-    const containerClasses = cn(
-        "flex flex-col items-center justify-center gap-4",
-        fullPage ? "min-h-[80vh]" : "py-12 md:py-20",
-        className
-    );
-
+/** The original favicon is stacked in depth to form the animated 3D mark. */
+export function LoadingState({ message = 'Cargando...', fullPage = false, className }: LoadingStateProps) {
     return (
-        <div className={containerClasses}>
-            <div className="relative p-8 rounded-[2rem] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow)] flex flex-col items-center gap-6">
-                <div className="relative">
-                    <Loader2 className="w-12 h-12 text-[var(--primary)] animate-spin" strokeWidth={3} />
-                    <div className="absolute inset-0 bg-[var(--primary)]/20 blur-2xl rounded-full animate-pulse" />
-                </div>
-                <div className="space-y-1 text-center">
-                    <p className="text-[var(--text)] font-black text-xs uppercase tracking-[0.2em]">{message}</p>
-                    <p className="text-[var(--text)]/20 font-bold text-[8px] uppercase tracking-widest">ShopyLinks Platform</p>
+        <div role="status" aria-live="polite" className={cn('flex flex-col items-center justify-center gap-4 px-5 text-center', fullPage ? 'min-h-[75vh]' : 'py-16', className)}>
+            <div className="brand-loader-scene" aria-hidden="true">
+                <div className="brand-loader-glow" />
+                <div className="brand-loader-object">
+                    {Array.from({ length: 10 }, (_, index) => (
+                        <Image key={index} src="/favicon.svg" alt="" width={112} height={112} draggable={false} className="brand-loader-layer" style={{ transform: `translateZ(${-10 + index}px)`, filter: `brightness(${0.36 + index * 0.035})` }} />
+                    ))}
+                    <Image src="/favicon.svg" alt="" width={112} height={112} draggable={false} className="brand-loader-face" />
                 </div>
             </div>
+            <div className="space-y-1"><p className="text-sm font-black tracking-tight text-[var(--text)]">{message}</p><p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--text)]/45">ShopyLinks</p></div>
         </div>
     );
 }

@@ -15,6 +15,8 @@ interface PublicProductGridProps {
     onProductClick: (product: Product) => void;
     onAddToCart: (product: Product) => void;
     searchTerm: string;
+    hasActiveFilters?: boolean;
+    onClearFilters?: () => void;
     bannerNode?: React.ReactNode;
     whatsappNumber?: string | null;
     storeName?: string | null;
@@ -49,6 +51,8 @@ export function PublicProductGrid({
     whatsappNumber,
     storeName,
     country,
+    hasActiveFilters,
+    onClearFilters,
 }: PublicProductGridProps) {
     if (products.length === 0) {
         return (
@@ -62,12 +66,13 @@ export function PublicProductGrid({
                         ? `No hay resultados para "${searchTerm}"`
                         : "Esta categoría aún no tiene productos disponibles."}
                 </p>
+                {hasActiveFilters && <button type="button" onClick={onClearFilters} className="rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-bold text-[var(--bg)]">Limpiar filtros</button>}
             </div>
         );
     }
 
     return (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
             {products.map((product, index) => (
                 <React.Fragment key={product.id}>
                     {product.itemType === 'service' ? (
@@ -78,7 +83,7 @@ export function PublicProductGrid({
                                     <>
                                         <Image
                                             src={product.images[0]}
-                                            alt="Background"
+                                            alt=""
                                             fill
                                             className="object-cover blur-2xl scale-110 opacity-30"
                                             sizes="100px"
@@ -88,7 +93,7 @@ export function PublicProductGrid({
                                             alt={product.name}
                                             fill
                                             priority={index === 0}
-                                            className="object-cover relative z-10"
+                                            className="object-contain relative z-10 p-1"
                                             sizes="(max-width: 768px) 50vw, 25vw"
                                         />
                                     </>
@@ -96,7 +101,7 @@ export function PublicProductGrid({
                                     <MessageCircle className="w-8 h-8 text-gray-200" />
                                 )}
                                 {product.categoryId && (
-                                    <div className="absolute top-2 left-2">
+                                    <div className="absolute top-2 left-2 z-20">
                                         <span className="bg-[var(--surface)]/90 backdrop-blur-sm text-[var(--text)] px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-tighter shadow-sm border border-[var(--border)]">
                                             {categories.find(c => c.id === product.categoryId)?.name}
                                         </span>
@@ -104,7 +109,7 @@ export function PublicProductGrid({
                                 )}
                             </div>
                             <div className="mt-4 flex-1 flex flex-col px-1">
-                                <h3 className="text-sm font-black text-[var(--text)] line-clamp-1">{product.name}</h3>
+                                <h3 className="text-sm font-black text-[var(--text)] line-clamp-2"><button type="button" onClick={() => onProductClick(product)} className="text-left hover:text-[var(--primary)]">{product.name}</button></h3>
                                 <PricingModeBadge pricingMode={product.pricingMode} />
                                 <div className="mt-auto pt-3">
                                     <span className="text-base font-black text-[var(--primary)]">
@@ -143,7 +148,7 @@ export function PublicProductGrid({
                                     {/* Ambient Blur Background */}
                                     <Image
                                         src={product.images[0]}
-                                        alt="Background"
+                                        alt=""
                                         fill
                                         className="object-cover blur-2xl scale-110 opacity-30"
                                         sizes="100px"
@@ -153,7 +158,7 @@ export function PublicProductGrid({
                                         alt={product.name}
                                         fill
                                         priority={index === 0}
-                                        className="object-cover relative z-10"
+                                        className="object-contain relative z-10 p-1"
                                         sizes="(max-width: 768px) 50vw, 25vw"
                                     />
                                 </>
@@ -162,7 +167,7 @@ export function PublicProductGrid({
                             )}
 
                             {product.discountPrice && product.price && (
-                                <div className="absolute top-2 right-2 sm:flex sm:flex-col sm:gap-1.5 sm:items-end">
+                                <div className="absolute top-2 right-2 z-20 sm:flex sm:flex-col sm:gap-1.5 sm:items-end">
                                     <div className="bg-green-500/90 backdrop-blur-md text-white px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-[0_4px_12px_rgba(34,197,94,0.3)] animate-in fade-in zoom-in duration-500">
                                         Oferta
                                     </div>
@@ -178,7 +183,7 @@ export function PublicProductGrid({
                             )}
 
                             {product.categoryId && (
-                                <div className="absolute top-2 left-2">
+                                <div className="absolute top-2 left-2 z-20">
                                     <span className="bg-[var(--surface)]/90 backdrop-blur-sm text-[var(--text)] px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-tighter shadow-sm border border-[var(--border)]">
                                         {categories.find(c => c.id === product.categoryId)?.name}
                                     </span>
@@ -186,7 +191,7 @@ export function PublicProductGrid({
                             )}
                         </div>
                         <div className="mt-4 flex-1 flex flex-col px-1">
-                            <h3 className="text-sm font-black text-[var(--text)] line-clamp-1">{product.name}</h3>
+                            <h3 className="text-sm font-black text-[var(--text)] line-clamp-2"><button type="button" onClick={(event) => { event.stopPropagation(); onProductClick(product); }} className="text-left hover:text-[var(--primary)]">{product.name}</button></h3>
                             <div className="mt-auto pt-3 flex items-center justify-between gap-2">
                                 <div className="flex flex-col">
                                     {product.price === null || product.price === undefined ? (
@@ -198,7 +203,7 @@ export function PublicProductGrid({
                                             <span className="text-[10px] font-bold text-[var(--text)]/40 line-through decoration-red-500/50">
                                                 {formatPrice(product.price, country)}
                                             </span>
-                                            <span className="text-base font-black text-green-500">
+                                            <span className="whitespace-nowrap text-sm sm:text-base font-black text-green-500">
                                                 {formatPrice(product.discountPrice, country)}
                                             </span>
                                             {(() => {
@@ -211,7 +216,7 @@ export function PublicProductGrid({
                                             })()}
                                         </>
                                     ) : (
-                                        <span className="text-base font-black text-[var(--primary)]">
+                                        <span className="whitespace-nowrap text-sm sm:text-base font-black text-[var(--primary)]">
                                             {formatPrice(product.price, country)}
                                         </span>
                                     )}

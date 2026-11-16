@@ -152,7 +152,7 @@ export default function ProductDetailClient() {
                         <div className="p-8 lg:p-12 lg:pl-0 flex flex-col h-full bg-gray-50/50 lg:bg-transparent lg:border-l border-gray-100">
                             
                             {/* Store mini-header */}
-                            <Link href={`/marketplace/tienda/${product.store.slug}`} className="inline-flex items-center gap-3 bg-white border border-gray-200 px-4 py-2 rounded-2xl mb-6 hover:border-blue-300 hover:shadow-md transition-all w-max group">
+                            <Link href={`/marketplace/tienda/${product.store.slug}`} className="inline-flex items-center gap-3 bg-white border border-gray-200 px-4 py-2 rounded-2xl mb-6 hover:border-blue-300 hover:shadow-md transition-all w-fit max-w-full min-w-0 group">
                                 <StoreLogo
                                     src={product.store.logoUrl}
                                     alt={product.store.name}
@@ -163,7 +163,7 @@ export default function ProductDetailClient() {
                                     sizes="32px"
                                     fallback={<StoreIcon className="w-full h-full p-1.5 text-gray-400" />}
                                 />
-                                <span className="font-bold text-sm text-gray-700 group-hover:text-blue-600">Por {product.store.name}</span>
+                                <span className="font-bold text-sm text-gray-700 group-hover:text-blue-600 truncate min-w-0">Por {product.store.name}</span>
                                 <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-500" />
                             </Link>
 
@@ -236,7 +236,7 @@ export default function ProductDetailClient() {
                                     {!isPriceHidden && available && !isService && (
                                         <button
                                             onClick={handleAddToCart}
-                                            className={`flex-1 py-5 rounded-[1.5rem] font-black text-lg flex items-center justify-center gap-3 transition-all hover:scale-105 active:scale-95 shadow-xl ${
+                                            className={`min-w-0 w-full sm:flex-1 px-4 py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 text-center transition-all hover:scale-105 active:scale-95 shadow-xl ${
                                                 added
                                                     ? 'bg-emerald-500 text-white shadow-emerald-500/30'
                                                     : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-600/30'
@@ -268,7 +268,7 @@ export default function ProductDetailClient() {
                                             })}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex-1 py-5 rounded-[1.5rem] font-black text-lg flex items-center justify-center gap-3 transition-all hover:scale-105 active:scale-95 shadow-xl bg-green-500 text-white shadow-green-500/30"
+                                            className="min-w-0 w-full sm:flex-1 px-4 py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 text-center transition-all hover:scale-105 active:scale-95 shadow-xl bg-green-500 text-white shadow-green-500/30"
                                         >
                                             <MessageCircle className="w-6 h-6" />
                                             Consultar por WhatsApp
@@ -290,7 +290,7 @@ export default function ProductDetailClient() {
                                             ) : (
                                                 <>
                                                     <ExternalLink className="w-5 h-5" />
-                                                    Comprar en {product.store.name}
+                                                    Ver en la tienda
                                                 </>
                                             )}
                                         </Link>

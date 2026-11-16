@@ -1,298 +1,87 @@
 'use client';
 
-import {
-    CheckCircle2,
-    XCircle,
-    Clock,
-    Loader2,
-    X,
-    Calendar,
-    User,
-    ShoppingCart,
-    Search,
-    Phone,
-    PhoneCall,
-    MessageCircle
-} from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { Calendar, CheckCircle2, Clock, Loader2, MapPin, MessageCircle, Phone, PhoneCall, Search, ShoppingCart, User, X, XCircle } from 'lucide-react';
+import { DateInput } from '@/components/ui/DateInput';
 import { useOrders } from '@/hooks/useOrders';
 import { cn, formatCurrency } from '@/lib/utils';
 import { LoadingState } from '@/components/atoms/LoadingState';
-import { SectionHeader } from '@/components/molecules/SectionHeader';
-import { Button } from '@/components/atoms/Button';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
-import Link from 'next/link';
 import type { Order } from '@/types/types';
+
+type OrderStatus = Order['status'];
+const tabs: { id: 'all' | OrderStatus; label: string }[] = [
+    { id: 'all', label: 'Todos' }, { id: 'PENDING', label: 'Pendientes' },
+    { id: 'CONFIRMED', label: 'Confirmados' }, { id: 'COMPLETED', label: 'Listos' },
+    { id: 'CANCELLED', label: 'Cancelados' },
+];
+const badgeStatus: Record<OrderStatus, 'pending' | 'confirmed' | 'completed' | 'cancelled'> = {
+    PENDING: 'pending', CONFIRMED: 'confirmed', COMPLETED: 'completed', CANCELLED: 'cancelled',
+};
+const statusLabel: Record<OrderStatus, string> = {
+    PENDING: 'Pendiente', CONFIRMED: 'Confirmado', COMPLETED: 'Completado', CANCELLED: 'Cancelado',
+};
 
 export default function OrdersPage() {
     const { state, actions } = useOrders();
-    const country = state.activeStore?.country;
-    const { orders, loading, selectedOrder, updatingId, loadingStatus, searchTerm, statusFilter } = state;
-    const { setSearchTerm, setStatusFilter, setSelectedOrder, handleUpdateStatus } = actions;
+    const { orders, allOrders, loading, loadError, selectedOrder, updatingId, loadingStatus, searchTerm, statusFilter, dateFrom, dateTo, activeStore } = state;
+    const { setSearchTerm, setStatusFilter, setSelectedOrder, setDateFrom, setDateTo, handleUpdateStatus } = actions;
+    const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
+    const country = activeStore?.country;
 
-    if (loading) {
-        return <LoadingState message="Cargando pedidos..." fullPage />;
-    }
+    useEffect(() => {
+        if (!selectedOrder) return;
+        const close = (event: KeyboardEvent) => { if (event.key === 'Escape' && !updatingId) setSelectedOrder(null); };
+        window.addEventListener('keydown', close);
+        return () => window.removeEventListener('keydown', close);
+    }, [selectedOrder, updatingId, setSelectedOrder]);
+
+    const openOrder = (order: Order) => { setMessage(null); setSelectedOrder(order); };
+    const changeStatus = async (status: OrderStatus) => {
+        if (!selectedOrder) return;
+        setMessage(null);
+        const result = await handleUpdateStatus(selectedOrder.id, status);
+        setMessage(result.success ? { type: 'success', text: `Pedido actualizado a ${statusLabel[status].toLowerCase()}.` } : { type: 'error', text: result.error || 'No se pudo actualizar el pedido.' });
+    };
+
+    if (loading) return <LoadingState message="Cargando pedidos..." fullPage />;
+    if (loadError) return <div role="alert" className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center"><h1 className="text-xl font-black text-[var(--text)]">No pudimos cargar los pedidos</h1><p className="mt-2 text-sm text-[var(--text)]/60">Comprueba tu conexión e inténtalo de nuevo.</p><button onClick={() => void actions.refreshOrders()} className="mt-5 rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-bold text-[var(--bg)]">Reintentar</button></div>;
 
     return (
-        <div className="space-y-6 md:space-y-10 pb-20">
-            {/* Header */}
-            <SectionHeader
-                title="Pedidos"
-                description="Gestiona las ventas de tu tienda"
-            >
-                <Link href="/dashboard" className="hidden md:block">
-                    <Button variant="secondary">
-                        Ir al Inicio
-                    </Button>
-                </Link>
-            </SectionHeader>
-
-            {/* Filters bar */}
-            <div className="flex flex-col gap-3 md:gap-4">
-                <div className="relative group">
-                    <Search className="absolute left-4 md:left-5 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-[var(--text)]/20 group-focus-within:text-[var(--primary)] transition-colors" />
-                    <input
-                        type="text"
-                        placeholder="Buscar por cliente o ID..."
-                        className="w-full pl-11 md:pl-14 pr-6 py-3 md:py-4 rounded-xl md:rounded-2xl bg-[var(--surface)] border border-[var(--border)] focus:border-[var(--primary)] outline-none transition-all font-bold text-sm md:text-base text-[var(--text)] shadow-sm"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-
-                <div className="bg-[var(--surface)] border border-[var(--border)] p-1 rounded-xl md:rounded-2xl flex w-full h-[50px] md:h-[60px] items-stretch">
-                    {([
-                        { id: 'all', label: 'Todos' },
-                        { id: 'PENDING', label: 'Pendientes' },
-                        { id: 'COMPLETED', label: 'Listos' },
-                        { id: 'CANCELLED', label: 'Canc.' }
-                    ] as const).map((tab) => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setStatusFilter(tab.id)}
-                            className={cn(
-                                "flex-1 px-4 md:px-6 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center",
-                                statusFilter === tab.id ? "bg-[var(--primary)] text-[var(--bg)] shadow-lg" : "text-[var(--text)]/40 hover:text-[var(--text)] font-bold"
-                            )}
-                        >
-                            {tab.label}
-                        </button>
-                    ))}
-                </div>
+        <div className="space-y-6 pb-20 md:space-y-8">
+            <div><h1 className="text-2xl font-black text-[var(--text)] md:text-3xl">Pedidos</h1><p className="mt-1 text-sm text-[var(--text)]/55">Gestiona las ventas de tu tienda</p></div>
+            <div className="space-y-3">
+                <div className="relative"><Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text)]/40" /><input type="search" aria-label="Buscar pedidos" placeholder="Buscar cliente, teléfono, producto o ID..." className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] py-3.5 pl-11 pr-4 text-sm font-bold text-[var(--text)] outline-none focus:border-[var(--primary)]" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} /></div>
+                <div aria-label="Filtrar por estado" className="grid grid-cols-2 gap-1 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-1 sm:grid-cols-5">{tabs.map(tab => {
+                    const count = tab.id === 'all' ? allOrders.length : allOrders.filter(order => order.status === tab.id).length;
+                    return <button type="button" key={tab.id} aria-pressed={statusFilter === tab.id} onClick={() => setStatusFilter(tab.id)} className={cn('flex min-h-10 min-w-0 items-center justify-center gap-1 rounded-xl px-1 py-2 text-[11px] font-bold transition-colors sm:text-xs', statusFilter === tab.id ? 'bg-[var(--primary)] text-[var(--bg)]' : 'text-[var(--text)]/55 hover:bg-[var(--secondary)]')}>{tab.label} <span className="opacity-70">{count}</span></button>;
+                })}</div>
+                <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3"><label className="min-w-[130px] flex-1 text-xs font-bold text-[var(--text)]/60 sm:flex-none">Desde<DateInput label="Desde" value={dateFrom} max={dateTo || undefined} onChange={setDateFrom} className="mt-1" /></label><label className="min-w-[130px] flex-1 text-xs font-bold text-[var(--text)]/60 sm:flex-none">Hasta<DateInput label="Hasta" value={dateTo} min={dateFrom || undefined} onChange={setDateTo} className="mt-1" /></label>{(dateFrom || dateTo) && <button type="button" onClick={() => { setDateFrom(''); setDateTo(''); }} className="min-h-10 text-xs font-bold text-[var(--primary)]">Limpiar fechas</button>}<span className="ml-auto text-xs text-[var(--text)]/50">{orders.length} {orders.length === 1 ? 'pedido' : 'pedidos'}</span></div>
+            </div>
+            <div className="overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
+                {orders.length === 0 ? <div className="flex flex-col items-center justify-center gap-4 p-12 text-center md:p-20"><div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--bg)] text-[var(--text)]/25"><ShoppingCart className="h-8 w-8" /></div><div><h2 className="text-lg font-bold text-[var(--text)]">No se encontraron pedidos</h2><p className="mt-1 text-sm text-[var(--text)]/50">{allOrders.length ? 'Prueba otros filtros o términos de búsqueda.' : 'Cuando recibas pedidos aparecerán aquí.'}</p></div></div> : <div className="grid grid-cols-1 gap-3 p-4 md:gap-4 md:p-6 lg:grid-cols-2">{orders.map(order => {
+                    const quantity = order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+                    return <button type="button" key={order.id} onClick={() => openOrder(order)} className="group w-full rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 text-left shadow-sm transition-all hover:border-[var(--primary)]/40 hover:shadow-md focus-visible:outline-2 focus-visible:outline-[var(--primary)] sm:p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><span className="text-[10px] font-black uppercase tracking-widest text-[var(--primary)]">#{order.id.slice(0, 8)}</span><h2 className="mt-1 truncate text-base font-black text-[var(--text)]">{order.customerName}</h2></div><StatusBadge status={badgeStatus[order.status]} /></div><div className="mt-4 flex items-end justify-between gap-3 border-t border-dashed border-[var(--border)] pt-3"><div className="min-w-0 text-xs text-[var(--text)]/60"><p>{quantity} {quantity === 1 ? 'unidad' : 'unidades'} · {formatDistanceToNow(new Date(order.createdAt), { addSuffix: true, locale: es })}</p><p className="mt-1">{new Date(order.createdAt).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}</p></div><p className="shrink-0 text-right text-base font-black text-[var(--text)] sm:text-lg">{formatCurrency(order.total, country)}</p></div></button>;
+                })}</div>}
             </div>
 
-            <div className="bg-[var(--surface)] rounded-[2rem] md:rounded-[2.5rem] shadow-[var(--shadow)] border border-[var(--border)] overflow-hidden">
-                {orders.length === 0 ? (
-                    <div className="p-12 md:p-20 text-center flex flex-col items-center justify-center gap-6">
-                        <div className="w-16 h-16 md:w-20 md:h-20 bg-[var(--bg)] rounded-full flex items-center justify-center text-[var(--text)]/20">
-                            <ShoppingCart className="w-8 h-8 md:w-10 md:h-10" />
-                        </div>
-                        <div>
-                            <h3 className="text-lg md:text-xl font-bold text-[var(--text)]">No se encontraron pedidos</h3>
-                            <p className="text-sm text-[var(--text)]/40 mt-1">Intenta con otros filtros o términos de búsqueda.</p>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 md:p-8">
-                        {orders.map((order: Order) => (
-                            <div
-                                key={order.id}
-                                className="bg-[var(--surface)] border border-[var(--border)] rounded-[2rem] p-6 space-y-4 shadow-sm hover:shadow-md hover:border-[var(--primary)]/30 active:scale-[0.99] transition-all cursor-pointer group"
-                                onClick={() => setSelectedOrder(order)}
-                            >
-                                <div className="flex justify-between items-start">
-                                    <div className="space-y-1">
-                                        <span className="font-black text-[var(--primary)] text-[10px] uppercase tracking-[0.2em] opacity-70">#{order.id.slice(0, 8)}</span>
-                                        <h3 className="font-black text-[var(--text)] text-lg leading-tight group-hover:text-[var(--primary)] transition-colors">{order.customerName}</h3>
-                                    </div>
-                                    <StatusBadge status={order.status.toLowerCase() as any} />
-                                </div>
-
-                                <div className="flex items-center gap-4 pt-2 border-t border-[var(--border)] border-dashed">
-                                    <div className="flex-1">
-                                        <p className="text-[9px] font-black text-[var(--text)]/20 uppercase tracking-widest mb-0.5">Fecha y Hora</p>
-                                        <p className="text-xs font-bold text-[var(--text)]/60">
-                                            {new Date(order.createdAt).toLocaleDateString()} <span className="mx-1 opacity-20">•</span> {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-[9px] font-black text-[var(--text)]/20 uppercase tracking-widest mb-0.5">Total</p>
-                                        <p className="font-black text-[var(--text)] text-xl">
-                                            {formatCurrency(order.total, country)}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            {/* Order Details Modal */}
-            {selectedOrder && (
-                <div className="fixed inset-0 z-[150] flex items-center justify-center sm:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-[var(--surface)] w-full h-full sm:h-[90vh] sm:w-[95vw] max-w-5xl sm:rounded-[2.5rem] shadow-[var(--shadow-strong)] overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
-                        {/* Modal Header */}
-                        <div className="p-6 md:p-8 border-b border-[var(--border)] flex items-center justify-between bg-[var(--bg)]/30 shrink-0">
-                            <div className="flex items-center gap-3 md:gap-4">
-                                <div className="w-10 h-10 md:w-12 md:h-12 bg-[var(--primary)] text-[var(--bg)] rounded-xl md:rounded-2xl flex items-center justify-center shadow-[var(--shadow)]">
-                                    <ShoppingCart className="w-5 h-5 md:w-6 md:h-6" />
-                                </div>
-                                <div>
-                                    <h2 className="text-xl md:text-2xl font-black text-[var(--text)] uppercase tracking-tight">Detalles del Pedido</h2>
-                                    <p className="text-[var(--text)]/30 font-bold text-[10px] md:text-xs uppercase tracking-widest mt-0.5">ID: #{selectedOrder.id.slice(0, 12)}</p>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => setSelectedOrder(null)}
-                                className="p-2 md:p-3 hover:bg-[var(--secondary)] rounded-xl md:rounded-2xl transition-all border border-transparent hover:border-[var(--border)]"
-                            >
-                                <X className="w-5 h-5 md:w-6 md:h-6 text-[var(--text)]/30" />
-                            </button>
-                        </div>
-
-                        <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 flex-1 overflow-y-auto custom-scrollbar">
-                            {/* Left Column: Customer & Order Info */}
-                            <div className="space-y-6">
-                                <div className="space-y-4">
-                                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--primary)]">Información del Cliente</h3>
-                                    <div className="space-y-3">
-                                        <div className="flex items-center gap-3 bg-[var(--secondary)]/30 p-4 rounded-2xl">
-                                            <User className="w-4 h-4 text-[var(--text)]/30" />
-                                            <div>
-                                                <p className="text-[10px] font-black text-[var(--text)]/30 uppercase tracking-tighter">Nombre</p>
-                                                <p className="font-black text-[var(--text)]">{selectedOrder.customerName}</p>
-                                            </div>
-                                        </div>
-
-                                        {selectedOrder.customerPhone && (
-                                            <div className="flex items-center gap-3 bg-[var(--secondary)]/30 p-4 rounded-2xl">
-                                                <Phone className="w-4 h-4 text-[var(--text)]/30" />
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-[10px] font-black text-[var(--text)]/30 uppercase tracking-tighter">Teléfono</p>
-                                                    <p className="font-black text-[var(--text)]">{selectedOrder.customerPhone}</p>
-                                                </div>
-                                                <div className="flex items-center gap-2 shrink-0">
-                                                    <a
-                                                        href={`tel:${selectedOrder.customerPhone}`}
-                                                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--primary)]/10 text-[var(--primary)] font-black text-[10px] uppercase tracking-wider hover:bg-[var(--primary)]/20 transition-all active:scale-95"
-                                                        aria-label={`Llamar a ${selectedOrder.customerName}`}
-                                                    >
-                                                        <PhoneCall className="w-3.5 h-3.5" />
-                                                        Llamar
-                                                    </a>
-                                                    <a
-                                                        href={`https://wa.me/${selectedOrder.customerPhone.replace(/\D/g, '')}`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-green-500/10 text-green-600 font-black text-[10px] uppercase tracking-wider hover:bg-green-500/20 transition-all active:scale-95"
-                                                        aria-label={`Escribir a ${selectedOrder.customerName} por WhatsApp`}
-                                                    >
-                                                        <MessageCircle className="w-3.5 h-3.5" />
-                                                        WhatsApp
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--primary)] opacity-70">Detalles de Envío</h3>
-                                    <div className="flex items-center gap-3 bg-[var(--secondary)]/30 p-4 rounded-2xl">
-                                        <Calendar className="w-4 h-4 text-[var(--text)]/30" />
-                                        <div>
-                                            <p className="text-[10px] font-black text-[var(--text)]/30 uppercase tracking-tighter">Fecha y Hora</p>
-                                            <p className="font-black text-[var(--text)]">{new Date(selectedOrder.createdAt).toLocaleString()}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Right Column: Items Summary */}
-                            <div className="space-y-6">
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--primary)] opacity-80">Resumen de Productos</h3>
-                                <div className="space-y-2 border border-[var(--border)] rounded-3xl p-4 bg-[var(--bg)]/30">
-                                    {selectedOrder.items?.map((item: { quantity: number; productName: string; price: number }, i: number) => (
-                                        <div key={i} className="flex items-center justify-between py-2 border-b border-[var(--border)] last:border-0">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 bg-[var(--surface)] rounded-lg flex items-center justify-center text-[10px] font-black text-[var(--text)]/30 border border-[var(--border)]">
-                                                    {item.quantity}x
-                                                </div>
-                                                <p className="font-bold text-[var(--text)] text-sm">{item.productName || 'Producto'}</p>
-                                            </div>
-                                            <p className="font-black text-[var(--text)] text-sm">{formatCurrency(item.price * item.quantity, country)}</p>
-                                        </div>
-                                    ))}
-                                    <div className="pt-4 flex justify-between items-center">
-                                        <span className="text-sm font-black text-[var(--text)]/30 uppercase">Total</span>
-                                        <span className="text-2xl font-black text-[var(--primary)]">{formatCurrency(selectedOrder.total, country)}</span>
-                                    </div>
-                                </div>
-
-                                {/* Status Controls */}
-                                <div className="space-y-4 pt-4">
-                                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text)]/20 px-1">Estado del Pedido</h3>
-
-                                    {selectedOrder.status === 'PENDING' ? (
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <button
-                                                disabled={updatingId === selectedOrder.id}
-                                                onClick={() => handleUpdateStatus(selectedOrder.id, 'COMPLETED')}
-                                                className="flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl font-black text-xs transition-all active:scale-95 shadow-[var(--shadow)] bg-green-500/10 text-green-600 hover:bg-green-500/20 disabled:opacity-50"
-                                            >
-                                                {loadingStatus === 'COMPLETED' ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                                                Completar
-                                            </button>
-                                            <button
-                                                disabled={updatingId === selectedOrder.id}
-                                                onClick={() => handleUpdateStatus(selectedOrder.id, 'CANCELLED')}
-                                                className="flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl font-black text-xs transition-all active:scale-95 shadow-[var(--shadow)] bg-red-500/10 text-red-600 hover:bg-red-500/20 disabled:opacity-50"
-                                            >
-                                                {loadingStatus === 'CANCELLED' ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
-                                                Cancelar
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-3">
-                                            <div className={cn(
-                                                "flex items-center justify-center gap-3 py-4 rounded-2xl font-black text-xs uppercase tracking-widest border-2",
-                                                selectedOrder.status === 'COMPLETED' ? "bg-green-500/10 border-green-500/20 text-green-700" : "bg-red-500/10 border-red-500/20 text-red-700"
-                                            )}>
-                                                {selectedOrder.status === 'COMPLETED' ? <CheckCircle2 className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
-                                                {selectedOrder.status === 'COMPLETED' ? 'Pedido Completado' : 'Pedido Cancelado'}
-                                            </div>
-
-                                            <button
-                                                disabled={updatingId === selectedOrder.id}
-                                                onClick={() => handleUpdateStatus(selectedOrder.id, 'PENDING')}
-                                                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-[10px] uppercase tracking-wider text-[var(--text)]/30 hover:text-[var(--primary)] hover:bg-[var(--primary)]/10 transition-all active:scale-95 border border-dashed border-[var(--border)]"
-                                            >
-                                                {loadingStatus === 'PENDING' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Clock className="w-3 h-3" />}
-                                                Regresar a Pendiente
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Modal Footer */}
-                        <div className="p-6 md:p-8 bg-[var(--bg)]/30 border-t border-[var(--border)] flex items-center justify-between shrink-0">
-                            <button
-                                onClick={() => setSelectedOrder(null)}
-                                className="px-6 py-3 rounded-xl font-bold text-[var(--text)]/30 hover:bg-[var(--surface)] transition-all border border-transparent hover:border-[var(--border)]"
-                            >
-                                Cerrar
-                            </button>
-                        </div>
+            {selectedOrder && <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/40 backdrop-blur-sm sm:p-4"><div role="dialog" aria-modal="true" aria-labelledby="order-detail-title" className="flex h-full w-full max-w-5xl flex-col overflow-hidden bg-[var(--surface)] shadow-[var(--shadow-strong)] sm:h-auto sm:max-h-[90vh] sm:rounded-[2.5rem]">
+                <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--bg)]/30 p-4 sm:p-6"><div className="min-w-0"><h2 id="order-detail-title" className="text-xl font-black text-[var(--text)]">Detalles del pedido</h2><p className="mt-1 text-xs font-bold text-[var(--text)]/50">#{selectedOrder.id.slice(0, 12)} · {new Date(selectedOrder.createdAt).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}</p></div><button type="button" onClick={() => setSelectedOrder(null)} aria-label="Cerrar detalles del pedido" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[var(--text)]/50 hover:bg-[var(--secondary)]"><X className="h-5 w-5" /></button></div>
+                <div className="grid flex-1 grid-cols-1 gap-6 overflow-y-auto p-4 sm:p-6 md:grid-cols-2 md:gap-8">
+                    <div className="space-y-5"><section className="space-y-3"><h3 className="text-xs font-black uppercase tracking-widest text-[var(--primary)]">Cliente</h3><div className="flex items-start gap-3 rounded-2xl bg-[var(--secondary)]/30 p-4"><User className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text)]/40" /><div className="min-w-0"><p className="text-xs text-[var(--text)]/50">Nombre</p><p className="break-words font-bold text-[var(--text)]">{selectedOrder.customerName}</p></div></div>
+                        {selectedOrder.customerPhone && <div className="rounded-2xl bg-[var(--secondary)]/30 p-4"><div className="flex items-start gap-3"><Phone className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text)]/40" /><div className="min-w-0"><p className="text-xs text-[var(--text)]/50">Teléfono</p><p className="break-all font-bold text-[var(--text)]">{selectedOrder.customerPhone}</p></div></div><div className="mt-3 grid grid-cols-2 gap-2"><a href={`tel:${selectedOrder.customerPhone}`} aria-label={`Llamar a ${selectedOrder.customerName}`} className="flex min-h-10 items-center justify-center gap-2 rounded-xl bg-[var(--primary)]/10 px-2 text-xs font-bold text-[var(--primary)]"><PhoneCall className="h-4 w-4" /> Llamar</a><a href={`https://wa.me/${selectedOrder.customerPhone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" aria-label={`Escribir a ${selectedOrder.customerName} por WhatsApp`} className="flex min-h-10 items-center justify-center gap-2 rounded-xl bg-green-500/10 px-2 text-xs font-bold text-green-600"><MessageCircle className="h-4 w-4" /> WhatsApp</a></div></div>}
+                    </section><section className="space-y-3"><h3 className="text-xs font-black uppercase tracking-widest text-[var(--primary)]">Entrega</h3><div className="flex items-start gap-3 rounded-2xl bg-[var(--secondary)]/30 p-4"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text)]/40" /><div className="min-w-0"><p className="text-xs text-[var(--text)]/50">Dirección</p><p className="break-words text-sm font-bold text-[var(--text)]">{selectedOrder.customerAddress || 'No indicada'}</p></div></div><div className="flex items-start gap-3 rounded-2xl bg-[var(--secondary)]/30 p-4"><Calendar className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text)]/40" /><div><p className="text-xs text-[var(--text)]/50">Fecha del pedido</p><p className="text-sm font-bold text-[var(--text)]">{new Date(selectedOrder.createdAt).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}</p></div></div></section></div>
+                    <div className="space-y-5"><section className="space-y-3"><h3 className="text-xs font-black uppercase tracking-widest text-[var(--primary)]">Productos</h3><div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)]/30 p-4"><div className="divide-y divide-[var(--border)]">{selectedOrder.items?.map((item, index) => <div key={item.id || index} className="flex items-start justify-between gap-3 py-3 first:pt-0"><div className="min-w-0"><p className="break-words text-sm font-bold text-[var(--text)]">{item.quantity} × {item.productName || 'Producto'}</p>{item.variantName && <p className="mt-1 break-words text-xs text-[var(--text)]/60">Variante: {item.variantName}</p>}{item.sku && <p className="mt-1 break-all text-xs text-[var(--text)]/45">SKU: {item.sku}</p>}</div><p className="shrink-0 text-sm font-black text-[var(--text)]">{formatCurrency(Number(item.price) * item.quantity, country)}</p></div>)}</div><div className="flex items-center justify-between gap-3 border-t border-[var(--border)] pt-4"><span className="text-sm font-bold text-[var(--text)]/55">Total</span><span className="text-xl font-black text-[var(--primary)]">{formatCurrency(selectedOrder.total, country)}</span></div></div></section>
+                        <section className="space-y-3"><div className="flex items-center justify-between gap-3"><h3 className="text-xs font-black uppercase tracking-widest text-[var(--text)]/50">Estado del pedido</h3><StatusBadge status={badgeStatus[selectedOrder.status]} /></div>
+                            {(selectedOrder.status === 'PENDING' || selectedOrder.status === 'CONFIRMED') ? <><p className="text-xs leading-relaxed text-[var(--text)]/55">Al completar el pedido, se descuenta el inventario de los productos que lo controlan.</p><div className="grid grid-cols-2 gap-2"><button disabled={!!updatingId} onClick={() => void changeStatus('COMPLETED')} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-green-500/10 px-2 text-xs font-bold text-green-600 disabled:opacity-50">{loadingStatus === 'COMPLETED' ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} Completar</button><button disabled={!!updatingId} onClick={() => void changeStatus('CANCELLED')} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-red-500/10 px-2 text-xs font-bold text-red-600 disabled:opacity-50">{loadingStatus === 'CANCELLED' ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />} Cancelar</button></div></> : <><p className="text-xs leading-relaxed text-[var(--text)]/55">{selectedOrder.status === 'COMPLETED' ? 'Al regresar a pendiente, el sistema intentará restablecer el inventario descontado.' : 'Puedes regresar este pedido a pendiente para gestionarlo de nuevo.'}</p><button disabled={!!updatingId} onClick={() => void changeStatus('PENDING')} className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--border)] text-xs font-bold text-[var(--text)]/60 hover:text-[var(--primary)] disabled:opacity-50">{loadingStatus === 'PENDING' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Clock className="h-4 w-4" />} Regresar a pendiente</button></>}
+                            {message && <p role={message.type === 'error' ? 'alert' : 'status'} className={cn('rounded-xl p-3 text-xs font-bold', message.type === 'error' ? 'bg-red-500/10 text-red-600' : 'bg-green-500/10 text-green-700')}>{message.text}</p>}
+                        </section>
                     </div>
                 </div>
-            )}
+                <div className="shrink-0 border-t border-[var(--border)] bg-[var(--bg)]/30 p-4 sm:p-5"><button onClick={() => setSelectedOrder(null)} className="min-h-11 rounded-xl px-5 text-sm font-bold text-[var(--text)]/60 hover:bg-[var(--secondary)]">Cerrar</button></div>
+            </div></div>}
         </div>
     );
 }
-
-
-
-

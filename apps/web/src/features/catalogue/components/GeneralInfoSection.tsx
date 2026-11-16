@@ -4,15 +4,17 @@ import React from 'react';
 import { DollarSign, Package, Wrench } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useProducts } from '@/hooks/useProducts';
+import { StyledSelect } from '@/components/ui/StyledSelect';
 import { PriceInput } from '@/components/ui/PriceInput';
 
 interface GeneralInfoSectionProps {
     form: ReturnType<typeof useProducts>['state']['form'];
     actions: ReturnType<typeof useProducts>['actions'];
     categories: ReturnType<typeof useProducts>['state']['categories'];
+    similarNames: string[];
 }
 
-export function GeneralInfoSection({ form, actions, categories }: GeneralInfoSectionProps) {
+export function GeneralInfoSection({ form, actions, categories, similarNames }: GeneralInfoSectionProps) {
     const isService = form.itemType === 'service';
 
     return (
@@ -58,16 +60,7 @@ export function GeneralInfoSection({ form, actions, categories }: GeneralInfoSec
                     <label className="text-[10px] font-black uppercase tracking-wider text-[var(--text)]/40 px-1">
                         Modalidad de Precio del Servicio
                     </label>
-                    <select
-                        value={form.pricingMode || 'fixed'}
-                        onChange={(e) => actions.setPricingMode(e.target.value as any)}
-                        className="w-full px-5 py-3.5 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] outline-none font-bold text-[var(--text)] bg-[var(--bg)] appearance-none cursor-pointer"
-                    >
-                        <option value="fixed">Precio fijo (Ej: $50.000)</option>
-                        <option value="from">Desde / A partir de (Ej: Desde $30.000)</option>
-                        <option value="hourly">Tarifa por hora (Ej: $25.000 / hora)</option>
-                        <option value="quote">A convenir / Por cotización (Sin precio fijo)</option>
-                    </select>
+                    <StyledSelect label="Modalidad de precio del servicio" value={form.pricingMode || 'fixed'} onChange={value => actions.setPricingMode(value as 'fixed' | 'from' | 'hourly' | 'quote')} options={[{ value: 'fixed', label: 'Precio fijo' }, { value: 'from', label: 'Desde / A partir de' }, { value: 'hourly', label: 'Tarifa por hora' }, { value: 'quote', label: 'A convenir / Por cotización' }]} />
                 </div>
             )}
 
@@ -84,6 +77,8 @@ export function GeneralInfoSection({ form, actions, categories }: GeneralInfoSec
                     placeholder={isService ? "Ej: Reparación de Celulares / Manicura Express" : "Ej: Café Late Especial"}
                 />
             </div>
+
+            {similarNames.length > 0 && <div role="status" className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"><strong>Posibles productos repetidos</strong><p className="mt-1">Revisa si ya existen: {similarNames.join(', ')}. Puedes continuar si son productos diferentes.</p></div>}
 
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -194,14 +189,7 @@ export function GeneralInfoSection({ form, actions, categories }: GeneralInfoSec
 
             <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-wider text-[var(--text)]/40 px-1">Categoría</label>
-                <select
-                    value={form.categoryId}
-                    onChange={(e) => actions.setCategoryId(e.target.value)}
-                    className="w-full px-5 py-3.5 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] outline-none font-bold text-[var(--text)] bg-[var(--bg)] appearance-none cursor-pointer"
-                >
-                    <option value="">Sin categoría</option>
-                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                <StyledSelect label="Categoría del producto" value={form.categoryId} onChange={actions.setCategoryId} options={[{ value: '', label: 'Sin categoría' }, ...categories.map(category => ({ value: category.id, label: category.name }))]} />
             </div>
         </div>
     );

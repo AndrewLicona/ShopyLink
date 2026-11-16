@@ -163,8 +163,10 @@ export function useStoreView(store: Store, initialProducts: Product[]) {
     const showTypeTabs = hasProducts && hasServices;
 
     const filteredProducts = useMemo(() => {
+        const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es');
+        const query = normalize(searchTerm.trim());
         return initialProducts.filter(p => {
-            const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesSearch = !query || [p.name, p.description || '', ...(p.variants || []).map(variant => variant.name)].some(value => normalize(value).includes(query));
             const matchesCategory = categoryFilter === 'all' || p.categoryId === categoryFilter;
             const matchesType = itemTypeFilter === 'all' || (p.itemType || 'product') === itemTypeFilter;
             return matchesSearch && matchesCategory && matchesType;

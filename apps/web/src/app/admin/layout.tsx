@@ -70,17 +70,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return (
         <div className="min-h-screen bg-[#F8FAFC] text-slate-900">
             {/* Simple Admin Navbar */}
-            <header className="bg-white border-b border-slate-200 h-16 flex items-center px-4 md:px-8 justify-between sticky top-[var(--impersonation-banner-h,0px)] z-50">
-                <div className="flex items-center gap-2">
+            <header className="bg-white/95 backdrop-blur border-b border-slate-200 h-16 flex items-center gap-2 px-4 md:px-8 justify-between sticky top-[var(--impersonation-banner-h,0px)] z-50">
+                <div className="flex items-center gap-2 min-w-0">
                     <ShieldAlert className="w-5 h-5 md:w-6 md:h-6 text-indigo-600" />
                     <span className="font-black text-lg md:text-xl tracking-tight text-slate-900">Shopy<span className="text-indigo-600 md:inline hidden">Admin</span><span className="text-indigo-600 md:hidden ml-1">Admin</span></span>
                 </div>
                 <div className="flex items-center gap-2 md:gap-4">
-                    <span className="text-[10px] md:text-sm font-bold bg-indigo-50 text-indigo-700 px-2 md:px-3 py-1 rounded-full uppercase tracking-wider">SuperAdmin</span>
+                    <span className="text-[9px] sm:text-xs md:text-sm font-bold bg-indigo-50 text-indigo-700 px-2 md:px-3 py-1 rounded-full uppercase tracking-wider">SuperAdmin</span>
                     <button onClick={() => router.push('/dashboard')} className="text-[10px] md:text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors bg-slate-100 px-2 md:px-0 md:bg-transparent py-1.5 md:py-0 rounded-lg">Salir</button>
                 </div>
             </header>
-            <main className="max-w-7xl mx-auto p-4 md:p-8">
+            <main className="max-w-7xl mx-auto px-3 py-5 sm:px-5 md:p-8">
                 {children}
             </main>
         </div>

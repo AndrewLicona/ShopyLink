@@ -1,278 +1,50 @@
 'use client';
 
-import { Camera, Loader2, Save, User as UserIcon, Lock, Eye, EyeOff, Trash2 } from 'lucide-react';
+import { Camera, Check, Eye, EyeOff, Loader2, LockKeyhole, Mail, Save, ShieldCheck, Trash2, UserRound } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useProfileSettings } from '@/hooks/useProfileSettings';
 
-interface ProfileTabProps {
-    hook: ReturnType<typeof useProfileSettings>;
-}
+interface ProfileTabProps { hook: ReturnType<typeof useProfileSettings> }
+const inputStyle = 'w-full min-w-0 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3.5 text-sm font-semibold text-[var(--text)] outline-none transition-colors focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/10';
 
 export function ProfileTab({ hook }: ProfileTabProps) {
     const { state, actions } = hook;
+    const passwordChecks = [
+        { label: 'Al menos 8 caracteres', passed: state.newPassword.length >= 8 },
+        { label: 'Una mayúscula', passed: /[A-Z]/.test(state.newPassword) },
+        { label: 'Un número', passed: /[0-9]/.test(state.newPassword) },
+        { label: 'Un símbolo', passed: /[^A-Za-z0-9]/.test(state.newPassword) },
+    ];
+    const passwordValid = passwordChecks[0]?.passed && passwordChecks.filter(check => check.passed).length >= 3;
+    const passwordsMatch = !!state.confirmPassword && state.confirmPassword === state.newPassword;
+    const busy = state.saving || state.uploading;
+    const feedback = (scope: 'profile' | 'password') => {
+        const relevant = scope === 'profile' ? state.lastAction === 'profile' || state.lastAction === 'avatar' : state.lastAction === 'password';
+        if (!relevant || (!state.error && !state.success)) return null;
+        return <p role={state.error ? 'alert' : 'status'} className={cn('rounded-xl border p-3 text-sm font-bold', state.error ? 'border-red-500/20 bg-red-500/5 text-red-600' : 'border-emerald-500/20 bg-emerald-500/5 text-emerald-700')}>{state.error || state.success}</p>;
+    };
+
+    if (state.loading) return <div className="flex min-h-52 items-center justify-center text-[var(--primary)]"><Loader2 className="h-7 w-7 animate-spin" /><span className="sr-only">Cargando perfil</span></div>;
+    if (state.loadError) return <div role="alert" className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 text-center"><h2 className="text-lg font-black text-[var(--text)]">No pudimos cargar tu perfil</h2><p className="mt-2 text-sm text-[var(--text)]/60">Comprueba tu conexión y vuelve a intentarlo.</p><button type="button" onClick={() => window.location.reload()} className="mt-4 rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-bold text-[var(--bg)]">Reintentar</button></div>;
 
     return (
-        <motion.div key="profile" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-8 pb-20">
-            <div className="bg-[var(--surface)] rounded-[2.5rem] shadow-[var(--shadow)] border border-[var(--border)] overflow-hidden">
-                <form onSubmit={actions.handleUpdateProfile} className="p-8 md:p-12 space-y-12">
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-                        {/* Avatar Column */}
-                        <div className="lg:col-span-4 flex flex-col items-center gap-6">
-                            <div className="relative group/avatar cursor-pointer">
-                                <div className="w-40 h-40 md:w-52 md:h-52 bg-[var(--bg)] rounded-[3.5rem] shadow-[var(--shadow)] border-4 border-[var(--border)] overflow-hidden flex items-center justify-center transition-all group-hover/avatar:border-[var(--primary)]/40">
-                                    {state.avatarUrl ? (
-                                        <Image src={state.avatarUrl} alt="Avatar" fill className="object-cover" />
-                                    ) : (
-                                        <UserIcon className="w-20 h-20 text-[var(--text)]/10" />
-                                    )}
-                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center">
-                                        <Camera className="w-10 h-10 text-white" />
-                                    </div>
-                                </div>
-                                <label className="absolute -bottom-2 -right-2 w-14 h-14 bg-[var(--primary)] text-white rounded-2xl shadow-[var(--shadow-strong)] flex items-center justify-center cursor-pointer hover:scale-110 active:scale-90 transition-all border-4 border-[var(--surface)]">
-                                    <Camera className="w-6 h-6" />
-                                    <input type="file" className="hidden" accept="image/*" onChange={actions.handleAvatarUpload} disabled={state.uploading} />
-                                </label>
-                                {state.avatarUrl && (
-                                    <button
-                                        type="button"
-                                        onClick={actions.handleRemoveAvatar}
-                                        disabled={state.uploading}
-                                        className="absolute -bottom-2 -left-2 w-12 h-12 bg-red-500 text-white rounded-2xl shadow-[var(--shadow-strong)] flex items-center justify-center cursor-pointer hover:scale-110 active:scale-90 transition-all border-4 border-[var(--surface)]"
-                                    >
-                                        <Trash2 className="w-5 h-5" />
-                                    </button>
-                                )}
-                            </div>
-                            <div className="text-center space-y-1">
-                                <p className="font-black text-xl text-[var(--text)]">@{state.username}</p>
-                                <p className="text-xs text-[var(--text)]/40 font-bold uppercase tracking-widest italic">Usuario Verificado</p>
-                            </div>
-                        </div>
+        <motion.div key="profile" initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 12 }} className="space-y-5 pb-20">
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5"><p className="text-xs font-bold uppercase tracking-widest text-[var(--primary)]">Tu cuenta</p><h2 className="mt-1 text-lg font-black text-[var(--text)]">Mi perfil</h2><p className="mt-1 text-xs leading-relaxed text-[var(--text)]/50">Administra tus datos personales y la seguridad de tu cuenta.</p></div>
 
-                        {/* Basic Info Column */}
-                        <div className="lg:col-span-8 space-y-8">
-                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[var(--primary)] px-1 flex items-center gap-2">
-                                <UserIcon className="w-4 h-4" /> Información de Cuenta
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-black uppercase tracking-widest text-[var(--text)]/40 px-1">Nombre Completo</label>
-                                    <input
-                                        type="text"
-                                        className="w-full px-6 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] outline-none transition-all font-bold text-[var(--text)] bg-[var(--bg)]"
-                                        value={state.fullName}
-                                        onChange={(e) => actions.setFullName(e.target.value)}
-                                    />
-                                </div>
-                                <div className="space-y-2 opacity-60">
-                                    <label className="text-xs font-black uppercase tracking-widest text-[var(--text)]/40 px-1">Nombre de Usuario (No editable)</label>
-                                    <div className="w-full px-6 py-4 rounded-2xl border-2 border-[var(--border)] font-bold text-[var(--text)]/60 bg-[var(--bg)] bg-opacity-50">
-                                        {state.username}
-                                    </div>
-                                </div>
-                                <div className="space-y-2 md:col-span-2">
-                                    <label className="text-xs font-black uppercase tracking-widest text-[var(--text)]/40 px-1">Correo Electrónico</label>
-                                    <input
-                                        type="email"
-                                        className="w-full px-6 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] outline-none transition-all font-bold text-[var(--text)] bg-[var(--bg)]"
-                                        value={state.email}
-                                        onChange={(e) => actions.setEmail(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex justify-end pt-4">
-                                <button type="submit" disabled={state.saving} className="bg-[var(--primary)] text-[var(--bg)] px-8 py-4 rounded-2xl font-black text-sm hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all flex items-center gap-2 shadow-lg shadow-[var(--primary)]/20">
-                                    {state.saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4" /> Guardar Perfil</>}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
+            <section className="overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
+                <div className="border-b border-[var(--border)] px-5 py-5 sm:px-7"><h3 className="flex items-center gap-2 text-lg font-black text-[var(--text)]"><UserRound className="h-5 w-5 text-[var(--primary)]" /> Información personal</h3><p className="mt-1 text-sm text-[var(--text)]/50">Estos datos identifican tu cuenta en ShopyLinks.</p></div>
+                <div className="grid gap-7 p-5 sm:p-7 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10">
+                    <div className="flex flex-col items-center text-center lg:items-start lg:text-left"><div className="relative h-28 w-28 overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--bg)] sm:h-32 sm:w-32">{state.avatarUrl ? <Image src={state.avatarUrl} alt="Foto de perfil" fill sizes="128px" className="object-cover" /> : <div className="flex h-full items-center justify-center"><UserRound className="h-12 w-12 text-[var(--text)]/20" /></div>}{state.uploading && <div className="absolute inset-0 flex items-center justify-center bg-black/40"><Loader2 className="h-6 w-6 animate-spin text-white" /></div>}</div><p className="mt-3 break-all text-sm font-black text-[var(--text)]">{state.username ? `@${state.username}` : state.fullName || 'Tu cuenta'}</p><p className="mt-1 text-xs leading-relaxed text-[var(--text)]/50">Tu foto se actualiza al seleccionarla.</p><div className="mt-4 flex flex-wrap justify-center gap-2 lg:justify-start"><label className={cn('inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 text-xs font-bold text-[var(--text)] hover:bg-[var(--secondary)]', busy && 'pointer-events-none opacity-50')}><Camera className="h-4 w-4" />{state.avatarUrl ? 'Cambiar foto' : 'Añadir foto'}<input aria-label="Seleccionar foto de perfil" type="file" className="sr-only" accept="image/*" onChange={actions.handleAvatarUpload} disabled={busy} /></label>{state.avatarUrl && <button type="button" onClick={() => void actions.handleRemoveAvatar()} disabled={busy} aria-label="Quitar foto de perfil" className="flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-red-500/20 px-3 text-xs font-bold text-red-500 hover:bg-red-500/5 disabled:opacity-50"><Trash2 className="h-4 w-4" /> Quitar</button>}</div></div>
+                    <form onSubmit={actions.handleUpdateProfile} className="min-w-0 space-y-5"><div className="grid gap-4 sm:grid-cols-2"><label htmlFor="profile-name" className="space-y-2 text-sm font-bold text-[var(--text)]/70"><span>Nombre completo</span><input id="profile-name" type="text" autoComplete="name" className={inputStyle} value={state.fullName} onChange={e => actions.setFullName(e.target.value)} /></label><div className="space-y-2 text-sm font-bold text-[var(--text)]/70"><span>Nombre de usuario</span><div className="flex min-h-[50px] items-center rounded-xl border border-[var(--border)] bg-[var(--secondary)]/50 px-4 text-sm text-[var(--text)]/60">{state.username ? `@${state.username}` : 'No disponible'}</div><p className="text-xs font-normal text-[var(--text)]/45">El nombre de usuario no se puede editar aquí.</p></div><label htmlFor="profile-email" className="space-y-2 text-sm font-bold text-[var(--text)]/70 sm:col-span-2"><span className="flex items-center gap-2"><Mail className="h-4 w-4" /> Correo electrónico</span><input id="profile-email" type="email" required autoComplete="email" className={inputStyle} value={state.email} onChange={e => actions.setEmail(e.target.value)} /><span className="block text-xs font-normal leading-relaxed text-[var(--text)]/45">Si cambias el correo, puede que debas confirmar la nueva dirección.</span></label></div>{feedback('profile')}<div className="flex justify-end border-t border-[var(--border)] pt-4"><button type="submit" disabled={busy} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-bold text-[var(--bg)] hover:opacity-90 disabled:opacity-50 sm:w-auto">{state.saving && state.lastAction === 'profile' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} {state.saving && state.lastAction === 'profile' ? 'Guardando…' : 'Guardar perfil'}</button></div></form>
+                </div>
+            </section>
 
-            {/* Password Section */}
-            <div className="bg-[var(--surface)] rounded-[2.5rem] shadow-[var(--shadow)] border border-[var(--border)] overflow-hidden">
-                <form onSubmit={actions.handleChangePassword} className="p-8 md:p-12 space-y-8">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="space-y-1">
-                            <h3 className="text-xl font-black text-[var(--text)] uppercase tracking-tighter italic flex items-center gap-2">
-                                <Lock className="w-5 h-5 text-red-500" /> Seguridad
-                            </h3>
-                            <p className="text-sm text-[var(--text)]/40 font-medium">Actualiza tu contraseña para mantener tu cuenta segura.</p>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2 relative">
-                            <label className="text-xs font-black uppercase tracking-widest text-[var(--text)]/40 px-1">Nueva Contraseña</label>
-                            <div className="relative">
-                                <input
-                                    type={state.showNewPassword ? "text" : "password"}
-                                    className={cn(
-                                        "w-full pl-6 pr-14 py-4 rounded-2xl border-2 outline-none transition-all font-bold text-[var(--text)] bg-[var(--bg)]",
-                                        state.newPassword && state.newPassword.length < 8 ? "border-red-500/50" : "border-[var(--border)] focus:border-[var(--primary)]"
-                                    )}
-                                    value={state.newPassword}
-                                    onChange={(e) => actions.setNewPassword(e.target.value)}
-                                />
-                                <button type="button" onClick={() => actions.setShowNewPassword(!state.showNewPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-[var(--text)]/20 hover:text-[var(--text)]/40 transition-colors">
-                                    {state.showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                                </button>
-                            </div>
-                        </div>
-                        <div className="space-y-2 relative">
-                            <label className="text-xs font-black uppercase tracking-widest text-[var(--text)]/40 px-1">Confirmar Contraseña</label>
-                            <div className="relative">
-                                <input
-                                    type={state.showConfirmPassword ? "text" : "password"}
-                                    className={cn(
-                                        "w-full pl-6 pr-14 py-4 rounded-2xl border-2 outline-none transition-all font-bold text-[var(--text)] bg-[var(--bg)]",
-                                        state.confirmPassword && state.newPassword !== state.confirmPassword ? "border-red-500/50" : "border-[var(--border)] focus:border-[var(--primary)]"
-                                    )}
-                                    value={state.confirmPassword}
-                                    onChange={(e) => actions.setConfirmPassword(e.target.value)}
-                                />
-                                <button type="button" onClick={() => actions.setShowConfirmPassword(!state.showConfirmPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-[var(--text)]/20 hover:text-[var(--text)]/40 transition-colors">
-                                    {state.showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Password Strength and Requirements */}
-                    {state.newPassword && (
-                        <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                            {/* Strength Meter */}
-                            <div className="space-y-1.5">
-                                <div className="flex justify-between items-center px-1">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text)]/40">Seguridad</span>
-                                    <span className={cn(
-                                        "text-[10px] font-black uppercase tracking-widest",
-                                        (() => {
-                                            const pass = state.newPassword;
-                                            const score = [
-                                                pass.length >= 8,
-                                                /[A-Z]/.test(pass),
-                                                /[0-9]/.test(pass),
-                                                /[^A-Za-z0-9]/.test(pass)
-                                            ].filter(Boolean).length;
-                                            if (score <= 1) return "text-red-500";
-                                            if (score === 2) return "text-amber-500";
-                                            if (score === 3) return "text-blue-500";
-                                            return "text-green-500";
-                                        })()
-                                    )}>
-                                        {(() => {
-                                            const pass = state.newPassword;
-                                            const score = [
-                                                pass.length >= 8,
-                                                /[A-Z]/.test(pass),
-                                                /[0-9]/.test(pass),
-                                                /[^A-Za-z0-9]/.test(pass)
-                                            ].filter(Boolean).length;
-                                            if (score <= 1) return "Débil";
-                                            if (score === 2) return "Media";
-                                            if (score === 3) return "Segura";
-                                            return "Muy Segura";
-                                        })()}
-                                    </span>
-                                </div>
-                                <div className="h-1.5 w-full bg-[var(--border)] rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full transition-all duration-500"
-                                        style={{
-                                            width: `${([
-                                                state.newPassword.length >= 8,
-                                                /[A-Z]/.test(state.newPassword),
-                                                /[0-9]/.test(state.newPassword),
-                                                /[^A-Za-z0-9]/.test(state.newPassword)
-                                            ].filter(Boolean).length) * 25}%`,
-                                            backgroundColor: (() => {
-                                                const score = [
-                                                    state.newPassword.length >= 8,
-                                                    /[A-Z]/.test(state.newPassword),
-                                                    /[0-9]/.test(state.newPassword),
-                                                    /[^A-Za-z0-9]/.test(state.newPassword)
-                                                ].filter(Boolean).length;
-                                                if (score <= 1) return '#ef4444';
-                                                if (score === 2) return '#f59e0b';
-                                                if (score === 3) return '#3b82f6';
-                                                return '#22c55e';
-                                            })()
-                                        }}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Requirements Grid */}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 px-1">
-                                {[
-                                    { label: '8+ Caracteres', check: state.newPassword.length >= 8 },
-                                    { label: 'Mayúscula', check: /[A-Z]/.test(state.newPassword) },
-                                    { label: 'Número', check: /[0-9]/.test(state.newPassword) },
-                                    { label: 'Símbolo (!@#)', check: /[^A-Za-z0-9]/.test(state.newPassword) },
-                                ].map((req, i) => (
-                                    <div key={i} className="flex items-center gap-2">
-                                        <div className={cn(
-                                            "w-4 h-4 rounded-full flex items-center justify-center border-2 transition-all shrink-0",
-                                            req.check ? "bg-green-500 border-green-500 text-white" : "border-[var(--border)] bg-transparent"
-                                        )}>
-                                            {req.check && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                                        </div>
-                                        <span className={cn(
-                                            "text-[9px] font-black uppercase tracking-widest transition-colors",
-                                            req.check ? "text-green-500" : "text-[var(--text)]/30"
-                                        )}>
-                                            {req.label}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Match Check */}
-                            <div className="pt-2 border-t border-[var(--border)] mt-2">
-                                <div className="flex items-center gap-2">
-                                    <div className={cn(
-                                        "w-4 h-4 rounded-full flex items-center justify-center border-2 transition-all",
-                                        state.confirmPassword && state.newPassword === state.confirmPassword ? "bg-green-500 border-green-500 text-white" : "border-[var(--border)] bg-transparent"
-                                    )}>
-                                        {state.confirmPassword && state.newPassword === state.confirmPassword && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                                    </div>
-                                    <span className={cn(
-                                        "text-[9px] font-black uppercase tracking-widest transition-colors",
-                                        state.confirmPassword && state.newPassword === state.confirmPassword ? "text-green-500" : "text-[var(--text)]/30"
-                                    )}>
-                                        Las contraseñas coinciden
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="flex justify-end pt-4">
-                        <button
-                            type="submit"
-                            disabled={
-                                state.saving ||
-                                !state.newPassword ||
-                                state.newPassword !== state.confirmPassword ||
-                                [
-                                    state.newPassword.length >= 8,
-                                    /[A-Z]/.test(state.newPassword),
-                                    /[0-9]/.test(state.newPassword),
-                                    /[^A-Za-z0-9]/.test(state.newPassword)
-                                ].filter(Boolean).length < 3
-                            }
-                            className="bg-red-500 text-white px-8 py-4 rounded-2xl font-black text-sm hover:opacity-90 active:scale-95 disabled:opacity-30 transition-all flex items-center gap-2 shadow-lg shadow-red-500/20"
-                        >
-                            {state.saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Lock className="w-4 h-4" /> Cambiar Contraseña</>}
-                        </button>
-                    </div>
-                </form>
-            </div>
+            <section className="overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]"><div className="border-b border-[var(--border)] px-5 py-5 sm:px-7"><h3 className="flex items-center gap-2 text-lg font-black text-[var(--text)]"><ShieldCheck className="h-5 w-5 text-[var(--primary)]" /> Seguridad</h3><p className="mt-1 text-sm text-[var(--text)]/50">Actualiza tu contraseña cuando lo necesites.</p></div><form onSubmit={actions.handleChangePassword} className="space-y-5 p-5 sm:p-7"><div className="grid gap-4 md:grid-cols-2"><label htmlFor="profile-new-password" className="space-y-2 text-sm font-bold text-[var(--text)]/70"><span>Nueva contraseña</span><span className="relative block"><input id="profile-new-password" type={state.showNewPassword ? 'text' : 'password'} autoComplete="new-password" className={cn(inputStyle, 'pr-12')} value={state.newPassword} onChange={e => actions.setNewPassword(e.target.value)} /><button type="button" onClick={() => actions.setShowNewPassword(!state.showNewPassword)} aria-label={state.showNewPassword ? 'Ocultar nueva contraseña' : 'Mostrar nueva contraseña'} className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg text-[var(--text)]/45 hover:bg-[var(--secondary)]">{state.showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></span></label><label htmlFor="profile-confirm-password" className="space-y-2 text-sm font-bold text-[var(--text)]/70"><span>Confirmar contraseña</span><span className="relative block"><input id="profile-confirm-password" type={state.showConfirmPassword ? 'text' : 'password'} autoComplete="new-password" className={cn(inputStyle, 'pr-12')} value={state.confirmPassword} onChange={e => actions.setConfirmPassword(e.target.value)} /><button type="button" onClick={() => actions.setShowConfirmPassword(!state.showConfirmPassword)} aria-label={state.showConfirmPassword ? 'Ocultar confirmación de contraseña' : 'Mostrar confirmación de contraseña'} className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg text-[var(--text)]/45 hover:bg-[var(--secondary)]">{state.showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></span></label></div>
+                    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-4"><p className="text-xs font-bold leading-relaxed text-[var(--text)]/60">Usa al menos 8 caracteres y dos de estas opciones: mayúscula, número o símbolo.</p><ul className="mt-3 grid gap-2 sm:grid-cols-2">{passwordChecks.map(check => <li key={check.label} className={cn('flex items-center gap-2 text-xs', check.passed ? 'font-bold text-emerald-600' : 'text-[var(--text)]/50')}><span className={cn('flex h-4 w-4 shrink-0 items-center justify-center rounded-full border', check.passed ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-[var(--border)]')}>
+                        {check.passed && <Check className="h-3 w-3" />}</span>{check.label}</li>)}</ul>{state.confirmPassword && <p className={cn('mt-3 text-xs font-bold', passwordsMatch ? 'text-emerald-600' : 'text-amber-600')}>{passwordsMatch ? 'Las contraseñas coinciden.' : 'Las contraseñas aún no coinciden.'}</p>}</div>
+                    {feedback('password')}<div className="flex justify-end border-t border-[var(--border)] pt-4"><button type="submit" disabled={busy || !passwordValid || !passwordsMatch} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-bold text-[var(--bg)] hover:opacity-90 disabled:opacity-40 sm:w-auto">{state.saving && state.lastAction === 'password' ? <Loader2 className="h-4 w-4 animate-spin" /> : <LockKeyhole className="h-4 w-4" />}{state.saving && state.lastAction === 'password' ? 'Actualizando…' : 'Cambiar contraseña'}</button></div></form></section>
         </motion.div>
     );
 }

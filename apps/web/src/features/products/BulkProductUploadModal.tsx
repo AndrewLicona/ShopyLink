@@ -4,7 +4,25 @@ import { useState } from 'react';
 import { X, Upload, Plus, Trash2, Check, AlertCircle, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/atoms/Button';
 import { api } from '@/services/api';
-import type { Category } from '@/types/types';
+import { findSimilarProducts, normalizeProductName } from '@/lib/productDuplicates';
+import type { Category, Product } from '@/types/types';
+
+function parseCsvLine(line: string): string[] {
+    const fields: string[] = [];
+    let field = '';
+    let quoted = false;
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+            if (quoted && line[i + 1] === '"') { field += '"'; i++; }
+            else quoted = !quoted;
+        } else if (char === ',' && !quoted) { fields.push(field); field = ''; }
+        else field += char;
+    }
+    if (quoted) throw new Error('Comillas sin cerrar en el CSV.');
+    fields.push(field);
+    return fields;
+}
 
 interface BulkProductRow {
     name: string;
@@ -19,6 +37,7 @@ interface BulkProductUploadModalProps {
     onClose: () => void;
     storeId: string;
     categories: Category[];
+    existingProducts: Product[];
     onSuccess: () => void;
 }
 
@@ -27,6 +46,7 @@ export function BulkProductUploadModal({
     onClose,
     storeId,
     categories,
+    existingProducts,
     onSuccess,
 }: BulkProductUploadModalProps) {
     const [rows, setRows] = useState<BulkProductRow[]>([
@@ -40,7 +60,14 @@ export function BulkProductUploadModal({
 
     if (!isOpen) return null;
 
+    const duplicateRows = rows.flatMap((row, index) => {
+        if (!normalizeProductName(row.name)) return [];
+        const matches = findSimilarProducts(row.name, [...existingProducts, ...rows.slice(0, index).filter(r => r.name.trim())]);
+        return matches.length ? [`Fila ${index + 1}: ${matches.map(match => match.name).join(', ')}`] : [];
+    });
+
     const handleAddRow = () => {
+        if (rows.length >= 50) { setError('El máximo es 50 productos por carga.'); return; }
         setRows([...rows, { name: '', price: '', description: '', categoryName: '', itemType: 'product' }]);
     };
 
@@ -69,15 +96,20 @@ export function BulkProductUploadModal({
         if (!pasteText.trim()) return;
 
         // Split by lines
+        setError(null);
         const lines = pasteText.trim().split(/\r?\n/);
+        if (lines.length > 51) { setError('El máximo es 50 productos por carga.'); return; }
         const parsedRows: BulkProductRow[] = [];
 
         for (const line of lines) {
             if (!line.trim()) continue;
             // Split by tab (Excel/Sheets) or comma
-            const cols = line.includes('\t') ? line.split('\t') : line.split(',');
+            let cols: string[];
+            try { cols = line.includes('\t') ? line.split('\t') : parseCsvLine(line); }
+            catch { setError('Revisa las comillas del CSV. Cada producto debe ocupar una línea.'); return; }
+            if (parsedRows.length === 0 && /^(nombre|name)$/i.test((cols[0] || '').trim())) continue;
             const name = cols[0]?.trim() || '';
-            const price = cols[1]?.trim().replace(/[^0-9.]/g, '') || '';
+            const price = cols[1]?.trim() || '';
             const description = cols[2]?.trim() || '';
             const categoryName = cols[3]?.trim() || '';
 
@@ -92,6 +124,7 @@ export function BulkProductUploadModal({
             }
         }
 
+        if (parsedRows.length > 50) { setError('El máximo es 50 productos por carga.'); return; }
         if (parsedRows.length > 0) {
             setRows(parsedRows);
             setIsPasting(false);
@@ -110,15 +143,22 @@ export function BulkProductUploadModal({
             return;
         }
 
+        if (validRows.length !== rows.length) { setError('Completa el nombre de todas las filas o elimina las vacías.'); return; }
+        if (validRows.length > 50) { setError('El máximo es 50 productos por carga.'); return; }
+        const invalidPrice = validRows.findIndex(r => r.price.trim() && (!Number.isFinite(Number(r.price)) || Number(r.price) < 0));
+        if (invalidPrice >= 0) { setError(`Revisa el precio de la fila ${invalidPrice + 1}. Usa un número con punto decimal.`); return; }
+        const missingCategory = validRows.find(r => r.categoryName && !categories.some(c => normalizeProductName(c.name) === normalizeProductName(r.categoryName)));
+        if (missingCategory) { setError(`La categoría "${missingCategory.categoryName}" no existe. Corrígela antes de importar.`); return; }
+
         // Map category names to IDs if matching
         const catMap = new Map<string, string>();
-        categories.forEach(c => catMap.set(c.name.toLowerCase().trim(), c.id));
+        categories.forEach(c => catMap.set(normalizeProductName(c.name), c.id));
 
         const productsPayload = validRows.map(r => ({
             name: r.name.trim(),
             description: r.description.trim() || undefined,
             price: r.price ? parseFloat(r.price) : undefined,
-            categoryId: r.categoryName ? catMap.get(r.categoryName.toLowerCase().trim()) : undefined,
+            categoryId: r.categoryName ? catMap.get(normalizeProductName(r.categoryName)) : undefined,
             itemType: r.itemType,
         }));
 
@@ -199,6 +239,11 @@ export function BulkProductUploadModal({
                             <span>{error}</span>
                         </div>
                     )}
+                    {duplicateRows.length > 0 && (
+                        <div role="status" className="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 text-xs font-medium">
+                            <strong>Posibles duplicados. Revísalos antes de importar:</strong> {duplicateRows.join(' · ')}
+                        </div>
+                    )}
                     {successMessage && (
                         <div className="p-4 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-600 flex items-center gap-2 text-xs font-bold">
                             <Check className="w-4 h-4 shrink-0" />
@@ -209,7 +254,7 @@ export function BulkProductUploadModal({
                     {isPasting ? (
                         <div className="space-y-3">
                             <p className="text-xs text-[var(--text)]/60">
-                                Copia filas desde tu hoja de cálculo (columnas: <b>Nombre | Precio | Descripción | Categoría</b>) y pégalas aquí:
+                                Copia filas desde tu hoja de cálculo (columnas: <b>Nombre | Precio | Descripción | Categoría</b>; máximo 50 filas, precio con punto decimal) y pégalas aquí:
                             </p>
                             <textarea
                                 rows={8}

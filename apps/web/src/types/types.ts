@@ -92,14 +92,17 @@ export interface OrderItem {
     quantity: number;
     price: number;
     sku?: string | null;
+    variantId?: string | null;
+    variantName?: string | null;
 }
 
 export interface Order {
     id: string;
     customerName: string;
     customerPhone?: string | null;
+    customerAddress?: string | null;
     total: number;
-    status: 'PENDING' | 'COMPLETED' | 'CANCELLED';
+    status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
     createdAt: string;
     completedAt?: string | null;
     updatedAt: string;

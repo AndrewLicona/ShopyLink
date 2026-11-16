@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Search, Phone } from 'lucide-react';
+import React, { useState, useRef, useEffect, useId } from 'react';
+import { Check, ChevronDown, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Country {
@@ -42,6 +42,7 @@ interface PhoneInputProps {
     required?: boolean;
     error?: string;
     className?: string;
+    preferredCountry?: string;
 }
 
 export function PhoneInput({
@@ -52,153 +53,74 @@ export function PhoneInput({
     required = false,
     error,
     className,
+    preferredCountry = 'CO',
 }: PhoneInputProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedCountry, setSelectedCountry] = useState<Country>(countries[0] as Country);
+    const [selectedCountry, setSelectedCountry] = useState<Country>(() => countries.find(country => country.code === preferredCountry) || countries[0]!);
     const [localNumber, setLocalNumber] = useState('');
     const dropdownRef = useRef<HTMLDivElement>(null);
-    const isInitialMount = useRef(true);
+    const lastEmitted = useRef<string | null>(null);
+    const inputId = useId();
+    const listId = useId();
 
-    // Initial parse of value
+    // Reconcile changes from the parent (for example, switching stores) without
+    // replacing the country while the user types a number with a shared prefix.
     useEffect(() => {
-        if (!isInitialMount.current) return;
-
-        if (value && value.startsWith('+')) {
-            // Find matched dial code (longest first to avoid +1 match for +1 809)
-            const sortedCountries = [...countries].sort((a, b) => b.dialCode.length - a.dialCode.length);
-            const country = sortedCountries.find(c => value.startsWith(c.dialCode));
-            if (country) {
-                setSelectedCountry(country as Country);
-                setLocalNumber(value.slice(country.dialCode.length).trim());
-            } else {
-                setLocalNumber(value.replace(/^\+/, ''));
-            }
-        } else if (value) {
-            setLocalNumber(value);
+        if (value === lastEmitted.current) return;
+        if (!value) {
+            setLocalNumber('');
+            setSelectedCountry(countries.find(country => country.code === preferredCountry) || countries[0]!);
+            return;
         }
-
-        isInitialMount.current = false;
-    }, [value]);
+        if (value.startsWith('+')) {
+            const matches = [...countries].sort((a, b) => b.dialCode.length - a.dialCode.length).filter(country => value.startsWith(country.dialCode));
+            const longest = matches[0]?.dialCode.length;
+            const matching = matches.filter(country => country.dialCode.length === longest);
+            const country = matching.find(item => item.code === preferredCountry) || matching[0];
+            if (country) { setSelectedCountry(country); setLocalNumber(value.slice(country.dialCode.length).replace(/\D/g, '')); return; }
+        }
+        setLocalNumber(value.replace(/\D/g, ''));
+    }, [value, preferredCountry]);
 
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        const outside = (event: PointerEvent) => { if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) setIsOpen(false); };
+        const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') setIsOpen(false); };
+        document.addEventListener('pointerdown', outside);
+        document.addEventListener('keydown', escape);
+        return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', escape); };
     }, []);
 
-    const filteredCountries = countries.filter(c =>
-        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.dialCode.includes(searchTerm)
+    const filteredCountries = countries.filter(country =>
+        country.name.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase()) ||
+        country.dialCode.includes(searchTerm) || country.code.toLowerCase().includes(searchTerm.toLowerCase()),
     );
-
-    const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = e.target.value.replace(/[^0-9]/g, '');
-        setLocalNumber(val);
-        onChange(`${selectedCountry.dialCode}${val}`);
+    const emit = (country: Country, number: string) => {
+        const next = number ? `${country.dialCode}${number}` : '';
+        lastEmitted.current = next;
+        onChange(next);
     };
-
+    const handleNumberChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const number = event.target.value.replace(/\D/g, '');
+        setLocalNumber(number);
+        emit(selectedCountry, number);
+    };
     const handleCountrySelect = (country: Country) => {
         setSelectedCountry(country);
-        onChange(`${country.dialCode}${localNumber}`);
+        emit(country, localNumber);
         setIsOpen(false);
         setSearchTerm('');
     };
 
-    return (
-        <div className={cn("space-y-1.5", className)}>
-            {label && (
-                <label className="block text-sm font-medium text-gray-700">
-                    {label} {required && <span className="text-red-500">*</span>}
-                </label>
-            )}
-
-            <div className="flex gap-2">
-                {/* Country Selector */}
-                <div className="relative" ref={dropdownRef}>
-                    <button
-                        type="button"
-                        onClick={() => setIsOpen(!isOpen)}
-                        className="flex items-center gap-2 px-3 h-[46px] rounded-xl border border-gray-200 bg-gray-50/30 hover:bg-gray-100/50 transition-all outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 min-w-[100px]"
-                    >
-                        <span className="text-xl">{selectedCountry.flag}</span>
-                        <span className="text-sm font-medium text-gray-700">{selectedCountry.dialCode}</span>
-                        <ChevronDown className={cn("w-4 h-4 text-gray-400 transition-transform", isOpen && "rotate-180")} />
-                    </button>
-
-                    {isOpen && (
-                        <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                            <div className="p-2 border-b border-gray-50">
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                    <input
-                                        type="text"
-                                        className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border-none rounded-lg focus:ring-0 outline-none"
-                                        placeholder="Buscar país..."
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        autoFocus
-                                    />
-                                </div>
-                            </div>
-                            <div className="max-h-60 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
-                                {filteredCountries.map((country) => (
-                                    <button
-                                        key={`${country.code}-${country.dialCode}`}
-                                        type="button"
-                                        onClick={() => handleCountrySelect(country)}
-                                        className={cn(
-                                            "w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm transition-colors",
-                                            selectedCountry.code === country.code && selectedCountry.dialCode === country.dialCode
-                                                ? "bg-blue-50 text-blue-700"
-                                                : "hover:bg-gray-50 text-gray-700"
-                                        )}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-xl">{country.flag}</span>
-                                            <span className="font-medium text-left">{country.name}</span>
-                                        </div>
-                                        <span className="text-gray-400 font-mono">{country.dialCode}</span>
-                                    </button>
-                                ))}
-                                {filteredCountries.length === 0 && (
-                                    <div className="py-8 text-center text-gray-400 text-sm italic">
-                                        No se encontraron resultados
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Number Input */}
-                <div className="relative flex-1">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
-                    <input
-                        type="tel"
-                        value={localNumber}
-                        onChange={handleNumberChange}
-                        required={required}
-                        className={cn(
-                            "w-full pl-10 pr-4 py-3 rounded-xl border transition-all outline-none placeholder:text-gray-400 text-gray-900 h-[46px]",
-                            error
-                                ? "border-red-300 bg-red-50/30 focus:ring-red-500/10 focus:border-red-500"
-                                : "border-gray-200 bg-gray-50/30 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500"
-                        )}
-                        placeholder={placeholder}
-                    />
-                </div>
+    return <div className={cn('min-w-0 space-y-1.5', className)}>
+        {label && <label htmlFor={inputId} className="block text-sm font-bold text-[var(--text)]/65">{label} {required && <span className="text-red-500">*</span>}</label>}
+        <div className="flex min-w-0 gap-2">
+            <div className="relative shrink-0" ref={dropdownRef}>
+                <button type="button" aria-label={`Código de país: ${selectedCountry.name} ${selectedCountry.dialCode}`} aria-expanded={isOpen} aria-haspopup="listbox" aria-controls={isOpen ? listId : undefined} onClick={() => setIsOpen(!isOpen)} className="flex min-h-11 items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-2.5 text-sm font-bold text-[var(--text)] outline-none transition-colors hover:border-[var(--primary)]/50 focus-visible:ring-2 focus-visible:ring-[var(--primary)]/20 sm:px-3"><span aria-hidden="true" className="flex h-6 min-w-7 items-center justify-center rounded-md bg-[var(--secondary)] px-1 text-[10px] font-black text-[var(--text)]/65">{selectedCountry.code}</span><span>{selectedCountry.dialCode}</span><ChevronDown aria-hidden="true" className={cn('h-4 w-4 shrink-0 text-[var(--text)]/45 transition-transform', isOpen && 'rotate-180')} /></button>
+                {isOpen && <div className="absolute left-0 top-full z-[150] mt-2 w-[min(280px,calc(100vw-48px))] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-xl"><div className="relative border-b border-[var(--border)] pb-2"><Search aria-hidden="true" className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-[var(--text)]/40" /><input type="search" aria-label="Buscar país" autoFocus className="w-full rounded-xl bg-[var(--bg)] py-2.5 pl-9 pr-3 text-sm text-[var(--text)] outline-none focus:ring-2 focus:ring-[var(--primary)]/20" placeholder="Buscar país o código" value={searchTerm} onChange={event => setSearchTerm(event.target.value)} /></div><div id={listId} role="listbox" aria-label="Código de país" className="max-h-56 overflow-y-auto pt-1">{filteredCountries.map(country => <button key={country.code} type="button" role="option" aria-selected={selectedCountry.code === country.code} onClick={() => handleCountrySelect(country)} className={cn('flex min-h-11 w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-sm hover:bg-[var(--primary)]/10', selectedCountry.code === country.code ? 'font-bold text-[var(--primary)]' : 'text-[var(--text)]/75')}><span aria-hidden="true" className="flex h-7 min-w-8 items-center justify-center rounded-md bg-[var(--secondary)] text-[10px] font-black">{country.code}</span><span className="min-w-0 flex-1 break-words">{country.name}</span><span className="text-xs text-[var(--text)]/50">{country.dialCode}</span>{selectedCountry.code === country.code && <Check className="h-4 w-4 shrink-0" />}</button>)}{filteredCountries.length === 0 && <p className="p-4 text-center text-sm text-[var(--text)]/50">No se encontraron países.</p>}</div></div>}
             </div>
-
-            {error && <p className="text-xs text-red-500 mt-1 ml-1 font-medium">{error}</p>}
+            <input id={inputId} type="tel" inputMode="tel" autoComplete="tel-national" value={localNumber} onChange={handleNumberChange} required={required} aria-invalid={!!error} className={cn('min-h-11 w-full min-w-0 flex-1 rounded-xl border bg-[var(--bg)] px-3 py-2.5 text-sm font-semibold text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text)]/35 focus:ring-2', error ? 'border-red-400 focus:ring-red-500/10' : 'border-[var(--border)] focus:border-[var(--primary)] focus:ring-[var(--primary)]/20')} placeholder={placeholder} />
         </div>
-    );
+        {error && <p role="alert" className="text-xs font-medium text-red-500">{error}</p>}
+    </div>;
 }
-
-
-
-

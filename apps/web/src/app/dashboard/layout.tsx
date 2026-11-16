@@ -11,7 +11,6 @@ import {
     LogOut,
     Menu,
     ExternalLink,
-    Plus,
     X as CloseIcon,
     ShieldAlert,
     Megaphone,
@@ -44,6 +43,16 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
     useEffect(() => { setMounted(true); }, []);
     useEffect(() => { setIsMobileMenuOpen(false); }, [pathname]);
+    useEffect(() => {
+        const supabase = createClient();
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (session?.user) {
+                setUserName(session.user.user_metadata?.full_name || '');
+                setUserAvatar(session.user.user_metadata?.avatar_url || '');
+            }
+        });
+        return () => subscription.unsubscribe();
+    }, []);
 
     const handleConfirmLogout = async () => {
         const supabase = createClient();
@@ -130,12 +139,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 <div className="flex items-center gap-3">
                     <div className="flex flex-col items-end">
                         <span className="text-[11px] font-black text-[var(--text)] truncate max-w-[100px] leading-tight">{userName.split(' ')[0] || 'Hola'}</span>
-                        <span className="text-[8px] font-bold text-[var(--text)]/30 uppercase tracking-tighter leading-tight">Pro Partner</span>
+                        <span className="text-[8px] font-bold text-[var(--text)]/30 uppercase tracking-tighter leading-tight">{activeStore?.planType === 'PRO' ? 'Plan Pro' : 'Plan Gratis'}</span>
                     </div>
                     <div className="w-9 h-9 rounded-full bg-[var(--primary)] text-white flex items-center justify-center font-black text-xs shadow-md overflow-hidden ring-2 ring-[var(--surface)]">
                         {userAvatar ? <Image src={userAvatar} alt="Avatar" width={36} height={36} className="object-cover" /> : userName?.[0] || 'U'}
                     </div>
-                    <button onClick={() => setIsMobileMenuOpen(true)} className="w-10 h-10 flex items-center justify-center text-[var(--text)]/40 hover:bg-[var(--secondary)] rounded-xl border border-[var(--border)] ml-1"><Menu className="w-5 h-5" /></button>
+                    <button aria-label="Abrir menú" onClick={() => setIsMobileMenuOpen(true)} className="w-10 h-10 flex items-center justify-center text-[var(--text)]/40 hover:bg-[var(--secondary)] rounded-xl border border-[var(--border)] ml-1"><Menu className="w-5 h-5" /></button>
                 </div>
             </header>
 
@@ -145,7 +154,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                     const Icon = item.icon;
                     const isActive = pathname === item.href;
                     return (
-                        <Link key={item.href} href={item.href} className={cn("flex flex-col items-center justify-center p-2 rounded-2xl transition-all relative", isActive ? "text-[var(--primary)] scale-105" : "text-[var(--text)]/40 hover:text-[var(--text)]")}>
+                        <Link key={item.href} href={item.href} aria-label={item.label} aria-current={isActive ? "page" : undefined} className={cn("flex flex-col items-center justify-center p-2 rounded-2xl transition-all relative", isActive ? "text-[var(--primary)] scale-105" : "text-[var(--text)]/40 hover:text-[var(--text)]")}>
                             <Icon className={cn("w-6 h-6", isActive ? "stroke-[2.5]" : "stroke-[1.5]")} />
                             {isActive && <span className="absolute -bottom-1 w-1.5 h-1.5 bg-[var(--primary)] rounded-full shadow-[0_0_8px_var(--primary)]" />}
                         </Link>
@@ -162,7 +171,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                             <Image src="/favicon.svg" alt="ShopyLinks" width={24} height={24} className="contrast-125" style={{ filter: 'var(--text-filter, none)' }} />
                             <span className="font-extrabold text-[var(--text)] tracking-tight">ShopyLinks</span>
                         </div>
-                        <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 hover:bg-[var(--secondary)] rounded-xl"><CloseIcon className="w-5 h-5 text-[var(--text)]/40" /></button>
+                        <button aria-label="Cerrar menú" onClick={() => setIsMobileMenuOpen(false)} className="p-2 hover:bg-[var(--secondary)] rounded-xl"><CloseIcon className="w-5 h-5 text-[var(--text)]/40" /></button>
                     </div>
 
                     <StoreSwitcher

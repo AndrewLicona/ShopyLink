@@ -1,40 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { api } from '@/services/api';
 import { Store } from '@/types/types';
-import {
-    Loader2,
-    Search,
-    Store as StoreIcon,
-    Package,
-    ShoppingCart,
-    CheckCircle2,
-    TrendingUp,
-    AlertTriangle,
-    Users as UsersIcon,
-    Copy,
-    ExternalLink,
-    Mail,
-    ArrowRightCircle,
-    LogOut,
-    History,
-    Activity,
-    Clock,
-    User as UserIcon,
-    UserCheck,
-    Megaphone,
-    X,
-    MessageSquare,
-    Bell,
-    ArrowRight,
-    ShieldCheck,
-    User,
-    Link as LinkIcon
-} from 'lucide-react';
+import { Loader2, Search, Store as StoreIcon, Users, Activity, Megaphone, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useRouter } from 'next/navigation';
 import { copyToClipboard } from '@/lib/clipboard';
 
 interface AdminStore extends Store {
@@ -57,7 +27,6 @@ import { ActivityLog, type AdminLog } from './components/ActivityLog';
 import { BroadcastManager, type AdminBroadcast } from './components/BroadcastManager';
 
 export default function AdminDashboard() {
-    const router = useRouter();
     const [stores, setStores] = useState<AdminStore[]>([]);
     const [users, setUsers] = useState<AdminUser[]>([]);
     const [logs, setLogs] = useState<AdminLog[]>([]);
@@ -74,6 +43,8 @@ export default function AdminDashboard() {
         newStoresLast7Days: 0,
     });
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
+    const [actionError, setActionError] = useState('');
     const [updating, setUpdating] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'stores' | 'users' | 'activity' | 'broadcasts'>('stores');
     const [searchTerm, setSearchTerm] = useState('');
@@ -87,16 +58,17 @@ export default function AdminDashboard() {
 
     useEffect(() => {
         loadData();
-    }, [activeTab]);
+    }, []);
 
     const loadData = async () => {
         try {
             setLoading(true);
+            setLoadError(false);
             const [storesData, usersData, metricsData, logsData, broadcastData] = await Promise.all([
                 api.getAllStoresAsAdmin(),
                 api.getAllUsersAsAdmin(),
                 api.getAdminMetrics(),
-                (api as any).getAdminLogs(),
+                api.getAdminLogs(),
                 api.getActiveBroadcasts()
             ]);
             setStores(storesData);
@@ -106,6 +78,7 @@ export default function AdminDashboard() {
             setBroadcasts(broadcastData || []);
         } catch (error) {
             console.error('Error loading admin data:', error);
+            setLoadError(true);
         } finally {
             setLoading(false);
         }
@@ -122,6 +95,7 @@ export default function AdminDashboard() {
             }
         } catch (err) {
             console.error('Impersonate failed:', err);
+            setActionError('No se pudo acceder a la cuenta. Inténtalo de nuevo.');
         } finally {
             setUpdating(null);
         }
@@ -134,6 +108,7 @@ export default function AdminDashboard() {
             await loadData();
         } catch (error) {
             console.error('Failed to update plan:', error);
+            setActionError('No se pudo actualizar el plan. Inténtalo de nuevo.');
         } finally {
             setUpdating(null);
         }
@@ -145,6 +120,7 @@ export default function AdminDashboard() {
             await loadData();
         } catch (error) {
             console.error('Failed to deactivate broadcast:', error);
+            setActionError('No se pudo desactivar el comunicado.');
         }
     };
 
@@ -166,6 +142,7 @@ export default function AdminDashboard() {
             await loadData();
         } catch (error) {
             console.error('Failed to create broadcast:', error);
+            setActionError('No se pudo publicar el comunicado.');
         } finally {
             setUpdating(null);
         }
@@ -197,29 +174,35 @@ export default function AdminDashboard() {
 
     return (
         <div className="space-y-6 md:space-y-8 animate-in fade-in duration-500 pb-20">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+                <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-600">Administración</p><h1 className="mt-1 text-2xl sm:text-3xl font-black tracking-tight text-slate-900">Resumen de la plataforma</h1><p className="mt-1 text-sm text-slate-500">Gestiona tiendas, usuarios y comunicados desde un solo lugar.</p></div>
+                <button type="button" onClick={loadData} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50"><RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} /> Actualizar</button>
+            </div>
+            {actionError && <div role="alert" className="flex items-center justify-between gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"><span>{actionError}</span><button onClick={() => setActionError('')} className="font-bold">Cerrar</button></div>}
+            {loadError && <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 flex flex-wrap items-center justify-between gap-3"><span>No se pudieron cargar los datos del panel.</span><button onClick={loadData} className="font-bold underline">Reintentar</button></div>}
             <KPISection stats={stats} />
 
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden min-h-[600px]">
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden min-h-[360px]">
                 <div className="p-4 md:p-6 border-b border-slate-100 space-y-4">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                        <div className="flex bg-slate-100 p-1 rounded-2xl w-full md:w-auto overflow-x-auto">
-                            {(['stores', 'users', 'activity', 'broadcasts'] as const).map((tab) => (
-                                <button
-                                    key={tab}
-                                    onClick={() => setActiveTab(tab)}
-                                    className={cn(
-                                        "flex-1 md:flex-none px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap",
-                                        activeTab === tab ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
-                                    )}
-                                >
-                                    {tab === 'stores' ? 'Tiendas' : tab === 'users' ? 'Usuarios' : tab === 'activity' ? 'Actividad' : 'Comunicados'}
+                        <nav aria-label="Secciones de administración" className="grid w-full grid-cols-2 gap-1 rounded-2xl bg-slate-100 p-1 sm:grid-cols-4 md:w-auto">
+                            {([
+                                { id: 'stores', label: 'Tiendas', icon: StoreIcon },
+                                { id: 'users', label: 'Usuarios', icon: Users },
+                                { id: 'activity', label: 'Actividad', icon: Activity },
+                                { id: 'broadcasts', label: 'Comunicados', icon: Megaphone },
+                            ] as const).map(({ id, label, icon: Icon }) => (
+                                <button key={id} type="button" onClick={() => setActiveTab(id)} aria-current={activeTab === id ? 'page' : undefined}
+                                    className={cn('flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-xs font-bold transition-colors sm:px-4', activeTab === id ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:bg-white/60 hover:text-slate-800')}>
+                                    <Icon aria-hidden="true" className="h-4 w-4 shrink-0" /><span>{label}</span>
                                 </button>
                             ))}
-                        </div>
-                        <div className="relative w-full md:w-auto">
+                        </nav>
+                        {(activeTab === 'stores' || activeTab === 'users') && <div className="relative w-full md:w-auto">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <input
                                 type="text"
+                                aria-label={activeTab === 'stores' ? 'Buscar tiendas' : 'Buscar usuarios'}
                                 placeholder={
                                     activeTab === 'stores' ? "Buscar tienda, link o email..." :
                                         activeTab === 'users' ? "Buscar por nombre o email..." :
@@ -229,7 +212,7 @@ export default function AdminDashboard() {
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
-                        </div>
+                        </div>}
                     </div>
                 </div>
 
@@ -266,7 +249,7 @@ export default function AdminDashboard() {
                                 <Search className="w-10 h-10 text-slate-200" />
                             </div>
                             <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Sin resultados</h3>
-                            <p className="text-slate-400 text-sm max-w-xs mx-auto font-medium">No encontramos nada que coincida con "{searchTerm}".</p>
+                            <p className="text-slate-400 text-sm max-w-xs mx-auto font-medium">No encontramos resultados{searchTerm ? <> para &ldquo;{searchTerm}&rdquo;</> : null}.</p>
                         </div>
                     )}
                 </div>

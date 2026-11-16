@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight, ShoppingBag, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,15 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [showLightbox, setShowLightbox] = useState(false);
     const touchStartX = useRef<number | null>(null);
+
+    useEffect(() => {
+        if (!showLightbox) return;
+        const closeOnEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') { event.stopPropagation(); setShowLightbox(false); }
+        };
+        window.addEventListener('keydown', closeOnEscape, true);
+        return () => window.removeEventListener('keydown', closeOnEscape, true);
+    }, [showLightbox]);
 
     if (images.length === 0) {
         return (
@@ -44,32 +53,36 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
     };
 
     return (
-        <div className="w-full h-auto flex flex-col bg-[var(--surface)] overflow-hidden shrink-0">
-            <div className="aspect-square relative w-full overflow-hidden group touch-pan-y">
+        <div className="w-full h-auto flex flex-col bg-[var(--surface)] overflow-hidden shrink-0 md:self-center">
+            <div className="h-[min(42dvh,360px)] md:h-auto md:aspect-square relative w-full overflow-hidden group touch-pan-y">
                 <div
                     className="w-full h-full relative"
                     onTouchStart={handleTouchStart}
                     onTouchEnd={handleTouchEnd}
                 >
+                    <button type="button" onClick={() => setShowLightbox(true)} aria-label={`Ampliar imagen de ${productName}`} className="absolute inset-0 z-10 w-full h-full cursor-zoom-in">
                     <Image
                         src={images[currentImageIndex] ?? images[0] ?? ''}
                         alt={productName}
                         fill
-                        className="object-contain relative z-10 cursor-zoom-in transition-transform active:scale-95"
+                        className="object-contain p-2"
+                        sizes="(max-width: 767px) 100vw, 50vw"
                         priority
-                        onClick={() => setShowLightbox(true)}
                     />
+                    </button>
 
                     {images.length > 1 && (
                         <>
                             <button
                                 onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev === 0 ? images.length - 1 : prev - 1)) }}
+                                aria-label="Imagen anterior"
                                 className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full flex items-center justify-center text-white transition-all active:scale-90 border border-white/20 opacity-0 md:opacity-100 group-hover:opacity-100 z-20"
                             >
                                 <ChevronLeft className="w-6 h-6" />
                             </button>
                             <button
                                 onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev === images.length - 1 ? 0 : prev + 1)) }}
+                                aria-label="Imagen siguiente"
                                 className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full flex items-center justify-center text-white transition-all active:scale-90 border border-white/20 opacity-0 md:opacity-100 group-hover:opacity-100 z-20"
                             >
                                 <ChevronRight className="w-6 h-6" />
@@ -88,6 +101,8 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
                         <button
                             key={idx}
                             onClick={() => setCurrentImageIndex(idx)}
+                            aria-label={`Ver imagen ${idx + 1} de ${images.length}`}
+                            aria-pressed={idx === currentImageIndex}
                             className={cn(
                                 "relative w-16 h-16 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 active:scale-90",
                                 idx === currentImageIndex
@@ -97,9 +112,9 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
                         >
                             <Image
                                 src={img}
-                                alt={`Thumbnail ${idx + 1}`}
+                                alt=""
                                 fill
-                                className="object-cover"
+                                className="object-contain"
                                 sizes="64px"
                             />
                         </button>
@@ -115,6 +130,7 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
                 >
                     <button
                         onClick={() => setShowLightbox(false)}
+                        aria-label="Cerrar imagen ampliada"
                         className="absolute top-6 right-6 w-12 h-12 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center text-white transition-all z-50 border border-white/20"
                     >
                         <X className="w-6 h-6" />
@@ -139,6 +155,7 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
                                     e.stopPropagation();
                                     setCurrentImageIndex(prev => (prev === 0 ? images.length - 1 : prev - 1))
                                 }}
+                                aria-label="Imagen anterior"
                                 className="w-12 h-12 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center text-white border border-white/20 transition-all active:scale-90"
                             >
                                 <ChevronLeft className="w-6 h-6" />
@@ -151,6 +168,7 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
                                     e.stopPropagation();
                                     setCurrentImageIndex(prev => (prev === images.length - 1 ? 0 : prev + 1))
                                 }}
+                                aria-label="Imagen siguiente"
                                 className="w-12 h-12 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center text-white border border-white/20 transition-all active:scale-90"
                             >
                                 <ChevronRight className="w-6 h-6" />

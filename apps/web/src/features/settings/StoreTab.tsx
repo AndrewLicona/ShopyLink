@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+
 import Image from 'next/image';
 import {
     Store as StoreIcon, Camera, Globe, Palette, Instagram, Facebook as FacebookIcon,
@@ -9,8 +10,8 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn, COUNTRY_OPTIONS, getCurrencyForCountry } from '@/lib/utils';
+import { StyledSelect } from '@/components/ui/StyledSelect';
 import { PhoneInput } from '@/components/atoms/PhoneInput';
-import { TabSelector } from '@/components/molecules/TabSelector';
 import { ToggleCard } from '@/components/molecules/ToggleCard';
 import { DangerZone } from '@/components/molecules/DangerZone';
 import { ImageCropperModal } from '@/components/molecules/ImageCropperModal';
@@ -41,16 +42,15 @@ const marketplaceCategories = [
 export function StoreTab({ hook }: StoreTabProps) {
     const { state, actions } = hook;
     const [innerTab, setInnerTab] = useState<'info' | 'marketplace' | 'social' | 'appearance' | 'promotions'>('info');
-    const [isCategoryOpen, setIsCategoryOpen] = useState(false);
     // La moneda se deriva del país elegido por el dueño de la tienda.
     const currencyLabel = getCurrencyForCountry(state.country).code;
 
     const subTabs = [
-        { id: 'info' as const, label: 'TIENDA & BRANDING', icon: StoreIcon },
-        { id: 'marketplace' as const, label: 'MARKETPLACE', icon: ShoppingBag, color: 'blue-500' },
-        { id: 'social' as const, label: 'REDES SOCIALES', icon: Globe, color: 'pink-600' },
-        { id: 'appearance' as const, label: 'APARIENCIA', icon: Palette, color: 'yellow-500' },
-        { id: 'promotions' as const, label: 'PROMOCIONES', icon: Percent, color: 'red-500' }
+        { id: 'info' as const, label: 'Datos de tienda', icon: StoreIcon },
+        { id: 'marketplace' as const, label: 'Marketplace', icon: ShoppingBag, color: 'blue-500' },
+        { id: 'social' as const, label: 'Redes sociales', icon: Globe, color: 'pink-600' },
+        { id: 'appearance' as const, label: 'Apariencia', icon: Palette, color: 'yellow-500' },
+        { id: 'promotions' as const, label: 'Promociones', icon: Percent, color: 'red-500' }
     ];
 
     return (
@@ -64,24 +64,27 @@ export function StoreTab({ hook }: StoreTabProps) {
                     aspectRatio={1}
                 />
             )}
-            <TabSelector
-                options={subTabs}
-                activeTab={innerTab}
-                onTabChange={setInnerTab}
-            />
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3"><div className="min-w-0"><p className="text-xs font-bold uppercase tracking-widest text-[var(--primary)]">Configuración de tienda</p><h2 className="mt-1 truncate text-lg font-black text-[var(--text)]">{state.savedStoreName || 'Mi tienda'}</h2><p className="mt-1 text-xs text-[var(--text)]/50">Los cambios se aplican a la tienda seleccionada.</p></div><a href={`/${state.savedSlug}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[var(--border)] px-3 text-xs font-bold text-[var(--primary)] hover:bg-[var(--secondary)]"><Globe className="h-4 w-4" /> Ver tienda</a></div>
+            </div>
+            <nav aria-label="Secciones de mi tienda" className="grid grid-cols-2 gap-1 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-1 sm:grid-cols-3 lg:grid-cols-5">
+                {subTabs.map(tab => <button key={tab.id} type="button" onClick={() => setInnerTab(tab.id)} aria-pressed={innerTab === tab.id} className={cn('flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-xl px-2 py-2 text-xs font-bold transition-colors', innerTab === tab.id ? 'bg-[var(--primary)] text-[var(--bg)]' : 'text-[var(--text)]/55 hover:bg-[var(--secondary)]')}><tab.icon className="h-4 w-4 shrink-0" /><span>{tab.label}</span></button>)}
+            </nav>
 
-            <div className="bg-[var(--surface)] rounded-[2.5rem] shadow-[var(--shadow)] border border-[var(--border)] overflow-hidden">
-                <form onSubmit={actions.handleUpdateStore} className="p-8 md:p-12 space-y-10">
+            <div className="bg-[var(--surface)] rounded-3xl shadow-[var(--shadow)] border border-[var(--border)] overflow-hidden">
+                <form onSubmit={actions.handleUpdateStore} className="p-4 sm:p-6 lg:p-8 space-y-8">
                     {/* INFO TAB */}
                     {innerTab === 'info' && (
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 animate-in fade-in slide-in-from-left-4 duration-500">
-                            <div className="lg:col-span-12 xl:col-span-7 space-y-8">
-                                <h3 className="text-sm font-black uppercase tracking-widest text-blue-600">Información Básica</h3>
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-7 lg:gap-10 animate-in fade-in slide-in-from-left-4 duration-500">
+                            <div className="lg:col-span-12 xl:col-span-7 space-y-6">
+                                <div><h3 className="text-lg font-black text-[var(--text)]">Información de tu tienda</h3><p className="mt-1 text-sm text-[var(--text)]/50">Datos que tus clientes usan para conocerte y contactarte.</p></div>
                                 <div className="grid grid-cols-1 gap-6">
                                     <div>
-                                        <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">Nombre de la tienda</label>
+                                        <label htmlFor="store-name" className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">Nombre de la tienda</label>
                                         <input
+                                            id="store-name"
                                             type="text"
+                                            required
                                             className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/10 outline-none transition-all font-bold text-[var(--text)] bg-[var(--bg)]"
                                             value={state.name}
                                             onChange={(e) => actions.setName(e.target.value)}
@@ -89,10 +92,15 @@ export function StoreTab({ hook }: StoreTabProps) {
                                     </div>
 
                                     <div>
-                                        <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">Enlace de tu tienda</label>
+                                        <label htmlFor="store-description" className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">Descripción <span className="font-normal">(opcional)</span></label>
+                                        <textarea id="store-description" rows={3} className="w-full resize-y rounded-2xl border-2 border-[var(--border)] bg-[var(--bg)] px-5 py-4 text-sm font-medium text-[var(--text)] outline-none focus:border-[var(--primary)]" placeholder="Cuéntales a tus clientes qué hace especial a tu tienda." value={state.description} onChange={e => actions.setDescription(e.target.value)} />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="store-slug" className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">Enlace de tu tienda</label>
                                         <div className="flex items-center w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus-within:border-[var(--primary)] focus-within:ring-4 focus-within:ring-[var(--primary)]/10 bg-[var(--bg)] transition-all overflow-hidden">
                                             <span className="text-[var(--text)]/40 font-bold text-sm whitespace-nowrap shrink-0">shopylinks.shop/</span>
                                             <input
+                                                id="store-slug"
                                                 type="text"
                                                 className="flex-1 ml-1 outline-none font-black text-[var(--text)] bg-transparent text-sm min-w-0"
                                                 value={state.slug}
@@ -105,13 +113,14 @@ export function StoreTab({ hook }: StoreTabProps) {
                                                 <p className="text-xs font-bold text-blue-700">Sugerencia: <span className="underline">{state.suggestedSlug}</span></p>
                                                 <button
                                                     type="button"
-                                                    onClick={() => actions.setSuggestedSlug(null)}
+                                                    onClick={() => { if (state.suggestedSlug) { actions.setAutoGenerateSlug(false); actions.setSlug(state.suggestedSlug); actions.setSuggestedSlug(null); } }}
                                                     className="text-[10px] font-black bg-blue-600 text-white px-3 py-1.5 rounded-lg uppercase tracking-widest hover:bg-blue-700"
                                                 >
                                                     Usar esta
                                                 </button>
                                             </div>
                                         )}
+                                        {state.slug !== state.savedSlug && <p className="mt-2 text-xs font-medium leading-relaxed text-amber-600">Al guardar cambiará el enlace público. Los enlaces anteriores podrían dejar de funcionar.</p>}
                                         <div className="mt-3">
                                             <ToggleCard
                                                 icon={Globe}
@@ -124,30 +133,32 @@ export function StoreTab({ hook }: StoreTabProps) {
                                         </div>
                                     </div>
 
-                                    <PhoneInput label="WhatsApp pedidos" value={state.whatsapp} onChange={actions.setWhatsapp} placeholder="300 123 4567" />
+                                    <PhoneInput label="WhatsApp pedidos" preferredCountry={state.country} value={state.whatsapp} onChange={actions.setWhatsapp} placeholder="300 123 4567" />
 
                                     {/* Referencia Local */}
                                     <div className="space-y-4 pt-4 border-t border-[var(--border)]">
                                         <div>
-                                            <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1 flex items-center gap-2">
+                                            <label htmlFor="store-location" className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1 flex items-center gap-2">
                                                 <MapPin className="w-4 h-4 text-[var(--primary)]" />
                                                 Referencia de ubicación local
                                             </label>
                                             <input
                                                 type="text"
                                                 className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/10 outline-none transition-all font-bold text-[var(--text)] bg-[var(--bg)]"
+                                                id="store-location"
                                                 placeholder="Ej: A 2 cuadras de la plaza principal"
                                                 value={state.referenceLocation}
                                                 onChange={(e) => actions.setReferenceLocation(e.target.value)}
                                             />
                                         </div>
                                         <div>
-                                            <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">
+                                            <label htmlFor="store-maps" className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1">
                                                 Enlace a Google Maps (opcional)
                                             </label>
                                             <input
                                                 type="url"
                                                 className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/10 outline-none transition-all font-medium text-[var(--text)] bg-[var(--bg)]"
+                                                id="store-maps"
                                                 placeholder="https://maps.google.com/..."
                                                 value={state.mapsUrl}
                                                 onChange={(e) => actions.setMapsUrl(e.target.value)}
@@ -193,8 +204,8 @@ export function StoreTab({ hook }: StoreTabProps) {
 
                             {/* Branding */}
                             <div className="lg:col-span-12 xl:col-span-5 space-y-8">
-                                <h3 className="text-sm font-black uppercase tracking-widest text-purple-600">Identidad Visual</h3>
-                                <div className="p-8 border-2 border-dashed border-[var(--border)] rounded-[2.5rem] bg-[var(--secondary)]/30 flex flex-col items-center justify-center gap-6 relative group/logo">
+                                <div><h3 className="text-lg font-black text-[var(--text)]">Logo de tu tienda</h3><p className="mt-1 text-sm text-[var(--text)]/50">Se mostrará en tu tienda y en el marketplace.</p></div>
+                                <div className="p-5 sm:p-8 border-2 border-dashed border-[var(--border)] rounded-3xl bg-[var(--secondary)]/30 flex flex-col items-center justify-center gap-6 relative group/logo">
                                     <div className="w-32 h-32 md:w-40 md:h-40 bg-[var(--surface)] rounded-[2rem] shadow-[var(--shadow)] border border-[var(--border)] flex items-center justify-center overflow-hidden relative">
                                         {state.logoUrl ? (
                                             <Image src={state.logoUrl} alt="Logo" fill className="object-contain p-3" />
@@ -205,13 +216,15 @@ export function StoreTab({ hook }: StoreTabProps) {
                                     <div className="flex items-center gap-2 w-full max-w-[200px]">
                                         <label className="flex-1 flex items-center justify-center gap-2 py-4 bg-[var(--surface)] border-2 border-[var(--border)] rounded-2xl font-bold text-sm text-[var(--text)]/60 cursor-pointer hover:bg-[var(--secondary)] active:scale-95 transition-all shadow-[var(--shadow)]">
                                             <Camera className="w-4 h-4" />
-                                            {state.logoUrl ? 'Cambiar' : 'Subir Logo'}
+                                            {state.uploading ? 'Subiendo…' : state.logoUrl ? 'Cambiar logo' : 'Subir logo'}
                                             <input type="file" className="hidden" accept="image/*" onChange={actions.handleLogoFileSelect} disabled={state.uploading} />
                                         </label>
                                         {state.logoUrl && (
                                             <button
                                                 type="button"
                                                 onClick={() => actions.setLogoUrl('')}
+                                                aria-label="Quitar logo"
+                                                disabled={state.uploading}
                                                 className="w-14 h-14 bg-red-500 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all flex-shrink-0"
                                             >
                                                 <Trash2 className="w-5 h-5" />
@@ -243,59 +256,7 @@ export function StoreTab({ hook }: StoreTabProps) {
                                             <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1 flex items-center gap-2">
                                                 Categoría principal
                                             </label>
-                                            <div className="relative">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setIsCategoryOpen(!isCategoryOpen)}
-                                                    className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/10 outline-none transition-all font-bold text-[var(--text)] bg-[var(--surface)] text-left flex justify-between items-center"
-                                                >
-                                                    <span>
-                                                        {marketplaceCategories.find(c => c.value === state.marketplaceCategory)?.label || 'Selecciona una categoría'}
-                                                    </span>
-                                                    <svg className={`w-5 h-5 text-[var(--text)]/40 transition-transform ${isCategoryOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                                                </button>
-
-                                                {isCategoryOpen && (
-                                                    <>
-                                                        <div 
-                                                            className="fixed inset-0 z-40" 
-                                                            onClick={() => setIsCategoryOpen(false)}
-                                                        />
-                                                        <motion.div 
-                                                            initial={{ opacity: 0, y: -10 }}
-                                                            animate={{ opacity: 1, y: 0 }}
-                                                            exit={{ opacity: 0, y: -10 }}
-                                                            className="absolute top-full left-0 right-0 mt-2 z-50 bg-[var(--surface)] border-2 border-[var(--border)] rounded-2xl shadow-xl shadow-[var(--primary)]/10 overflow-hidden"
-                                                        >
-                                                            <div className="max-h-60 overflow-y-auto hide-scrollbar py-2">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        actions.setMarketplaceCategory('');
-                                                                        setIsCategoryOpen(false);
-                                                                    }}
-                                                                    className={`w-full px-5 py-3 text-left hover:bg-[var(--primary)]/5 transition-colors font-bold ${!state.marketplaceCategory ? 'text-[var(--primary)] bg-[var(--primary)]/5' : 'text-[var(--text)]/70'}`}
-                                                                >
-                                                                    Quitar categoría
-                                                                </button>
-                                                                {marketplaceCategories.map((category) => (
-                                                                    <button
-                                                                        key={category.value}
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            actions.setMarketplaceCategory(category.value);
-                                                                            setIsCategoryOpen(false);
-                                                                        }}
-                                                                        className={`w-full px-5 py-3 text-left hover:bg-[var(--primary)]/5 transition-colors font-bold ${state.marketplaceCategory === category.value ? 'text-[var(--primary)] bg-[var(--primary)]/5' : 'text-[var(--text)]'}`}
-                                                                    >
-                                                                        {category.label}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        </motion.div>
-                                                    </>
-                                                )}
-                                            </div>
+                                            <StyledSelect label="Categoría principal" value={state.marketplaceCategory} onChange={actions.setMarketplaceCategory} options={[{ value: '', label: 'Sin categoría' }, ...marketplaceCategories]} />
                                         </div>
                                         <div>
                                             <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1 flex items-center gap-2">
@@ -316,31 +277,22 @@ export function StoreTab({ hook }: StoreTabProps) {
                                                     {currencyLabel}
                                                 </span>
                                             </label>
-                                            <select
-                                                className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/10 outline-none transition-all font-bold text-[var(--text)] bg-[var(--surface)]"
-                                                value={state.country}
-                                                onChange={(e) => actions.setCountry(e.target.value)}
-                                            >
-                                                {COUNTRY_OPTIONS.map((option) => (
-                                                    <option key={option.code} value={option.code}>
-                                                        {option.name} ({getCurrencyForCountry(option.code).code})
-                                                    </option>
-                                                ))}
-                                            </select>
+                                            <StyledSelect label="País de la tienda" value={state.country} onChange={actions.setCountry} options={COUNTRY_OPTIONS.map(option => ({ value: option.code, label: `${option.name} (${getCurrencyForCountry(option.code).code})` }))} />
                                             <p className="text-[11px] font-medium text-[var(--text)]/40 mt-2 px-1">
                                                 Tus precios se muestran en la moneda de este país.
                                             </p>
                                         </div>
                                         <div className="md:col-span-2">
-                                            <label className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1 flex items-center gap-2">
-                                                <Search className="w-4 h-4" /> Tags de Búsqueda (separados por coma)
+                                            <label htmlFor="store-tags" className="text-sm font-bold text-[var(--text)]/60 mb-2 block px-1 flex items-center gap-2">
+                                                <Search className="w-4 h-4" /> Etiquetas de búsqueda (separados por coma)
                                             </label>
                                             <input
                                                 type="text"
                                                 className="w-full px-5 py-4 rounded-2xl border-2 border-[var(--border)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/10 outline-none transition-all font-bold text-[var(--text)] bg-[var(--surface)]"
+                                                id="store-tags"
                                                 placeholder="Ej: vegano, zapatos, envíos rápidos..."
-                                                value={state.tags.join(', ')}
-                                                onChange={(e) => actions.setTags(e.target.value.split(',').map(t => t.trim()).filter(Boolean))}
+                                                value={state.tagsText}
+                                                onChange={(e) => actions.setTagsText(e.target.value)}
                                             />
                                         </div>
                                     </div>
@@ -500,13 +452,15 @@ export function StoreTab({ hook }: StoreTabProps) {
                         </div>
                     )}
 
-                    <div className="pt-8 border-t border-[var(--border)] flex justify-end">
+                    {(state.error || state.success) && <div role={state.error ? 'alert' : 'status'} className={cn('rounded-2xl border p-4 text-sm font-bold', state.error ? 'border-red-500/20 bg-red-500/5 text-red-600' : 'border-green-500/20 bg-green-500/5 text-green-700')}>{state.error || state.success}</div>}
+                    <div className="flex flex-col gap-3 border-t border-[var(--border)] pt-5 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-xs leading-relaxed text-[var(--text)]/50">Los ajustes de todas las secciones se guardan juntos.</p>
                         <button
                             type="submit"
-                            disabled={state.saving}
-                            className="bg-[var(--primary)] text-[var(--bg)] px-10 py-5 rounded-[2rem] font-black text-xl hover:opacity-90 transition-all shadow-lg active:scale-95 flex items-center gap-3 disabled:opacity-50"
+                            disabled={state.saving || state.uploading}
+                            className="bg-[var(--primary)] text-[var(--bg)] px-6 py-3.5 rounded-xl font-bold text-sm hover:opacity-90 transition-all shadow-lg active:scale-95 flex items-center gap-3 disabled:opacity-50"
                         >
-                            {state.saving ? <Loader2 className="w-6 h-6 animate-spin" /> : <><Save className="w-6 h-6" /> Guardar Cambios</>}
+                            {state.saving ? <Loader2 className="w-6 h-6 animate-spin" /> : <><Save className="w-4 h-4" /> Guardar cambios</>}
                         </button>
                     </div>
                 </form>
@@ -519,7 +473,7 @@ export function StoreTab({ hook }: StoreTabProps) {
                     actionLabel="Eliminar Tienda"
                     confirmationTitle="¿Estás seguro?"
                     confirmationDescription="Borrará todos los productos, categorías y pedidos permanentemente."
-                    itemName={state.name}
+                    itemName={state.savedStoreName}
                     onDelete={actions.handleDeleteStore}
                 />
             )}

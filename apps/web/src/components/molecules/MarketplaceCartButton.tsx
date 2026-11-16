@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ShoppingBag } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { MarketplaceCartDrawer } from '@/features/marketplace/MarketplaceCartDrawer';
@@ -9,6 +9,7 @@ import { MarketplaceCartDrawer } from '@/features/marketplace/MarketplaceCartDra
 export function MarketplaceCartButton() {
     const [isOpen, setIsOpen] = useState(false);
     const { count, hydrated } = useCart();
+    const closeCart = useCallback(() => setIsOpen(false), []);
 
     return (
         <>
@@ -25,7 +26,7 @@ export function MarketplaceCartButton() {
                 )}
             </button>
 
-            <MarketplaceCartDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} />
+            <MarketplaceCartDrawer isOpen={isOpen} onClose={closeCart} />
         </>
     );
 }

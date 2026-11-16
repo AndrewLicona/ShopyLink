@@ -53,7 +53,7 @@ export function StoreView({ store, products: rawProducts, categories, banners = 
                 onOpenCart={() => actions.setIsCartOpen(true)}
             />
 
-            <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+            <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-6 sm:space-y-8">
                 <PublicBanners banners={banners} position="HERO" />
                 
                 {/* Pestañas para alternar Productos vs Servicios si el comercio ofrece ambos */}
@@ -101,7 +101,7 @@ export function StoreView({ store, products: rawProducts, categories, banners = 
                 />
 
                 <DiscountsSection
-                    products={products}
+                    products={state.filteredProducts}
                     categories={categories}
                     onProductClick={actions.setSelectedProduct}
                     categoryFilter={state.categoryFilter}
@@ -112,6 +112,11 @@ export function StoreView({ store, products: rawProducts, categories, banners = 
                         actions.setSearchTerm('');
                     }}
                 />
+
+                <div className="flex flex-wrap items-end justify-between gap-2 border-b border-[var(--border)] pb-3">
+                    <div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--primary)]">Explora nuestra tienda</p><h2 className="mt-1 text-xl font-black tracking-tight text-[var(--text)] sm:text-2xl">{state.itemTypeFilter === 'service' ? 'Servicios' : state.itemTypeFilter === 'product' ? 'Productos' : 'Nuestro catálogo'}</h2></div>
+                    <span aria-live="polite" className="text-xs font-semibold text-[var(--text)]/55">{state.filteredProducts.length} {state.filteredProducts.length === 1 ? 'resultado' : 'resultados'}</span>
+                </div>
 
                 <PublicProductGrid
                     products={state.filteredProducts}
@@ -124,6 +129,8 @@ export function StoreView({ store, products: rawProducts, categories, banners = 
                     whatsappNumber={store.whatsappNumber}
                     storeName={store.name}
                     country={store.country}
+                    onClearFilters={() => { actions.setSearchTerm(''); actions.setCategoryFilter('all'); actions.setItemTypeFilter('all'); }}
+                    hasActiveFilters={Boolean(state.searchTerm.trim()) || state.categoryFilter !== 'all' || state.itemTypeFilter !== 'all'}
                 />
 
                 <AdBanner planType={store.planType} />
@@ -147,10 +154,10 @@ export function StoreView({ store, products: rawProducts, categories, banners = 
             {state.cart.length > 0 && !state.isCartOpen && (
                 <button
                     onClick={() => actions.setIsCartOpen(true)}
-                    className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-[var(--primary)] text-[var(--bg)] px-8 py-4 rounded-full font-black text-sm flex items-center gap-3 shadow-2xl shadow-[var(--primary)]/30 animate-in slide-in-from-bottom-5 duration-300 active:scale-95 z-60 hover:scale-105 transition-all"
+                    className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 bg-[var(--primary)] text-[var(--bg)] px-4 py-3 rounded-full font-black text-xs sm:text-sm flex items-center gap-2 shadow-xl shadow-[var(--primary)]/30 animate-in slide-in-from-bottom-5 duration-300 active:scale-95 z-60 hover:scale-105 transition-all"
                 >
-                    <ShoppingBag className="w-5 h-5" />
-                    Ver Pedido ({state.cartCount})
+                    <ShoppingBag className="w-4 h-4" />
+                    <span className="whitespace-nowrap">Ver pedido · {state.cartCount}</span>
                 </button>
             )}
 

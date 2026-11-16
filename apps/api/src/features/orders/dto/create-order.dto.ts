@@ -2,6 +2,7 @@ import {
   IsString,
   IsNotEmpty,
   IsArray,
+  ArrayMinSize,
   ValidateNested,
   IsUUID,
   IsInt,
@@ -45,6 +46,7 @@ export class CreateOrderDto {
   customerAddress?: string;
 
   @IsArray()
+  @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => OrderItemDto)
   items: OrderItemDto[];

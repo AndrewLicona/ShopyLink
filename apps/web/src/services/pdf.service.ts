@@ -217,10 +217,11 @@ export const pdfService = {
             // 2nd Step: Draw products
             const colWidth = (contentWidth - 8) / 2;
             let col = 0;
+            let rowHeight = 0;
 
             for (const product of category.products) {
                 // Height calculation: variants in 2 columns inside card
-                const varCount = product.processedVariants.length;
+                const varCount = Math.min(product.processedVariants.length, 6);
                 const rowsOfVariants = Math.ceil(varCount / 2);
                 const cardHeight = 90 + (varCount > 0 ? (rowsOfVariants * 15) + 5 : 0);
 
@@ -230,8 +231,10 @@ export const pdfService = {
                     drawBand();
                     currentY = BAND_H + 10;
                     col = 0;
+                    rowHeight = 0;
                 }
 
+                rowHeight = Math.max(rowHeight, cardHeight);
                 const x = margin + (col * (colWidth + 8));
 
                 // Product Card Border
@@ -347,12 +350,13 @@ export const pdfService = {
                 // Move to next column/row
                 if (col === 1) {
                     col = 0;
-                    currentY += cardHeight;
+                    currentY += rowHeight;
+                    rowHeight = 0;
                 } else {
                     col = 1;
                 }
             }
-            if (col === 1) currentY += 100;
+            if (col === 1) currentY += rowHeight;
         }
 
         // Footer

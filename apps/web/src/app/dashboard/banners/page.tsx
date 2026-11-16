@@ -1,584 +1,64 @@
 'use client';
 
-import { useBanners } from '@/hooks/useBanners';
-import { 
-    Plus, 
-    Trash2, 
-    Edit3, 
-    Eye, 
-    Upload, 
-    Loader2, 
-    Calendar,
-    Link as LinkIcon, 
-    ToggleLeft, 
-    ToggleRight, 
-    X,
-    Laptop,
-    Smartphone,
-    Info,
-    Lightbulb
-} from 'lucide-react';
-import Image from 'next/image';
 import { useState } from 'react';
+import Image from 'next/image';
+import { CalendarDays, Eye, ImagePlus, Laptop, Loader2, Pencil, Plus, Smartphone, Trash2, Upload, X } from 'lucide-react';
+import { DateInput } from '@/components/ui/DateInput';
+import { useBanners } from '@/hooks/useBanners';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/atoms/Button';
 import { LoadingState } from '@/components/atoms/LoadingState';
-import { SectionHeader } from '@/components/molecules/SectionHeader';
+import type { StoreBanner } from '@/types/types';
+
+type BannerPosition = StoreBanner['position'];
+const positions: { id: Exclude<BannerPosition, 'FLOATING'>; title: string; description: string }[] = [
+    { id: 'HERO', title: 'Principal', description: 'En la parte superior de tu tienda' },
+    { id: 'TOP_BAR', title: 'Barra superior', description: 'Una franja de texto para avisos' },
+    { id: 'BETWEEN_PRODUCTS', title: 'Entre productos', description: 'Una imagen dentro del catálogo' },
+];
+const positionLabel: Record<BannerPosition, string> = { HERO: 'Principal', TOP_BAR: 'Barra superior', BETWEEN_PRODUCTS: 'Entre productos', FLOATING: 'Ubicación anterior' };
+const field = 'w-full min-w-0 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm font-medium text-[var(--text)] outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/10';
+const label = 'block text-xs font-bold text-[var(--text)]/65';
+
+function bannerStatus(banner: StoreBanner) {
+    const now = Date.now();
+    if (!banner.isActive) return { label: 'Pausado', color: 'bg-slate-100 text-slate-600' };
+    if (banner.startsAt && new Date(banner.startsAt).getTime() > now) return { label: 'Programado', color: 'bg-blue-100 text-blue-700' };
+    if (banner.endsAt && new Date(banner.endsAt).getTime() < now) return { label: 'Finalizado', color: 'bg-amber-100 text-amber-700' };
+    return { label: 'Activo', color: 'bg-emerald-100 text-emerald-700' };
+}
+function dateText(value: string) { return new Date(value).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }); }
 
 export default function BannersPage() {
     const { state, actions } = useBanners();
-    const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
+    const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('mobile');
+    const [imageRatio, setImageRatio] = useState<number | null>(null);
+    const form = state.form;
+    const published = state.banners.filter(banner => bannerStatus(banner).label === 'Activo').length;
+    const intercalated = state.banners.filter(b => b.position === 'BETWEEN_PRODUCTS' && b.isActive && bannerStatus(b).label === 'Activo');
+    const close = () => { if (!state.uploading && !state.saving) actions.setIsModalOpen(false); };
 
-    if (state.loading) {
-        return <LoadingState message="Cargando banners..." fullPage />;
-    }
-
+    if (state.loading) return <LoadingState message="Cargando banners..." fullPage />;
     return (
-        <div className="space-y-8 pb-20">
-            {/* Header */}
-            <SectionHeader
-                title="Banners"
-                description="Personaliza tu tienda con banners decorativos o de ofertas"
-            >
-                <Button
-                    variant="primary"
-                    onClick={actions.handleOpenNewModal}
-                    className="p-3 md:px-6 md:py-3 rounded-2xl"
-                    leftIcon={<Plus className="w-6 h-6 md:w-5 md:h-5" />}
-                >
-                    Nuevo Banner
-                </Button>
-            </SectionHeader>
+        <div className="mx-auto max-w-[1500px] space-y-6 pb-10">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--primary)]">Personaliza tu tienda</p><h1 className="mt-2 text-3xl font-black tracking-tight text-[var(--text)] sm:text-4xl">Banners</h1><p className="mt-2 max-w-lg text-sm leading-relaxed text-[var(--text)]/55">Destaca promociones, novedades y mensajes para tus clientes.</p></div><button onClick={() => { setImageRatio(null); actions.handleOpenNewModal(); }} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-bold text-[var(--bg)] hover:opacity-90"><Plus className="h-4 w-4" /> Nuevo banner</button></div>
+            <div className="grid grid-cols-2 gap-3"><div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4"><p className="text-xs font-medium text-[var(--text)]/50">Banners creados</p><p className="mt-1 text-2xl font-black text-[var(--text)]">{state.banners.length}</p></div><div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4"><p className="text-xs font-medium text-[var(--text)]/50">Activos ahora</p><p className="mt-1 text-2xl font-black text-[var(--primary)]">{published}</p></div></div>
+            {state.loadError ? <div role="alert" className="rounded-2xl border border-red-500/20 bg-red-500/5 p-5 text-sm text-red-600"><p className="font-bold">No pudimos cargar tus banners.</p><button onClick={() => void actions.fetchBanners()} className="mt-2 font-bold underline">Volver a intentar</button></div> : state.banners.length === 0 ? <div className="rounded-3xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-16 text-center"><div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--primary)]/10 text-[var(--primary)]"><ImagePlus className="h-6 w-6" /></div><h2 className="mt-4 text-lg font-black text-[var(--text)]">Tu tienda aún no tiene banners</h2><p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-[var(--text)]/50">Crea una imagen destacada o un aviso para contarles algo especial a tus clientes.</p><button onClick={() => { setImageRatio(null); actions.handleOpenNewModal(); }} className="mt-5 rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-bold text-[var(--bg)]">Crear mi primer banner</button></div> : <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{state.banners.map(banner => { const status = bannerStatus(banner); return <article key={banner.id} className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-sm transition-shadow hover:shadow-md"><div className="relative flex aspect-[21/9] items-center justify-center overflow-hidden bg-[var(--secondary)]">{banner.imageUrl ? <Image src={banner.imageUrl} alt={banner.title || 'Imagen del banner'} fill sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw" className="object-contain" /> : <div className="flex h-full w-full items-center justify-center bg-[var(--primary)]/10 px-5 text-center text-sm font-bold text-[var(--primary)]">{banner.title || banner.subtitle || 'Barra de anuncio'}</div>}<span className="absolute left-3 top-3 rounded-full bg-black/75 px-2.5 py-1.5 text-[10px] font-bold text-white">{positionLabel[banner.position]}</span></div><div className="flex flex-1 flex-col p-4 sm:p-5"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><h2 className="truncate text-sm font-black text-[var(--text)]">{banner.title || 'Banner sin título'}</h2><p className="mt-1 truncate text-xs text-[var(--text)]/50">{banner.subtitle || 'Sin subtítulo'}</p></div><span className={cn('shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold', status.color)}>{status.label}</span></div>{(banner.startsAt || banner.endsAt) && <p className="mt-3 flex items-center gap-1.5 text-xs text-[var(--text)]/50"><CalendarDays className="h-3.5 w-3.5 shrink-0" />{banner.startsAt ? `Desde ${dateText(banner.startsAt)}` : 'Sin inicio'}{banner.endsAt ? ` · Hasta ${dateText(banner.endsAt)}` : ''}</p>}<div className="mt-4 flex items-center gap-2 border-t border-[var(--border)] pt-4"><button type="button" onClick={() => void actions.handleToggleActive(banner)} disabled={!!state.busyId} aria-label={`${banner.isActive ? 'Pausar' : 'Activar'} ${banner.title || 'banner'}`} className="flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--secondary)] px-2 text-xs font-bold text-[var(--text)] hover:bg-[var(--primary)]/10 disabled:opacity-50">{state.busyId === banner.id ? <Loader2 className="h-4 w-4 animate-spin" /> : banner.isActive ? 'Pausar' : 'Activar'}</button><button type="button" onClick={() => { setImageRatio(null); actions.handleOpenEditModal(banner); }} aria-label={`Editar ${banner.title || 'banner'}`} className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] text-[var(--text)]/60 hover:text-[var(--primary)]"><Pencil className="h-4 w-4" /></button><button type="button" onClick={() => actions.setConfirmDeleteId(banner.id)} aria-label={`Eliminar ${banner.title || 'banner'}`} className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] text-red-500 hover:bg-red-500/10"><Trash2 className="h-4 w-4" /></button></div></div></article>; })}</div>}
+            {intercalated.length > 1 && <p className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-xs leading-relaxed text-amber-700">Tienes varios banners activos entre productos. La tienda muestra el más reciente que esté vigente.</p>}
 
-            {/* Listado de Banners */}
-            {state.banners.length === 0 ? (
-                <div className="bg-[var(--surface)] border border-[var(--border)] p-12 text-center rounded-[2rem] flex flex-col items-center justify-center space-y-4">
-                    <div className="w-16 h-16 bg-[var(--primary)]/5 rounded-2xl flex items-center justify-center text-[var(--primary)]">
-                        <Eye className="w-8 h-8" />
-                    </div>
-                    <div className="space-y-1">
-                        <h3 className="text-lg font-black text-[var(--text)]">Sin banners creados</h3>
-                        <p className="text-sm font-medium text-[var(--text)]/40 max-w-xs">
-                            Crea banners decorativos, informativos o de ofertas para darle identidad a tu tienda.
-                        </p>
-                    </div>
-                    <Button variant="secondary" onClick={actions.handleOpenNewModal} className="rounded-xl px-5 py-2.5">
-                        Crear mi primer banner
-                    </Button>
+            {state.isModalOpen && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-2 backdrop-blur-sm sm:p-4"><div role="dialog" aria-modal="true" aria-labelledby="banner-modal-title" className="flex max-h-[95dvh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-[var(--surface)] shadow-2xl"><div className="flex items-center justify-between gap-4 border-b border-[var(--border)] px-5 py-4 sm:px-7"><div><h2 id="banner-modal-title" className="text-xl font-black text-[var(--text)]">{state.editingBanner ? 'Editar banner' : 'Crear banner'}</h2><p className="mt-1 text-xs text-[var(--text)]/50">Elige dónde aparece y revisa su presentación.</p></div><button type="button" onClick={close} disabled={state.uploading || state.saving} aria-label="Cerrar editor" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[var(--text)]/50 hover:bg-[var(--secondary)] disabled:opacity-50"><X className="h-5 w-5" /></button></div>
+                <form id="banner-form" onSubmit={actions.handleSave} className="grid flex-1 grid-cols-1 gap-6 overflow-y-auto p-5 sm:p-7 lg:grid-cols-[minmax(0,1fr)_320px]"><div className="min-w-0 space-y-5">
+                    <fieldset><legend className={label}>Ubicación en la tienda</legend><div className="mt-2 grid gap-2 sm:grid-cols-3">{positions.map(option => <button key={option.id} type="button" onClick={() => actions.setPosition(option.id)} aria-pressed={form.position === option.id} className={cn('min-h-16 rounded-xl border p-3 text-left transition-colors', form.position === option.id ? 'border-[var(--primary)] bg-[var(--primary)]/10' : 'border-[var(--border)] bg-[var(--bg)]')}><span className="block text-xs font-black text-[var(--text)]">{option.title}</span><span className="mt-1 block text-[11px] leading-snug text-[var(--text)]/50">{option.description}</span></button>)}</div>{form.position === 'FLOATING' && <p className="mt-2 text-xs text-amber-600">Esta ubicación anterior ya no se muestra en la tienda; elige una ubicación disponible.</p>}{form.position === 'BETWEEN_PRODUCTS' && <p className="mt-2 text-xs leading-relaxed text-[var(--text)]/50">Si hay varios banners vigentes en esta posición, se mostrará el más reciente.</p>}</fieldset>
+                    {form.position !== 'TOP_BAR' && <div className="space-y-2"><span className={label}>Imagen del banner <span className="text-red-500">*</span></span><label className="flex min-h-28 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[var(--border)] bg-[var(--bg)] px-4 py-4 text-center hover:border-[var(--primary)]"><input type="file" accept="image/*" className="sr-only" disabled={state.uploading} onChange={e => { const file = e.target.files?.[0]; if (file) { setImageRatio(null); void actions.handleImageUpload(file); } e.currentTarget.value = ''; }} />{state.uploading ? <Loader2 className="h-6 w-6 animate-spin text-[var(--primary)]" /> : <Upload className="h-6 w-6 text-[var(--primary)]" />}<span className="text-sm font-bold text-[var(--text)]">{state.uploading ? 'Subiendo imagen…' : form.imageUrl ? 'Cambiar imagen' : 'Seleccionar imagen'}</span><span className="text-xs text-[var(--text)]/50">{form.position === 'HERO' ? 'Panorámica sugerida: 1920 × 800 px' : 'Panorámica sugerida: 1920 × 600 px'} · JPG, PNG o WebP</span></label>{form.imageUrl && <p className="text-xs text-[var(--text)]/50">Imagen cargada. La vista previa aparece más abajo.</p>}</div>}
+                    <div className="grid gap-4 sm:grid-cols-2"><label className={label}>Título (opcional)<input className={cn(field, 'mt-2')} value={form.title} onChange={e => actions.setTitle(e.target.value)} placeholder="Ej. Nueva colección" /></label><label className={label}>Subtítulo (opcional)<input className={cn(field, 'mt-2')} value={form.subtitle} onChange={e => actions.setSubtitle(e.target.value)} placeholder="Ej. Descubre nuestras ofertas" /></label></div>
+                    {form.position !== 'TOP_BAR' && <fieldset><legend className={label}>Enfoque de la imagen en escritorio</legend><p className="mt-1 text-xs text-[var(--text)]/50">Define qué zona se conserva cuando la pantalla recorta la imagen.</p><div className="mt-2 flex flex-wrap gap-2">{[{id:'center',label:'Centro'},{id:'top',label:'Arriba'},{id:'bottom',label:'Abajo'},{id:'left',label:'Izquierda'},{id:'right',label:'Derecha'}].map(point => <button key={point.id} type="button" aria-pressed={form.focalPoint === point.id} onClick={() => actions.setFocalPoint(point.id)} className={cn('min-h-10 rounded-xl border px-3 text-xs font-bold', form.focalPoint === point.id ? 'border-[var(--primary)] bg-[var(--primary)] text-[var(--bg)]' : 'border-[var(--border)] bg-[var(--bg)] text-[var(--text)]/70')}>{point.label}</button>)}</div></fieldset>}
+                    <label className={label}>Enlace al tocar el banner (opcional)<input className={cn(field, 'mt-2')} value={form.linkUrl} onChange={e => actions.setLinkUrl(e.target.value)} placeholder="https://ejemplo.com o /ruta" /><span className="mt-1 block font-normal text-[var(--text)]/50">Puede llevar a una página de tu tienda o a un enlace externo.</span></label>
+                    <div className="grid gap-4 sm:grid-cols-2"><label className={label}>Mostrar desde (opcional)<DateInput label="Mostrar desde" max={form.endsAt || undefined} className="mt-2" value={form.startsAt} onChange={actions.setStartsAt} /></label><label className={label}>Mostrar hasta (opcional)<DateInput label="Mostrar hasta" min={form.startsAt || undefined} className="mt-2" value={form.endsAt} onChange={actions.setEndsAt} /></label></div><p className="-mt-3 text-xs text-[var(--text)]/45">Las fechas usan tu hora local e incluyen el día final completo.</p>
+                    <label className="flex items-start gap-3 rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-4"><input type="checkbox" checked={form.isActive} onChange={e => actions.setIsActive(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[var(--primary)]" /><span><span className="block text-sm font-bold text-[var(--text)]">Banner activo</span><span className="mt-1 block text-xs leading-relaxed text-[var(--text)]/50">Se mostrará durante las fechas elegidas. Puedes pausarlo en cualquier momento.</span></span></label>
                 </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {state.banners.map((banner) => (
-                        <div 
-                            key={banner.id} 
-                            className="bg-[var(--surface)]/60 backdrop-blur-xl border border-[var(--border)] rounded-3xl overflow-hidden flex flex-col group shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:border-[var(--primary)]/20 transition-all duration-500"
-                        >
-                            {/* Card Image */}
-                            <div className="aspect-[21/9] w-full relative bg-[var(--secondary)] overflow-hidden flex items-center justify-center p-4">
-                                {banner.imageUrl ? (
-                                    <Image
-                                        src={banner.imageUrl}
-                                        alt={banner.title || 'Banner'}
-                                        fill
-                                        sizes="(min-width: 1280px) 25vw, (min-width: 768px) 50vw, 100vw"
-                                        className="object-contain group-hover:scale-105 transition-transform duration-700"
-                                    />
-                                ) : (
-                                    <div className="w-full h-full rounded-2xl bg-gradient-to-br from-[var(--primary)]/10 to-transparent border border-[var(--primary)]/10 flex flex-col items-center justify-center text-center select-none shadow-inner">
-                                        <span className="text-[10px] font-black text-[var(--primary)] uppercase tracking-widest bg-white/50 backdrop-blur-sm px-3 py-1 rounded-full">
-                                            {banner.title || 'Banner de Anuncio'}
-                                        </span>
-                                    </div>
-                                )}
-                                <div className="absolute top-3 left-3 bg-black/80 backdrop-blur-xl px-3 py-1.5 rounded-full text-[9px] font-black uppercase text-white tracking-widest shadow-xl flex items-center gap-1.5">
-                                    <div className={cn("w-1.5 h-1.5 rounded-full", banner.isActive ? "bg-green-400" : "bg-white/40")} />
-                                    {banner.position.replace('_', ' ')}
-                                </div>
-                            </div>
-
-                            {/* Card Content */}
-                            <div className="p-5 flex-1 flex flex-col justify-between space-y-5">
-                                <div className="space-y-1.5">
-                                    <h4 className="font-black text-[15px] text-[var(--text)] leading-tight truncate tracking-tight">
-                                        {banner.title || <span className="opacity-30 italic font-medium">Sin título</span>}
-                                    </h4>
-                                    <p className="text-xs font-medium text-[var(--text)]/50 truncate">
-                                        {banner.subtitle || <span className="opacity-30 italic">Sin subtítulo</span>}
-                                    </p>
-                                </div>
-
-                                <div className="flex items-center justify-between pt-4 border-t border-[var(--border)]/60">
-                                    {/* Quick Toggle Status */}
-                                    <button 
-                                        onClick={() => actions.handleToggleActive(banner)}
-                                        className="flex items-center gap-2 group/toggle"
-                                    >
-                                        <div className={cn(
-                                            "w-10 h-5 rounded-full p-0.5 transition-colors duration-300",
-                                            banner.isActive ? "bg-[var(--primary)]" : "bg-[var(--text)]/10"
-                                        )}>
-                                            <div className={cn(
-                                                "w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300",
-                                                banner.isActive ? "translate-x-5" : "translate-x-0"
-                                            )} />
-                                        </div>
-                                        <span className="text-[10px] font-black uppercase tracking-wider text-[var(--text)]/40 group-hover/toggle:text-[var(--text)] transition-colors">
-                                            {banner.isActive ? 'Público' : 'Oculto'}
-                                        </span>
-                                    </button>
-
-                                    {/* Action Buttons */}
-                                    <div className="flex items-center gap-1">
-                                        <button 
-                                            onClick={() => actions.handleOpenEditModal(banner)}
-                                            className="w-8 h-8 flex items-center justify-center hover:bg-[var(--primary)]/10 rounded-full text-[var(--text)]/40 hover:text-[var(--primary)] transition-all duration-300"
-                                            aria-label="Editar"
-                                        >
-                                            <Edit3 className="w-4 h-4" />
-                                        </button>
-                                        <button 
-                                            onClick={() => actions.setConfirmDeleteId(banner.id)}
-                                            className="w-8 h-8 flex items-center justify-center hover:bg-red-500/10 rounded-full text-red-500/50 hover:text-red-500 transition-all duration-300"
-                                            aria-label="Eliminar"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {/* Modal de Creación / Edición */}
-            {state.isModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm overflow-y-auto">
-                    <div className="bg-[var(--surface)] w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[90vh] animate-in zoom-in-95 duration-200">
-                        {/* Formulario */}
-                        <form onSubmit={actions.handleSave} className="flex-1 p-6 md:p-8 overflow-y-auto space-y-6">
-                            <div className="flex justify-between items-center pb-2 border-b border-[var(--border)]">
-                                <h3 className="text-xl font-black text-[var(--text)] uppercase tracking-tight">
-                                    {state.editingBanner ? 'Editar Banner' : 'Nuevo Banner'}
-                                </h3>
-                                <button 
-                                    type="button" 
-                                    onClick={() => actions.setIsModalOpen(false)}
-                                    className="p-2 hover:bg-[var(--secondary)] rounded-xl transition-colors text-[var(--text)]/40"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
-
-                            <div className="space-y-4">
-                                {/* Position Selector */}
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text)]/40">Posición en Tienda</label>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                        {[
-                                            { id: 'HERO', label: 'HERO', desc: 'Banner principal' },
-                                            { id: 'TOP_BAR', label: 'TOP BAR', desc: 'Barra superior' },
-                                            { id: 'BETWEEN_PRODUCTS', label: 'INTERCALADO', desc: 'Entre secciones' },
-                                        ].map((opt) => (
-                                            <button
-                                                key={opt.id}
-                                                type="button"
-                                                onClick={() => actions.setPosition(opt.id as any)}
-                                                className={cn(
-                                                    "p-3 rounded-2xl border text-left transition-all duration-300 relative overflow-hidden",
-                                                    state.form.position === opt.id 
-                                                        ? "bg-[var(--primary)]/10 border-[var(--primary)] shadow-sm" 
-                                                        : "bg-[var(--bg)] border-[var(--border)] hover:border-[var(--primary)]/30 hover:bg-[var(--primary)]/5"
-                                                )}
-                                            >
-                                                <div className="flex items-center gap-2 mb-0.5 relative z-10">
-                                                    <div className={cn("w-2 h-2 rounded-full transition-colors", state.form.position === opt.id ? "bg-[var(--primary)]" : "bg-[var(--text)]/20")} />
-                                                    <span className={cn("font-black text-xs transition-colors", state.form.position === opt.id ? "text-[var(--primary)]" : "text-[var(--text)]")}>
-                                                        {opt.label}
-                                                    </span>
-                                                </div>
-                                                <span className="text-[10px] font-medium text-[var(--text)]/50 pl-4 block relative z-10">{opt.desc}</span>
-                                                {state.form.position === opt.id && (
-                                                    <div className="absolute top-0 right-0 w-16 h-16 bg-[var(--primary)]/5 rounded-full blur-xl -mr-8 -mt-8" />
-                                                )}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Text Fields (For all positions) */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text)]/40">Título (Opcional)</label>
-                                            <input
-                                                type="text"
-                                                placeholder="Ej. Colección de Verano"
-                                                className="w-full px-4 py-3 rounded-2xl bg-[var(--bg)] border border-[var(--border)] font-bold text-sm text-[var(--text)] focus:border-[var(--primary)] outline-none"
-                                                value={state.form.title}
-                                                onChange={(e) => actions.setTitle(e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text)]/40">Subtítulo (Opcional)</label>
-                                            <input
-                                                type="text"
-                                                placeholder="Ej. Hasta 50% de descuento"
-                                                className="w-full px-4 py-3 rounded-2xl bg-[var(--bg)] border border-[var(--border)] font-bold text-sm text-[var(--text)] focus:border-[var(--primary)] outline-none"
-                                                value={state.form.subtitle}
-                                                onChange={(e) => actions.setSubtitle(e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
-
-
-                                {/* Image Upload */}
-                                {state.form.position !== 'TOP_BAR' && (
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text)]/40">Imagen de Banner (Obligatorio para {state.form.position})</label>
-                                        
-                                        <label className="group relative w-full h-32 flex flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-[var(--border)] hover:border-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all cursor-pointer overflow-hidden bg-[var(--bg)]">
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                className="hidden"
-                                                onChange={(e) => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) actions.handleImageUpload(file);
-                                                }}
-                                                disabled={state.uploading}
-                                            />
-                                            
-                                            {state.form.imageUrl ? (
-                                                <>
-                                                    <Image src={state.form.imageUrl} alt="Banner subido" fill sizes="700px" className="object-contain opacity-60 group-hover:opacity-40 transition-opacity" />
-                                                    <div className="absolute inset-0 flex items-center justify-center flex-col z-10 opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md">
-                                                        <Upload className="w-6 h-6 text-white mb-1" />
-                                                        <span className="text-xs font-bold text-white">Cambiar imagen</span>
-                                                    </div>
-                                                </>
-                                            ) : state.uploading ? (
-                                                <div className="flex flex-col items-center text-[var(--primary)]">
-                                                    <Loader2 className="w-6 h-6 animate-spin mb-2" />
-                                                    <span className="text-xs font-bold">Subiendo...</span>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <div className="w-10 h-10 rounded-full bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] group-hover:scale-110 transition-transform">
-                                                        <Upload className="w-5 h-5" />
-                                                    </div>
-                                                    <span className="text-xs font-bold text-[var(--text)]/60">Haz click para subir una imagen</span>
-                                                </>
-                                            )}
-                                        </label>
-
-                                        <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10 text-blue-600 space-y-2 mt-3">
-                                            <div className="flex items-center gap-2">
-                                                <Info className="w-4 h-4 shrink-0" />
-                                                <span className="text-xs font-black uppercase tracking-wider">Recomendación para {state.form.position}</span>
-                                            </div>
-                                            {state.form.position === 'HERO' ? (
-                                                <div className="space-y-1 text-blue-600/70">
-                                                    <p className="text-[10px] font-bold leading-relaxed">
-                                                        El banner Hero ocupa todo el ancho de la tienda. Para que se vea nítido en PC y móvil usa:
-                                                    </p>
-                                                    <ul className="text-[10px] font-bold space-y-0.5 pl-3 list-disc">
-                                                        <li><span className="text-blue-600">Tamaño ideal:</span> 1920 × 800 px  o  1200 × 500 px</li>
-                                                        <li><span className="text-blue-600">Relación de aspecto:</span> ~16:6.5 (panorámico)</li>
-                                                        <li><span className="text-blue-600">Peso máximo:</span> 500 KB — usa WebP o JPG comprimido</li>
-                                                    </ul>
-                                                </div>
-                                            ) : (
-                                                <div className="space-y-1 text-blue-600/70">
-                                                    <p className="text-[10px] font-bold leading-relaxed">
-                                                        El banner intercalado aparece entre las secciones de productos. Para que se vea bien en PC y móvil usa:
-                                                    </p>
-                                                    <ul className="text-[10px] font-bold space-y-0.5 pl-3 list-disc">
-                                                        <li><span className="text-blue-600">Tamaño ideal:</span> 1920 × 600 px  o  1200 × 375 px</li>
-                                                        <li><span className="text-blue-600">Relación de aspecto:</span> ~16:5 (muy panorámico)</li>
-                                                        <li><span className="text-blue-600">Peso máximo:</span> 300 KB — usa WebP o JPG comprimido</li>
-                                                    </ul>
-                                                    <p className="text-[10px] font-bold text-blue-500/60 italic mt-1">
-                                                        <Lightbulb className="inline w-3.5 h-3.5 -mt-0.5" /> El texto del título se superpone en la parte izquierda de la imagen.
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Focal Point Selector */}
-                                {state.form.position !== 'TOP_BAR' && (
-                                    <div className="space-y-2 pt-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text)]/40">Punto Focal de la Imagen</label>
-                                        <div className="grid grid-cols-5 gap-2">
-                                            {[
-                                                { id: 'center', label: 'Centro' },
-                                                { id: 'top', label: 'Arriba' },
-                                                { id: 'bottom', label: 'Abajo' },
-                                                { id: 'left', label: 'Izquierda' },
-                                                { id: 'right', label: 'Derecha' },
-                                            ].map((fp) => (
-                                                <button
-                                                    key={fp.id}
-                                                    type="button"
-                                                    onClick={() => actions.setFocalPoint(fp.id)}
-                                                    className={cn(
-                                                        "py-2.5 px-2 rounded-xl border text-center text-xs font-bold transition-all duration-300",
-                                                        (state.form.focalPoint || 'center') === fp.id
-                                                            ? "bg-[var(--primary)] text-white border-[var(--primary)] shadow-sm"
-                                                            : "bg-[var(--bg)] border-[var(--border)] text-[var(--text)] hover:border-[var(--primary)]/30"
-                                                    )}
-                                                >
-                                                    {fp.label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Link CTA */}
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text)]/40 flex items-center gap-1">
-                                        <LinkIcon className="w-3.5 h-3.5" />
-                                        Enlace de Acción (CTA - Opcional)
-                                    </label>
-                                    <input
-                                        type="text"
-                                        placeholder="Ej. /dashboard/products o enlace externo"
-                                        className="w-full px-4 py-3 rounded-2xl bg-[var(--bg)] border border-[var(--border)] font-bold text-sm text-[var(--text)] focus:border-[var(--primary)] outline-none"
-                                        value={state.form.linkUrl}
-                                        onChange={(e) => actions.setLinkUrl(e.target.value)}
-                                    />
-                                </div>
-
-                                {/* Dates & Status */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text)]/40 flex items-center gap-1">
-                                            <Calendar className="w-3.5 h-3.5" />
-                                            Vigencia Desde (Opcional)
-                                        </label>
-                                        <input
-                                            type="date"
-                                            className="w-full px-4 py-3 rounded-2xl bg-[var(--bg)] border border-[var(--border)] font-bold text-sm text-[var(--text)] focus:border-[var(--primary)] outline-none"
-                                            value={state.form.startsAt}
-                                            onChange={(e) => actions.setStartsAt(e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text)]/40 flex items-center gap-1">
-                                            <Calendar className="w-3.5 h-3.5" />
-                                            Vigencia Hasta (Opcional)
-                                        </label>
-                                        <input
-                                            type="date"
-                                            className="w-full px-4 py-3 rounded-2xl bg-[var(--bg)] border border-[var(--border)] font-bold text-sm text-[var(--text)] focus:border-[var(--primary)] outline-none"
-                                            value={state.form.endsAt}
-                                            onChange={(e) => actions.setEndsAt(e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Active Toggle */}
-                                <div className="flex items-center gap-3 pt-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => actions.setIsActive(!state.form.isActive)}
-                                        className="text-[var(--primary)]"
-                                    >
-                                        {state.form.isActive ? (
-                                            <ToggleRight className="w-8 h-8 text-green-500" />
-                                        ) : (
-                                            <ToggleLeft className="w-8 h-8 text-[var(--text)]/30" />
-                                        )}
-                                    </button>
-                                    <span className="text-xs font-black text-[var(--text)]/60">
-                                        Mostrar inmediatamente en la tienda pública
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* Submit Buttons */}
-                            <div className="flex gap-3 pt-4 border-t border-[var(--border)]">
-                                <Button 
-                                    type="button" 
-                                    variant="secondary" 
-                                    onClick={() => actions.setIsModalOpen(false)}
-                                    className="flex-1 rounded-2xl py-3.5"
-                                >
-                                    Cancelar
-                                </Button>
-                                <Button 
-                                    type="submit" 
-                                    variant="primary" 
-                                    disabled={state.saving || (state.form.position !== 'TOP_BAR' && !state.form.imageUrl)}
-                                    className="flex-1 rounded-2xl py-3.5"
-                                    leftIcon={state.saving ? <Loader2 className="w-5 h-5 animate-spin" /> : undefined}
-                                >
-                                    {state.editingBanner ? 'Actualizar' : 'Crear'}
-                                </Button>
-                            </div>
-                        </form>
-
-                        {/* Columna de Preview Visual (Fase 7 Real-time Preview) */}
-                        <div className="flex w-full md:w-[350px] bg-[var(--secondary)] md:border-l border-t md:border-t-0 border-[var(--border)] p-6 flex-col space-y-6">
-                            <div className="flex justify-between items-center border-b border-[var(--border)]/60 pb-3">
-                                <h4 className="font-black text-xs uppercase tracking-widest text-[var(--text)]/60">
-                                    Preview en Vivo
-                                </h4>
-                                <div className="flex bg-[var(--surface)] border border-[var(--border)] p-0.5 rounded-lg">
-                                    <button 
-                                        type="button" 
-                                        onClick={() => setPreviewMode('desktop')}
-                                        className={cn("p-1 rounded-md transition-all", previewMode === 'desktop' ? 'bg-[var(--primary)] text-white' : 'text-[var(--text)]/40 hover:text-[var(--text)]')}
-                                    >
-                                        <Laptop className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button 
-                                        type="button" 
-                                        onClick={() => setPreviewMode('mobile')}
-                                        className={cn("p-1 rounded-md transition-all", previewMode === 'mobile' ? 'bg-[var(--primary)] text-white' : 'text-[var(--text)]/40 hover:text-[var(--text)]')}
-                                    >
-                                        <Smartphone className="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Simulated Device Frame */}
-                            <div className="flex-1 flex items-center justify-center">
-                                <div className={cn(
-                                    "bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-lg overflow-hidden flex flex-col relative transition-all duration-300",
-                                    previewMode === 'mobile' ? 'w-[200px] h-[350px]' : 'w-full h-[220px]'
-                                )}>
-                                    {/* Mock Header */}
-                                    <div className="bg-[var(--surface)] border-b border-[var(--border)]/40 p-2.5 flex justify-between items-center shrink-0">
-                                        <div className="w-12 h-2.5 bg-[var(--text)]/10 rounded-full" />
-                                        <div className="w-4 h-4 bg-[var(--primary)]/10 rounded-full" />
-                                    </div>
-
-                                    {/* Simulated Content Area */}
-                                    <div className="flex-1 p-3 overflow-y-auto custom-scrollbar space-y-3 bg-[var(--bg)]">
-                                        {/* TOP_BAR Preview */}
-                                        {state.form.position === 'TOP_BAR' && (
-                                            <div className="bg-[var(--primary)] text-white text-[7px] font-black text-center py-1.5 px-2 rounded-lg leading-tight shadow-sm select-none">
-                                                {state.form.title || 'TEXTO DE ANUNCIO'}
-                                                {state.form.subtitle && <span className="block opacity-80 text-[6px] font-medium mt-0.5">{state.form.subtitle}</span>}
-                                            </div>
-                                        )}
-
-                                        {/* HERO Preview */}
-                                        {state.form.position === 'HERO' && (
-                                            <div className={cn(
-                                                "w-full rounded-xl relative overflow-hidden bg-[var(--secondary)] flex items-center justify-center",
-                                                previewMode === 'mobile' ? 'aspect-[16/7]' : 'aspect-[21/9]'
-                                            )}>
-                                                {state.form.imageUrl ? (
-                                                    <Image
-                                                        src={state.form.imageUrl}
-                                                        alt="Preview"
-                                                        fill
-                                                        sizes="350px"
-                                                        className={cn(
-                                                            "object-contain",
-                                                            previewMode === 'desktop' && "object-cover"
-                                                        )}
-                                                    />
-                                                ) : (
-                                                    <div className="text-[8px] text-[var(--text)]/30 font-bold uppercase">Sin Imagen</div>
-                                                )}
-                                                <div className="absolute inset-0 bg-black/35 flex flex-col justify-end p-2 text-white">
-                                                    <p className={cn(
-                                                        "font-black truncate leading-none mb-0.5",
-                                                        previewMode === 'mobile' ? 'text-[6px]' : 'text-[8px]'
-                                                    )}>{state.form.title || 'Título de Oferta'}</p>
-                                                    <p className={cn(
-                                                        "font-medium opacity-80 truncate leading-none",
-                                                        previewMode === 'mobile' ? 'text-[4.5px]' : 'text-[6px]'
-                                                    )}>{state.form.subtitle || 'Detalle del banner decorativo'}</p>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Mock Category Bar */}
-                                        <div className="flex gap-1.5 py-1">
-                                            <div className="w-10 h-3 bg-[var(--primary)]/20 rounded-md shrink-0" />
-                                            <div className="w-8 h-3 bg-[var(--text)]/5 rounded-md shrink-0" />
-                                            <div className="w-12 h-3 bg-[var(--text)]/5 rounded-md shrink-0" />
-                                        </div>
-
-                                        {/* Mock Grid */}
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <div className="aspect-[4/5] bg-[var(--surface)] border border-[var(--border)] rounded-xl p-1.5 flex flex-col justify-between">
-                                                <div className="w-full aspect-square bg-[var(--secondary)] rounded-lg" />
-                                                <div className="space-y-1 mt-1">
-                                                    <div className="w-3/4 h-1.5 bg-[var(--text)]/10 rounded-full" />
-                                                    <div className="w-1/2 h-1.5 bg-[var(--primary)]/20 rounded-full" />
-                                                </div>
-                                            </div>
-
-                                            {/* BETWEEN_PRODUCTS Preview */}
-                                            {state.form.position === 'BETWEEN_PRODUCTS' ? (
-                                                <div className="col-span-2 aspect-[4/1] w-full rounded-xl relative overflow-hidden bg-[var(--secondary)] flex items-center justify-center">
-                                                    {state.form.imageUrl ? (
-                                                        <Image
-                                                            src={state.form.imageUrl}
-                                                            alt="Preview"
-                                                            fill
-                                                            sizes="350px"
-                                                            className="object-contain"
-                                                        />
-                                                    ) : (
-                                                        <div className="text-[8px] text-[var(--text)]/30 font-bold uppercase">Banner Central</div>
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <div className="aspect-[4/5] bg-[var(--surface)] border border-[var(--border)] rounded-xl p-1.5 flex flex-col justify-between">
-                                                    <div className="w-full aspect-square bg-[var(--secondary)] rounded-lg" />
-                                                    <div className="space-y-1 mt-1">
-                                                        <div className="w-3/4 h-1.5 bg-[var(--text)]/10 rounded-full" />
-                                                        <div className="w-1/2 h-1.5 bg-[var(--primary)]/20 rounded-full" />
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Modal de Confirmación de Eliminación */}
-            {state.confirmDeleteId && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-[var(--surface)] w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="p-8 space-y-6 text-center flex flex-col items-center">
-                            <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center">
-                                <Trash2 className="w-8 h-8" />
-                            </div>
-                            <div className="space-y-2">
-                                <h2 className="text-xl font-black text-[var(--text)] uppercase tracking-tight">¿Eliminar Banner?</h2>
-                                <p className="text-[var(--text)]/40 font-bold text-xs">Esta acción es permanente y quitará el banner de la tienda.</p>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3 w-full">
-                                <button 
-                                    onClick={() => actions.setConfirmDeleteId(null)} 
-                                    className="py-3.5 px-4 rounded-2xl font-black text-xs transition-all active:scale-95 bg-[var(--bg)] text-[var(--text)]/40 border border-[var(--border)] hover:bg-[var(--secondary)]"
-                                >
-                                    Cancelar
-                                </button>
-                                <button 
-                                    onClick={actions.handleDelete} 
-                                    className="py-3.5 px-4 rounded-2xl font-black text-xs transition-all active:scale-95 bg-red-500 text-white shadow-lg shadow-red-500/20 hover:scale-[1.02]"
-                                >
-                                    Eliminar
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+                <aside className="min-w-0 rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-4 lg:self-start lg:sticky lg:top-0"><div className="flex items-center justify-between gap-3"><div><h3 className="flex items-center gap-2 text-sm font-black text-[var(--text)]"><Eye className="h-4 w-4 text-[var(--primary)]" /> Vista previa</h3><p className="mt-1 text-xs text-[var(--text)]/50">Representación aproximada</p></div><div className="flex rounded-xl bg-[var(--secondary)] p-1"><button type="button" aria-label="Vista previa móvil" aria-pressed={previewMode === 'mobile'} onClick={() => setPreviewMode('mobile')} className={cn('rounded-lg p-2', previewMode === 'mobile' ? 'bg-[var(--surface)] text-[var(--primary)] shadow-sm' : 'text-[var(--text)]/50')}><Smartphone className="h-4 w-4" /></button><button type="button" aria-label="Vista previa escritorio" aria-pressed={previewMode === 'desktop'} onClick={() => setPreviewMode('desktop')} className={cn('rounded-lg p-2', previewMode === 'desktop' ? 'bg-[var(--surface)] text-[var(--primary)] shadow-sm' : 'text-[var(--text)]/50')}><Laptop className="h-4 w-4" /></button></div></div><div className={cn('mx-auto mt-4 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]', previewMode === 'mobile' ? 'max-w-[220px]' : 'w-full')}><div className="flex items-center justify-between border-b border-[var(--border)] p-3"><span className="h-2 w-16 rounded-full bg-[var(--text)]/15" /><span className="h-4 w-4 rounded-full bg-[var(--primary)]/20" /></div><div className="space-y-3 p-3">{form.position === 'TOP_BAR' ? <div className="rounded-md bg-[var(--primary)] px-2 py-2 text-center text-[10px] font-bold text-[var(--bg)]">{form.title || form.subtitle ? [form.title, form.subtitle].filter(Boolean).join(' | ') : 'Tu aviso aparecerá aquí'}</div> : <div className="relative overflow-hidden rounded-lg bg-[var(--secondary)]" style={{ aspectRatio: previewMode === 'mobile' && imageRatio ? String(imageRatio) : form.position === 'BETWEEN_PRODUCTS' ? '16 / 5' : '16 / 7' }}>{form.imageUrl ? <Image src={form.imageUrl} alt="Vista previa del banner" fill sizes="320px" onLoad={e => { const image = e.currentTarget; if (image.naturalWidth && image.naturalHeight) setImageRatio(image.naturalWidth / image.naturalHeight); }} className={previewMode === 'desktop' ? 'object-cover' : 'object-contain'} style={{objectPosition: form.focalPoint}} /> : <div className="flex h-full min-h-20 items-center justify-center text-xs text-[var(--text)]/40">Selecciona una imagen</div>}{(form.title || form.subtitle) && <div className={cn('absolute inset-0 flex flex-col bg-gradient-to-t from-black/65 to-transparent p-2 text-white', form.position === 'BETWEEN_PRODUCTS' ? 'justify-center' : 'justify-end')}><p className="break-words text-[11px] font-black leading-tight">{form.title}</p><p className="mt-0.5 break-words text-[9px]">{form.subtitle}</p></div>}</div>}<div className="flex gap-2"><span className="h-3 w-12 rounded bg-[var(--primary)]/20" /><span className="h-3 w-10 rounded bg-[var(--secondary)]" /></div><div className="grid grid-cols-2 gap-2"><span className="aspect-square rounded-lg bg-[var(--secondary)]" /><span className="aspect-square rounded-lg bg-[var(--secondary)]" /></div></div></div>{form.position !== 'TOP_BAR' && <p className="mt-3 text-xs leading-relaxed text-[var(--text)]/50">En móvil se muestra la imagen completa; en pantallas grandes puede recortarse según el enfoque.</p>}</aside>
+                </form><div className="flex shrink-0 justify-end gap-2 border-t border-[var(--border)] bg-[var(--surface)] px-5 py-4 sm:px-7"><button type="button" onClick={close} disabled={state.uploading || state.saving} className="min-h-11 rounded-xl border border-[var(--border)] px-4 text-sm font-bold text-[var(--text)]/70 disabled:opacity-50">Cancelar</button><button form="banner-form" type="submit" disabled={state.saving || state.uploading} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-5 text-sm font-bold text-[var(--bg)] disabled:opacity-50">{state.saving && <Loader2 className="h-4 w-4 animate-spin" />}{state.saving ? 'Guardando…' : state.editingBanner ? 'Guardar cambios' : 'Crear banner'}</button></div></div></div>}
+            {state.confirmDeleteId && <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/50 p-4"><div role="dialog" aria-modal="true" aria-labelledby="delete-banner-title" className="w-full max-w-sm rounded-3xl bg-[var(--surface)] p-6 shadow-2xl"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-500/10 text-red-500"><Trash2 className="h-6 w-6" /></div><h2 id="delete-banner-title" className="mt-4 text-xl font-black text-[var(--text)]">¿Eliminar este banner?</h2><p className="mt-2 text-sm leading-relaxed text-[var(--text)]/60">Se quitará de la tienda de forma permanente.</p><div className="mt-6 grid grid-cols-2 gap-2"><button disabled={!!state.busyId} onClick={() => actions.setConfirmDeleteId(null)} className="min-h-11 rounded-xl border border-[var(--border)] text-sm font-bold text-[var(--text)]/60 disabled:opacity-50">Cancelar</button><button disabled={!!state.busyId} onClick={() => void actions.handleDelete()} className="min-h-11 rounded-xl bg-red-500 text-sm font-bold text-white disabled:opacity-50">{state.busyId ? 'Eliminando…' : 'Eliminar'}</button></div></div></div>}
+            {state.errorAlert.show && <div className="fixed inset-0 z-[160] flex items-center justify-center bg-black/40 p-4"><div role="alertdialog" aria-modal="true" aria-labelledby="banner-error-title" className="w-full max-w-sm rounded-3xl bg-[var(--surface)] p-6 shadow-2xl"><h2 id="banner-error-title" className="text-lg font-black text-[var(--text)]">{state.errorAlert.title}</h2><p className="mt-2 break-words text-sm leading-relaxed text-[var(--text)]/65">{state.errorAlert.message}</p><button onClick={() => actions.setErrorAlert({ show: false, title: '', message: '' })} className="mt-5 min-h-11 w-full rounded-xl bg-[var(--primary)] text-sm font-bold text-[var(--bg)]">Entendido</button></div></div>}
         </div>
     );
 }

@@ -19,6 +19,7 @@ export function useStoreSettings() {
 
     // Form State
     const [name, setName] = useState('');
+    const [description, setDescription] = useState('');
     const [slug, setSlug] = useState('');
     const [autoGenerateSlug, setAutoGenerateSlug] = useState(true);
     const [whatsapp, setWhatsapp] = useState('');
@@ -49,15 +50,13 @@ export function useStoreSettings() {
     const [marketplaceCategory, setMarketplaceCategory] = useState('');
     const [city, setCity] = useState('');
     const [country, setCountry] = useState(DEFAULT_COUNTRY);
-    const [tags, setTags] = useState<string[]>([]);
+    const [tagsText, setTagsText] = useState('');
     
     // Global discounts
     const [globalDiscountActive, setGlobalDiscountActive] = useState(false);
     const [globalDiscountPercentage, setGlobalDiscountPercentage] = useState(0);
 
     // Deletion
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [deleteConfirmationName, setDeleteConfirmationName] = useState('');
     const [deleting, setDeleting] = useState(false);
 
     const [suggestedSlug, setSuggestedSlug] = useState<string | null>(null);
@@ -66,6 +65,8 @@ export function useStoreSettings() {
     useEffect(() => {
         if (activeStore) {
             setName(activeStore.name || '');
+            setDescription(activeStore.description || '');
+            setAutoGenerateSlug(activeStore.autoGenerateSlug ?? true);
             setSlug(activeStore.slug || '');
             setWhatsapp(activeStore.whatsappNumber || '');
             setLogoUrl(activeStore.logoUrl || '');
@@ -87,7 +88,7 @@ export function useStoreSettings() {
             setMarketplaceCategory(activeStore.marketplaceCategory || '');
             setCity(activeStore.city || '');
             setCountry(activeStore.country || DEFAULT_COUNTRY);
-            setTags(activeStore.tags || []);
+            setTagsText((activeStore.tags || []).join(', '));
             setGlobalDiscountActive(activeStore.globalDiscountActive ?? false);
             setGlobalDiscountPercentage(activeStore.globalDiscountPercentage ?? 0);
             setLoading(false);
@@ -104,8 +105,10 @@ export function useStoreSettings() {
 
         try {
             await api.updateStore(activeStore.id, {
-                name,
+                name: name.trim(),
+                description: description.trim(),
                 slug,
+                autoGenerateSlug,
                 whatsappNumber: whatsapp,
                 logoUrl,
                 referenceLocation,
@@ -126,7 +129,7 @@ export function useStoreSettings() {
                 marketplaceCategory,
                 city,
                 country,
-                tags,
+                tags: tagsText.split(',').map(tag => tag.trim()).filter(Boolean),
                 globalDiscountActive,
                 globalDiscountPercentage
             });
@@ -180,7 +183,7 @@ export function useStoreSettings() {
             const file = new File([blob], 'logo.webp', { type: 'image/webp' });
             const url = await storage.uploadImage(file, 'logos');
             setLogoUrl(url);
-            setSuccess('Logo subido correctamente.');
+            setSuccess('Logo listo. Guarda los cambios para aplicarlo a tu tienda.');
         } catch (err: unknown) {
             setError('Error al subir el logo.');
             console.error(err);
@@ -197,7 +200,7 @@ export function useStoreSettings() {
     };
 
     const handleDeleteStore = async () => {
-        if (!activeStore || deleteConfirmationName !== activeStore.name) return;
+        if (!activeStore) return;
 
         setDeleting(true);
         try {
@@ -207,7 +210,7 @@ export function useStoreSettings() {
         } catch (err) {
             console.error('Delete Store Error:', err);
             setError('Error al eliminar la tienda');
-            setIsDeleteModalOpen(false);
+            throw new Error('No se pudo eliminar la tienda. Inténtalo de nuevo.');
         } finally {
             setDeleting(false);
         }
@@ -223,19 +226,21 @@ export function useStoreSettings() {
     return {
         state: {
             loading, saving, uploading, success, error,
-            name, slug, autoGenerateSlug, whatsapp, logoUrl,
+            name, description, slug, autoGenerateSlug, whatsapp, logoUrl,
+            savedStoreName: activeStore?.name || '', savedSlug: activeStore?.slug || '',
             referenceLocation, mapsUrl, businessHours,
             instagramUrl, facebookUrl, tiktokUrl, twitterUrl, pinterestUrl, youtubeUrl,
             deliveryEnabled, deliveryPrice,
             theme, mode, applyToDashboard,
-            isPublic, marketplaceCategory, city, country, tags,
-            isDeleteModalOpen, deleteConfirmationName, deleting,
+            isPublic, marketplaceCategory, city, country, tagsText,
+            deleting,
             suggestedSlug,
             globalDiscountActive, globalDiscountPercentage,
             cropImageSrc,
         },
         actions: {
             setName: handleNameChange,
+            setDescription,
             setSlug,
             setAutoGenerateSlug,
             setWhatsapp,
@@ -258,11 +263,9 @@ export function useStoreSettings() {
             setMarketplaceCategory,
             setCity,
             setCountry,
-            setTags,
+            setTagsText,
             setGlobalDiscountActive,
             setGlobalDiscountPercentage,
-            setIsDeleteModalOpen,
-            setDeleteConfirmationName,
             setSuggestedSlug,
             handleUpdateStore,
             handleLogoUpload,

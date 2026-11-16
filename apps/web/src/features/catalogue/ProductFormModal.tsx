@@ -5,6 +5,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { GeneralInfoSection } from './components/GeneralInfoSection';
 import { MediaUploadSection } from './components/MediaUploadSection';
 import { VariantsSection } from './components/VariantsSection';
+import { findSimilarProducts } from '@/lib/productDuplicates';
 import { Button } from '@/components/atoms/Button';
 
 interface ProductFormModalProps {
@@ -16,6 +17,8 @@ export function ProductFormModal({ hook }: ProductFormModalProps) {
     const { form } = state;
 
     if (!state.isModalOpen) return null;
+
+    const similar = findSimilarProducts(form.name, state.allProducts.filter(p => p.id !== state.editingProduct?.id));
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center sm:p-4 bg-black/40 backdrop-blur-sm">
@@ -55,6 +58,7 @@ export function ProductFormModal({ hook }: ProductFormModalProps) {
                             form={form}
                             actions={actions}
                             categories={state.categories}
+                            similarNames={similar.map(p => p.name)}
                         />
 
                         {/* Right Side: Variants */}

@@ -118,7 +118,7 @@ export class OrdersService {
     const uniqueProductIds: string[] = [...new Set(productIds)];
     const products = (await this.prisma.withRetry(() =>
       this.prisma.product.findMany({
-        where: { id: { in: uniqueProductIds }, storeId },
+        where: { id: { in: uniqueProductIds }, storeId, isActive: true },
         include: { inventory: true, variants: true, store: true },
       }),
     )) as ProductWithDetails[];
@@ -165,7 +165,7 @@ export class OrdersService {
             `Variant not found for product: ${product.name}`,
           );
 
-        if (variant.price) {
+        if (!variant.useParentPrice && variant.price !== null) {
           price = Number(variant.price);
         }
 

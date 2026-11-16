@@ -35,10 +35,12 @@ export function DiscountsSection({
 
     // Apply search filter
     if (searchTerm.trim()) {
-        const search = searchTerm.toLowerCase();
+        const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es');
+        const search = normalize(searchTerm.trim());
         discountedProducts = discountedProducts.filter(p =>
-            p.name.toLowerCase().includes(search) ||
-            p.description?.toLowerCase().includes(search)
+            normalize(p.name).includes(search) ||
+            normalize(p.description || '').includes(search) ||
+            (p.variants || []).some(variant => normalize(variant.name).includes(search))
         );
     }
 
@@ -98,7 +100,7 @@ export function DiscountsSection({
                                             {/* Ambient Blur Background */}
                                             <Image
                                                 src={product.images[0]}
-                                                alt="Background"
+                                                alt=""
                                                 fill
                                                 className="object-cover blur-2xl scale-110 opacity-30"
                                                 sizes="100px"
@@ -107,7 +109,7 @@ export function DiscountsSection({
                                                 src={product.images[0]}
                                                 alt={product.name}
                                                 fill
-                                                className="object-cover relative z-10"
+                                                className="object-contain relative z-10 p-1"
                                                 sizes="200px"
                                             />
                                         </>
@@ -116,7 +118,7 @@ export function DiscountsSection({
                                     )}
 
                                     {/* Discount badge */}
-                                    <div className="absolute top-2 right-2">
+                                    <div className="absolute top-2 right-2 z-20">
                                         <div className="bg-green-500 text-white px-2 py-1 rounded-lg text-[10px] font-black shadow-lg">
                                             -{savedPercent}%
                                         </div>
@@ -124,7 +126,7 @@ export function DiscountsSection({
 
                                     {/* Category badge */}
                                     {product.categoryId && (
-                                        <div className="absolute bottom-2 left-2">
+                                        <div className="absolute bottom-2 left-2 z-20">
                                             <span className="bg-white/90 backdrop-blur-sm text-[var(--text)] px-2 py-0.5 rounded-md text-[8px] font-black uppercase shadow-sm">
                                                 {categories.find(c => c.id === product.categoryId)?.name}
                                             </span>

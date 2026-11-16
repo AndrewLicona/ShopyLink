@@ -15,7 +15,7 @@ export interface PosterOptions {
 /* ---------- Medidas del afiche (escala 1080px) ---------- */
 const W = 1080;
 const PAD = 84;
-const RADIUS = 74;          // rounded-[2.5rem] de la vista web
+const RADIUS = 0;          // rounded-[2.5rem] de la vista web
 const BORDER = 10;          // border-4 slate-100
 const ACCENT_H = 26;        // barra superior de color
 const LOGO_BOX = 232;       // w-24 h-24
@@ -265,7 +265,7 @@ export async function renderPosterToPng(options: PosterOptions): Promise<string>
     ctx.fillStyle = COLORS.slate900;
     ctx.font = '900 60px Inter, Arial, sans-serif';
     nameLines.forEach((line) => {
-        ctx.fillText(line, W / 2, cursorY);
+        ctx.fillText(line, W / 2, cursorY, contentWidth);
         cursorY += 72;
     });
 
@@ -275,7 +275,7 @@ export async function renderPosterToPng(options: PosterOptions): Promise<string>
         ctx.fillStyle = COLORS.slate500;
         ctx.font = '700 30px Inter, Arial, sans-serif';
         refLines.forEach((line) => {
-            ctx.fillText(line, W / 2, cursorY);
+            ctx.fillText(line, W / 2, cursorY, contentWidth);
             cursorY += 40;
         });
     }
@@ -289,7 +289,8 @@ export async function renderPosterToPng(options: PosterOptions): Promise<string>
         color: { dark: COLORS.slate900, light: '#ffffff' },
     });
     const qrImage = await loadImage(qrDataUrl);
-    if (qrImage) {
+    if (!qrImage) throw new Error('No se pudo generar el código QR.');
+    {
         ctx.save();
         ctx.fillStyle = '#ffffff';
         ctx.strokeStyle = COLORS.slate200;
@@ -313,7 +314,7 @@ export async function renderPosterToPng(options: PosterOptions): Promise<string>
     ctx.fillStyle = COLORS.slate900;
     ctx.font = '900 38px Inter, Arial, sans-serif';
     ctaLines.forEach((line) => {
-        ctx.fillText(line, W / 2, cursorY);
+        ctx.fillText(line, W / 2, cursorY, contentWidth);
         cursorY += 48;
     });
 
@@ -322,7 +323,7 @@ export async function renderPosterToPng(options: PosterOptions): Promise<string>
     /* ---------- URL ---------- */
     ctx.fillStyle = COLORS.slate400;
     ctx.font = '600 26px ui-monospace, Menlo, monospace';
-    ctx.fillText(options.storeUrl, W / 2, cursorY);
+    ctx.fillText(options.storeUrl, W / 2, cursorY, contentWidth);
     cursorY += 34 + 30;
 
     /* ---------- Badge de WhatsApp ---------- */

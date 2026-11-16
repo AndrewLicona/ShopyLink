@@ -12,6 +12,7 @@ interface VariantSelectorProps {
     quantity: number;
     onQuantityChange: (qty: number) => void;
     onShowMessage: (msg: string) => void;
+    inCart?: number;
 }
 
 export function VariantSelector({
@@ -20,7 +21,8 @@ export function VariantSelector({
     onSelectVariant,
     quantity,
     onQuantityChange,
-    onShowMessage
+    onShowMessage,
+    inCart = 0,
 }: VariantSelectorProps) {
     const activeVariant = product.variants?.find(v => v.id === selectedVariantId);
 
@@ -35,10 +37,10 @@ export function VariantSelector({
     const availableStock = getAvailableStock();
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             {/* Variants */}
             {product.variants && product.variants.length > 0 && (
-                <div className="space-y-4">
+                <div className="space-y-3">
                     <div className="flex items-center gap-2">
                         <div className="w-1 h-4 bg-[var(--primary)] rounded-full"></div>
                         <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text)]">Opciones</h3>
@@ -47,6 +49,7 @@ export function VariantSelector({
                         {(!product.trackInventory || (product.inventory?.stock ?? 0) > 0) && (
                             <button
                                 onClick={() => onSelectVariant(null)}
+                                aria-pressed={!selectedVariantId}
                                 className={cn(
                                     "px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all duration-200",
                                     !selectedVariantId
@@ -68,6 +71,7 @@ export function VariantSelector({
                                 <button
                                     key={v.id}
                                     onClick={() => onSelectVariant(v.id)}
+                                    aria-pressed={selectedVariantId === v.id}
                                     className={cn(
                                         "px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all duration-200",
                                         selectedVariantId === v.id
@@ -83,36 +87,40 @@ export function VariantSelector({
             )}
 
             {/* Quantity Selector */}
-            <div className="bg-[var(--secondary)]/50 p-4 rounded-[2rem] flex items-center justify-between border border-[var(--border)]/50">
-                <div className="pl-2">
-                    <p className="text-[9px] font-black text-[var(--text)]/30 uppercase tracking-[0.2em] mb-1">
+            <div className="bg-[var(--secondary)]/40 p-3 sm:p-4 rounded-2xl flex flex-wrap gap-3 items-center justify-between border border-[var(--border)]">
+                <div>
+                    <p className="text-[10px] font-bold text-[var(--text)]/55 uppercase tracking-wider mb-1">
                         {product.trackInventory ? 'Disponibilidad' : 'Estado'}
                     </p>
                     <div className="flex items-center gap-2">
-                        <div className={cn("w-2 h-2 rounded-full", product.trackInventory ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-blue-500")}></div>
+                        <div className={cn("w-2 h-2 rounded-full", availableStock > 0 ? "bg-green-500" : "bg-amber-500")}></div>
                         <p className="font-black text-sm text-[var(--text)]">
-                            {availableStock === Infinity ? "Disponible" : `${availableStock} unid.`}
+                            {availableStock === Infinity ? 'Disponible' : availableStock > 0 ? `${availableStock} disponibles` : 'Por encargo'}
                         </p>
                     </div>
                 </div>
 
-                <div className="bg-[var(--bg)] p-1.5 rounded-full shadow-sm border border-[var(--border)]/50 flex items-center gap-3">
+                <div className="bg-[var(--bg)] p-1 rounded-xl shadow-sm border border-[var(--border)] flex items-center gap-2">
                     <button
                         onClick={() => onQuantityChange(Math.max(1, quantity - 1))}
-                        className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--secondary)] hover:bg-[var(--border)] text-[var(--text)] transition-all active:scale-90"
+                        aria-label="Restar una unidad"
+                        disabled={quantity <= 1}
+                        className="w-9 h-9 flex items-center justify-center rounded-lg bg-[var(--secondary)] hover:bg-[var(--border)] text-[var(--text)] transition-all active:scale-90 disabled:opacity-40"
                     >
                         <Minus className="w-3 h-3" />
                     </button>
-                    <span className="w-4 text-center font-black text-lg text-[var(--text)]">{quantity}</span>
+                    <span aria-label={`Cantidad: ${quantity}`} className="min-w-6 text-center font-black text-base text-[var(--text)]">{quantity}</span>
                     <button
                         onClick={() => {
-                            if (quantity < availableStock) {
+                            if (quantity + inCart < availableStock) {
                                 onQuantityChange(quantity + 1);
                             } else {
-                                onShowMessage(`Máx ${availableStock}`);
+                                onShowMessage(inCart > 0 ? `Ya tienes ${inCart} en tu carrito. Hay ${availableStock} disponibles.` : `Hay ${availableStock} disponibles.`);
                             }
                         }}
-                        className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--secondary)] hover:bg-[var(--border)] text-[var(--text)] transition-all active:scale-90"
+                        aria-label="Sumar una unidad"
+                        disabled={availableStock <= 0}
+                        className="w-9 h-9 flex items-center justify-center rounded-lg bg-[var(--secondary)] hover:bg-[var(--border)] text-[var(--text)] transition-all active:scale-90 disabled:opacity-40"
                     >
                         <Plus className="w-3 h-3" />
                     </button>

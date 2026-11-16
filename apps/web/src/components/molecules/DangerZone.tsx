@@ -25,12 +25,16 @@ export function DangerZone({
     const [isOpen, setIsOpen] = useState(false);
     const [confirmName, setConfirmName] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
 
     const handleDelete = async () => {
         if (confirmName !== itemName) return;
         setIsLoading(true);
+        setError('');
         try {
             await onDelete();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'No se pudo completar la operación.');
         } finally {
             setIsLoading(false);
         }
@@ -96,12 +100,14 @@ export function DangerZone({
                                 />
                             </div>
 
+                            {error && <p role="alert" className="rounded-xl bg-red-500/10 p-3 text-left text-sm font-bold text-red-600">{error}</p>}
                             <div className="grid grid-cols-2 gap-4">
                                 <button
                                     type="button"
                                     onClick={() => {
                                         setIsOpen(false);
                                         setConfirmName('');
+                                        setError('');
                                     }}
                                     className="py-4 px-6 rounded-2xl font-black text-sm transition-all active:scale-95 bg-[var(--bg)] text-[var(--text)]/40 border border-[var(--border)] hover:bg-[var(--secondary)]"
                                 >

@@ -20,7 +20,7 @@ export function MarketplaceStoreCard({
     store: Store;
     index?: number;
 }) {
-    const productCount = store._count?.products ?? 0;
+    const productCount = store._count?.products;
 
     return (
         <motion.div
@@ -31,17 +31,17 @@ export function MarketplaceStoreCard({
         >
             <Link
                 href={`/marketplace/tienda/${store.slug}`}
-                className="group flex h-full items-center gap-3.5 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200/80 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:ring-gray-300 sm:gap-4 sm:p-5"
+                className="group flex h-full min-w-0 items-center gap-3.5 rounded-2xl bg-white p-4 shadow-[0_2px_12px_rgba(15,23,42,0.05)] ring-1 ring-slate-200/80 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:ring-blue-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 sm:gap-4 sm:p-5"
             >
                 {/* Logo */}
                 <StoreLogo
                     src={store.logoUrl}
                     alt={store.name}
-                    widthClass="w-12 sm:w-14"
-                    maxHeightClass="max-h-14"
-                    className="shrink-0 bg-gray-50 ring-1 ring-gray-200"
+                    widthClass="w-14 sm:w-16"
+                    maxHeightClass="max-h-16"
+                    className="aspect-square shrink-0 bg-gray-50 ring-1 ring-gray-200"
                     imageClassName="transition-transform duration-500 group-hover:scale-105"
-                    sizes="56px"
+                    sizes="64px"
                     fallback={
                         <div className="flex h-full w-full items-center justify-center text-gray-300">
                             <StoreIcon className="h-6 w-6" />
@@ -51,8 +51,8 @@ export function MarketplaceStoreCard({
 
                 {/* Cuerpo */}
                 <div className="min-w-0 flex-1">
-                    <div className="flex items-start gap-2">
-                        <h3 className="truncate text-sm font-black leading-tight text-gray-900 transition-colors group-hover:text-blue-600 sm:text-[15px]">
+                    <div className="flex items-start justify-between gap-2">
+                        <h3 className="min-w-0 truncate text-sm font-black leading-tight text-gray-900 transition-colors group-hover:text-blue-600 sm:text-[15px]">
                             {store.name}
                         </h3>
                         <ArrowUpRight className="h-4 w-4 shrink-0 text-gray-300 transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-blue-500" />
@@ -69,9 +69,9 @@ export function MarketplaceStoreCard({
                                 {store.city.trim()}
                             </span>
                         )}
-                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-500 sm:text-[11px]">
+                        {productCount != null && <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700 sm:text-[11px]">
                             {productCount} {productCount === 1 ? 'producto' : 'productos'}
-                        </span>
+                        </span>}
                     </div>
                 </div>
             </Link>

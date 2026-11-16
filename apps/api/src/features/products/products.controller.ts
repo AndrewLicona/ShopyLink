@@ -17,6 +17,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateInventoryDto } from './dto/update-inventory.dto';
 import { BulkCreateProductDto } from './dto/bulk-create-product.dto';
+import { SuperAdminGuard } from '../../core/auth/super-admin.guard';
 import { JwtAuthGuard } from '../../core/auth/jwt-auth.guard';
 import { RequestWithUser } from '../../core/auth/interfaces/user.interface';
 
@@ -34,7 +35,7 @@ export class ProductsController {
     return this.productsService.create(userId, createProductDto);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, SuperAdminGuard)
   @Post('bulk')
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   createBulk(

@@ -81,19 +81,9 @@ export class BannersService {
     if (onlyActive) {
       const now = new Date();
       where.isActive = true;
-      where.OR = [
-        {
-          startsAt: null,
-          endsAt: null,
-        },
-        {
-          startsAt: { lte: now },
-          endsAt: { gte: now },
-        },
-        {
-          startsAt: { lte: now },
-          endsAt: null,
-        },
+      where.AND = [
+        { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
+        { OR: [{ endsAt: null }, { endsAt: { gte: now } }] },
       ];
     }
 

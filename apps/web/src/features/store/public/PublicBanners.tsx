@@ -228,6 +228,7 @@ export function PublicBanners({ banners, position }: PublicBannersProps) {
                         <BannerMedia
                             src={banner.imageUrl}
                             alt={banner.title || 'Promoción'}
+                            focalPoint={banner.focalPoint}
                             sizes="(min-width: 1024px) 1200px, 100vw"
                         />
                         {/* Gradient overlay solo cuando hay texto */}

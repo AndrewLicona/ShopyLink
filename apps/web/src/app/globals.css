@@ -306,3 +306,65 @@ body {
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
+/* El selector nativo conserva teclado y calendario del dispositivo, con un solo icono coherente con la aplicación. */
+.styled-date-input { position: relative; }
+.styled-date-input::-webkit-calendar-picker-indicator {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 44px;
+  height: 100%;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+@supports (-moz-appearance: none) {
+  .styled-date-icon { display: none; }
+}
+
+/* Volumen y movimiento creados a partir del favicon original de ShopyLinks. */
+.brand-loader-scene {
+  position: relative;
+  display: grid;
+  width: 150px;
+  height: 150px;
+  place-items: center;
+  perspective: 580px;
+}
+.brand-loader-glow {
+  position: absolute;
+  inset: 26px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.13);
+  filter: blur(22px);
+}
+.brand-loader-object {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  transform-style: preserve-3d;
+  transform: rotateX(12deg) rotateY(-22deg) rotateZ(-6deg);
+  animation: brand-loader-turn 3.4s ease-in-out infinite;
+  will-change: transform;
+}
+.brand-loader-layer, .brand-loader-face {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  backface-visibility: hidden;
+}
+.brand-loader-face {
+  transform: translateZ(1px);
+  filter: drop-shadow(0 5px 6px rgba(37, 99, 235, 0.35));
+}
+@keyframes brand-loader-turn {
+  0%, 100% { transform: rotateX(12deg) rotateY(-24deg) rotateZ(-6deg) translateY(0); }
+  50% { transform: rotateX(-4deg) rotateY(24deg) rotateZ(4deg) translateY(-7px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand-loader-object { animation: none; }
+}
